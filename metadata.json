@@ -1,0 +1,6 @@
+{
+  "name": "Naasir Music",
+  "description": "Offline music player with multi-band equalizer, 3D spatial audio, dynamic edge lighting, custom neon themes, and comprehensive player preferences.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

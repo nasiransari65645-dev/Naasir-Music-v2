@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Ambient Core Glow -->
+    <path
+        android:pathData="M235,260 A130,130 0 1,0 235.1,260"
+        android:strokeColor="#2000E5FF"
+        android:strokeWidth="70"
+        android:fillColor="#00000000" />
+
+    <!-- 1. Outer Circular Swirl: Bottom & Right Arc (Deep Blue & Cobalt) -->
+    <path
+        android:pathData="M140,370 C180,425 240,440 295,425 C350,410 385,370 398,315 C408,265 395,215 370,175 L345,190 C368,228 376,270 368,310 C356,355 324,388 280,398 C235,408 190,392 155,348 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="140"
+                android:startY="420"
+                android:endX="398"
+                android:endY="200"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF1D4ED8" />
+                <item android:offset="0.5" android:color="#FF0284C7" />
+                <item android:offset="1.0" android:color="#FF00E5FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 2. Outer Circular Swirl: Left Arc (Electric Cyan & Turquoise) -->
+    <path
+        android:pathData="M105,255 C105,185 150,130 215,115 C255,105 292,115 320,135 L300,165 C280,148 248,138 218,145 C168,158 135,200 135,255 C135,300 158,340 190,362 L168,390 C128,360 105,315 105,255 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="105"
+                android:startY="310"
+                android:endX="320"
+                android:endY="115"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF0284C7" />
+                <item android:offset="0.5" android:color="#FF00E5FF" />
+                <item android:offset="1.0" android:color="#FF38BDF8" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Specular rim highlight along left arc -->
+    <path
+        android:pathData="M118,245 C118,195 152,148 210,132 C240,122 272,126 295,142"
+        android:strokeColor="#90FFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- 3. Musical Note Head (Bottom-Left Bulb) -->
+    <path
+        android:pathData="M152,345 C125,345 108,322 112,298 C116,274 140,260 165,260 C190,260 206,284 202,308 C198,332 175,345 152,345 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="108"
+                android:startY="320"
+                android:endX="202"
+                android:endY="265"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF1E40AF" />
+                <item android:offset="0.6" android:color="#FF2563EB" />
+                <item android:offset="1.0" android:color="#FF0284C7" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Note head glint highlight -->
+    <path
+        android:pathData="M142,286 C155,278 172,278 178,288"
+        android:strokeColor="#B0FFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- 4. Central 3D 'N' Note: Left Stem & Valley -->
+    <path
+        android:pathData="M165,300 L170,185 C172,160 192,148 215,165 C230,178 275,265 275,265 L275,290 L220,195 C215,188 208,190 208,198 L200,312 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="165"
+                android:startY="310"
+                android:endX="275"
+                android:endY="150"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF0284C7" />
+                <item android:offset="0.5" android:color="#FF00E5FF" />
+                <item android:offset="1.0" android:color="#FF38BDF8" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 5. Central 3D 'N' Note: Diagonal, Right Stem & Arched Flag -->
+    <path
+        android:pathData="M210,185 C232,215 275,285 285,298 C298,312 318,305 318,288 L322,160 C328,125 362,105 392,128 C412,142 415,165 398,182 C382,195 360,190 355,215 L348,328 C342,352 318,365 300,345 L242,258 L258,235 L300,305 C308,318 322,312 322,298 L324,198 C330,165 350,148 375,145 C386,143 388,136 380,130 C362,118 338,130 334,160 L322,282 C318,294 310,295 298,278 L235,178 C222,158 205,162 205,182 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="210"
+                android:startY="350"
+                android:endX="412"
+                android:endY="110"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF00E5FF" />
+                <item android:offset="0.35" android:color="#FF0284C7" />
+                <item android:offset="0.75" android:color="#FF2563EB" />
+                <item android:offset="1.0" android:color="#FF1D4ED8" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 6. 3D Spine Specular Highlights on 'N' -->
+    <path
+        android:pathData="M185,190 C188,168 202,162 215,172 C230,185 272,255 282,275"
+        android:strokeColor="#D0FFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M322,290 L324,165 C328,138 352,122 380,132"
+        android:strokeColor="#C0FFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- 7. Top-Right Radiating Soundwaves -->
+    <!-- Inner Soundwave -->
+    <path
+        android:pathData="M410,115 C428,140 428,168 410,192"
+        android:strokeWidth="16"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="410"
+                android:startY="115"
+                android:endX="428"
+                android:endY="192"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF00E5FF" />
+                <item android:offset="1.0" android:color="#FF2563EB" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Outer Soundwave -->
+    <path
+        android:pathData="M445,90 C475,125 475,182 445,215"
+        android:strokeWidth="16"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="445"
+                android:startY="90"
+                android:endX="475"
+                android:endY="215"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF00E5FF" />
+                <item android:offset="1.0" android:color="#FF1D4ED8" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>
