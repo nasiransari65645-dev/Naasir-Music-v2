@@ -117,7 +117,7 @@ import com.example.storage.SettingsPreferencesManager
 import kotlinx.coroutines.launch
 
 /**
- * 9 Distinct, Immersive Player UI Designs
+ * 10 Distinct, Immersive Player UI Designs (Cosmic Orbit as 2nd UI)
  */
 data class UiDesignOption(
     val id: String,
@@ -129,6 +129,7 @@ data class UiDesignOption(
 
 val ALL_UI_DESIGNS = listOf(
     UiDesignOption("Vinyl Record", "Vinyl Record", "33⅓ RPM rotating turntable vinyl disc", Icons.Default.Album, "Retro"),
+    UiDesignOption("Cosmic Orbit", "Cosmic Orbit", "Nebula orbit ring, satellite gauge & cyan wave", Icons.Default.AutoAwesome, "Cosmic"),
     UiDesignOption("Cyber Neon", "Cyber Neon", "Futuristic HUD rings & pulsing neon aura", Icons.Default.AutoAwesome, "Sci-Fi"),
     UiDesignOption("Studio Console", "Studio Console", "Twin stereo VU meters & analog knob", Icons.Default.GraphicEq, "Studio"),
     UiDesignOption("CD Disk", "CD Disk", "Holographic laser compact disc", Icons.Default.Album, "90s"),
@@ -475,7 +476,7 @@ private fun MainPreferencesList(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "9 Designs • Live Seamless Playback",
+                                    text = "10 Designs • Live Seamless Playback",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 11.5.sp
@@ -859,7 +860,7 @@ private fun PlayerSubScreen(
         }
     )
 
-    // Picker: Player UI Design Switcher (9 Distinct Layouts)
+    // Picker: Player UI Design Switcher (10 Distinct Layouts)
     Card(
         modifier = Modifier.fillMaxWidth().testTag("setting_player_ui_design_card"),
         shape = RoundedCornerShape(16.dp),
@@ -881,7 +882,7 @@ private fun PlayerSubScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Switch between 9 distinct visual designs and layouts",
+                        text = "Switch between 10 distinct visual designs and layouts",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp
@@ -1955,7 +1956,7 @@ private fun LookAndFeelSubScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Active: $albumArtStyle • 9 Designs available",
+                            text = "Active: $albumArtStyle • 10 Designs available",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )

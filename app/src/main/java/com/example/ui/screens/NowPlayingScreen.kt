@@ -292,22 +292,48 @@ fun NowPlayingScreen(
                 keyboardController?.hide()
             }
     ) {
-        // Base Content Layer (Fixed, stable, never pushed by search results)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
-            // Reserved space matching Search Bar height at top
-            Spacer(modifier = Modifier.height(56.dp))
+        if (albumArtStyle == "Cosmic Orbit") {
+            CosmicOrbitNowPlayingLayout(
+                currentSong = currentSong,
+                isPlaying = isPlaying,
+                currentPositionMs = currentPositionMs,
+                durationMs = safeDuration,
+                shuffleEnabled = shuffleEnabled,
+                repeatMode = repeatMode,
+                isFavorite = isFavorite,
+                isFastForwarding = isFastForwarding,
+                isRewinding = isRewinding,
+                onTogglePlayPause = onTogglePlayPause,
+                onSeekTo = onSeekTo,
+                onNext = onNext,
+                onPrevious = onPrevious,
+                onSkipBackward10 = onSkipBackward10,
+                onSkipForward10 = onSkipForward10,
+                onToggleShuffle = onToggleShuffle,
+                onCycleRepeat = onCycleRepeat,
+                onToggleFavorite = onToggleFavorite,
+                onStartFastForward = onStartFastForward,
+                onStopFastForward = onStopFastForward,
+                onStartRewind = onStartRewind,
+                onStopRewind = onStopRewind
+            )
+        } else {
+            // Base Content Layer (Fixed, stable, never pushed by search results)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                // Reserved space matching Search Bar height at top
+                Spacer(modifier = Modifier.height(56.dp))
 
-        Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-        // Dynamic Interactive Album Art Presentation supporting 6 distinct styles
-        AlbumArtPresentation(
-            style = albumArtStyle,
+                // Dynamic Interactive Album Art Presentation supporting distinct styles
+                AlbumArtPresentation(
+                    style = albumArtStyle,
             isPlaying = isPlaying,
             spinningVinyl = spinningVinyl,
             autoRotateActive = autoRotateActive,
@@ -609,7 +635,8 @@ fun NowPlayingScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(28.dp))
+        }
     }
 
     // Top Floating Overlay Layer: Search Bar & Floating Search Results (Never pushes base content)
@@ -626,8 +653,11 @@ fun NowPlayingScreen(
                 .height(44.dp)
                 .testTag("now_playing_search_bar"),
             shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f))
+            color = if (albumArtStyle == "Cosmic Orbit") Color(0xFF1B142E).copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+            border = BorderStroke(
+                1.5.dp,
+                if (albumArtStyle == "Cosmic Orbit") Color(0xFFA855F7).copy(alpha = 0.85f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+            )
         ) {
             Row(
                 modifier = Modifier
@@ -638,7 +668,7 @@ fun NowPlayingScreen(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (albumArtStyle == "Cosmic Orbit") Color(0xFFA855F7) else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -651,12 +681,12 @@ fun NowPlayingScreen(
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 13.sp
                     ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    cursorBrush = SolidColor(if (albumArtStyle == "Cosmic Orbit") Color(0xFFA855F7) else MaterialTheme.colorScheme.primary),
                     decorationBox = { innerTextField ->
                         if (searchQuery.isEmpty()) {
                             Text(
-                                text = "Search songs to play immediately...",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                text = if (albumArtStyle == "Cosmic Orbit") "Search tracks..." else "Search songs to play immediately...",
+                                color = if (albumArtStyle == "Cosmic Orbit") Color(0xFFC084FC).copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                                 fontSize = 13.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -833,7 +863,9 @@ private fun AlbumArtPresentation(
     visualizerPeakColor: Color = Color.Unspecified,
     songTitle: String,
     songArtist: String,
-    albumArtUri: Uri? = null
+    albumArtUri: Uri? = null,
+    currentPositionMs: Long = 0L,
+    durationMs: Long = 1L
 ) {
     // Rotation angle animatable that rotates continuously ONLY when isPlaying == true
     val rotationAnim = remember { Animatable(0f) }
@@ -870,13 +902,242 @@ private fun AlbumArtPresentation(
 
     Box(
         modifier = Modifier
-            .fillMaxWidth(0.70f)
-            .aspectRatio(1f)
+            .fillMaxWidth(if (style == "Cosmic Orbit") 0.95f else 0.70f)
+            .aspectRatio(if (style == "Cosmic Orbit") 1.15f else 1f)
             .clip(RoundedCornerShape(20.dp))
             .testTag("now_playing_album_art_card"),
         contentAlignment = Alignment.Center
     ) {
         when (style) {
+            "Cosmic Orbit" -> {
+                // COSMIC ORBIT (Nebula Ring + Satellite Gauge + Cyan Waveform)
+                val progressPercent = ((currentPositionMs.toFloat() / durationMs.coerceAtLeast(1L).toFloat()) * 100).toInt().coerceIn(0, 100)
+
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Main Planetary Orbit Disc with Nebula Glow
+                    Box(
+                        modifier = Modifier.size(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val maxR = size.minDimension / 2f
+                            val centerPt = center
+
+                            // Deep Space Nebula Glow
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(0xFF6B21A8).copy(alpha = 0.55f),
+                                        Color(0xFF9333EA).copy(alpha = 0.35f),
+                                        Color(0xFF06B6D4).copy(alpha = 0.2f),
+                                        Color.Transparent
+                                    ),
+                                    center = centerPt,
+                                    radius = maxR
+                                ),
+                                radius = maxR,
+                                center = centerPt
+                            )
+
+                            // Nebula Cosmic Dust Ring
+                            drawCircle(
+                                brush = Brush.sweepGradient(
+                                    colors = listOf(
+                                        Color(0xFF00E5FF),
+                                        Color(0xFF8B5CF6),
+                                        Color(0xFFD946EF),
+                                        Color(0xFF3B82F6),
+                                        Color(0xFF00E5FF)
+                                    )
+                                ),
+                                radius = maxR * 0.90f,
+                                center = centerPt,
+                                style = Stroke(width = 5.dp.toPx())
+                            )
+
+                            // Subtle starlight dust particles
+                            for (i in 0..12) {
+                                val angle = Math.toRadians((i * 30.0 + rotationAnim.value * 0.4).toDouble())
+                                val starR = maxR * (0.86f + (i % 3) * 0.03f)
+                                val starX = (centerPt.x + starR * Math.cos(angle)).toFloat()
+                                val starY = (centerPt.y + starR * Math.sin(angle)).toFloat()
+                                drawCircle(
+                                    color = if (i % 2 == 0) Color(0xFF00E5FF) else Color(0xFFF472B6),
+                                    radius = 1.8.dp.toPx(),
+                                    center = Offset(starX, starY)
+                                )
+                            }
+                        }
+
+                        // Dark Planetary Disc
+                        Box(
+                            modifier = Modifier
+                                .size(172.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF111420))
+                                .border(2.dp, Color(0xFF232A3E), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val centerPt = center
+                                val discR = size.minDimension / 2f
+
+                                // Orbit Ellipse 1 (Horizontal tilt)
+                                drawOval(
+                                    color = Color(0xFF475569).copy(alpha = 0.45f),
+                                    topLeft = Offset(centerPt.x - discR * 0.72f, centerPt.y - discR * 0.42f),
+                                    size = androidx.compose.ui.geometry.Size(discR * 1.44f, discR * 0.84f),
+                                    style = Stroke(width = 1.dp.toPx())
+                                )
+
+                                // Orbit Ellipse 2 (Cross tilt)
+                                drawOval(
+                                    color = Color(0xFF475569).copy(alpha = 0.35f),
+                                    topLeft = Offset(centerPt.x - discR * 0.42f, centerPt.y - discR * 0.72f),
+                                    size = androidx.compose.ui.geometry.Size(discR * 0.84f, discR * 1.44f),
+                                    style = Stroke(width = 1.dp.toPx())
+                                )
+
+                                // Outer Disc Groove Ring
+                                drawCircle(
+                                    color = Color(0xFF1E293B),
+                                    radius = discR * 0.88f,
+                                    center = centerPt,
+                                    style = Stroke(width = 1.dp.toPx())
+                                )
+                            }
+
+                            // Glowing Cyan Audio Waveform Visualizer in center
+                            Box(
+                                modifier = Modifier.size(96.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    drawCircle(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                Color(0xFF00E5FF).copy(alpha = 0.28f),
+                                                Color.Transparent
+                                            ),
+                                            center = center,
+                                            radius = size.minDimension * 0.45f
+                                        ),
+                                        radius = size.minDimension * 0.45f,
+                                        center = center
+                                    )
+                                }
+
+                                // 9 Vertical Cyan Waveform Bars
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val baseHeights = listOf(14.dp, 22.dp, 36.dp, 52.dp, 64.dp, 52.dp, 36.dp, 22.dp, 14.dp)
+                                    baseHeights.forEachIndexed { index, baseH ->
+                                        val animatedFactor = if (isPlaying) {
+                                            val phase = (index % 3) * 0.25f
+                                            (pulseAnim.value * (0.8f + phase)).coerceIn(0.5f, 1.45f)
+                                        } else {
+                                            0.5f
+                                        }
+                                        val barH = baseH * animatedFactor
+
+                                        Box(
+                                            modifier = Modifier
+                                                .width(4.dp)
+                                                .height(barH)
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        listOf(
+                                                            Color(0xFF67E8F9),
+                                                            Color(0xFF00E5FF),
+                                                            Color(0xFF0891B2)
+                                                        )
+                                                    ),
+                                                    RoundedCornerShape(3.dp)
+                                                )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width((-10).dp))
+
+                    // Attached Satellite Orbit Node (HUD Gauge + 96 KHz FLAC Badge)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF0C101D))
+                                .border(2.dp, Color(0xFF00E5FF).copy(alpha = 0.7f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val r = size.minDimension / 2f
+                                val c = center
+
+                                val ticks = 24
+                                for (i in 0 until ticks) {
+                                    val angleRad = Math.toRadians((i * (360.0 / ticks) - 90.0).toDouble())
+                                    val innerR = r * 0.74f
+                                    val outerR = r * 0.88f
+                                    val isFilled = (i.toFloat() / ticks) <= (progressPercent / 100f)
+                                    drawLine(
+                                        color = if (isFilled) Color(0xFF00E5FF) else Color(0xFF334155),
+                                        start = Offset(
+                                            (c.x + innerR * Math.cos(angleRad)).toFloat(),
+                                            (c.y + innerR * Math.sin(angleRad)).toFloat()
+                                        ),
+                                        end = Offset(
+                                            (c.x + outerR * Math.cos(angleRad)).toFloat(),
+                                            (c.y + outerR * Math.sin(angleRad)).toFloat()
+                                        ),
+                                        strokeWidth = 1.5.dp.toPx()
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "$progressPercent%",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "96 KHz",
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFCBD5E1),
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                text = "FLAC",
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF00E5FF),
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    }
+                }
+            }
+
             "Vinyl Record" -> {
                 // 1. VINYL RECORD
                 Box(
@@ -2037,4 +2298,691 @@ private fun StudioVuMeterColumn(
         )
     }
 }
+
+/**
+ * Dedicated Cosmic Orbit Layout precisely matching the user's uploaded design.
+ * Features:
+ * - "Playlist: Starlight Selections" header & title
+ * - Glowing Purple Heart favorite button
+ * - Planetary Disc with etched orbital paths, live cyan waveform bars & attached satellite gauge HUD (percentage + 96 KHz FLAC)
+ * - Analog tick ruler above seekbar
+ * - Sleek pill seekbar with timestamps inside/aligned
+ * - 3D embossed Shuffle & Repeat buttons with purple neon halo glow (#A855F7)
+ * - 3D Previous, Play/Pause, Next controls with cyan & purple concentric rims
+ */
+@Composable
+private fun CosmicOrbitNowPlayingLayout(
+    currentSong: Song,
+    isPlaying: Boolean,
+    currentPositionMs: Long,
+    durationMs: Long,
+    shuffleEnabled: Boolean,
+    repeatMode: RepeatMode,
+    isFavorite: Boolean,
+    isFastForwarding: Boolean,
+    isRewinding: Boolean,
+    onTogglePlayPause: () -> Unit,
+    onSeekTo: (Long) -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    onSkipBackward10: () -> Unit,
+    onSkipForward10: () -> Unit,
+    onToggleShuffle: () -> Unit,
+    onCycleRepeat: () -> Unit,
+    onToggleFavorite: (Long) -> Unit,
+    onStartFastForward: () -> Unit,
+    onStopFastForward: () -> Unit,
+    onStartRewind: () -> Unit,
+    onStopRewind: () -> Unit
+) {
+    val rotationAnim = remember { Animatable(0f) }
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (true) {
+                rotationAnim.animateTo(
+                    targetValue = rotationAnim.value + 360f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 6000, easing = LinearEasing),
+                        repeatMode = AnimRepeatMode.Restart
+                    )
+                )
+            }
+        }
+    }
+
+    val pulseAnim = remember { Animatable(1f) }
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (true) {
+                pulseAnim.animateTo(
+                    targetValue = 1.25f,
+                    animationSpec = tween(durationMillis = 450, easing = LinearEasing)
+                )
+                pulseAnim.animateTo(
+                    targetValue = 0.85f,
+                    animationSpec = tween(durationMillis = 450, easing = LinearEasing)
+                )
+            }
+        }
+    }
+
+    val progressPercent = ((currentPositionMs.toFloat() / durationMs.coerceAtLeast(1L).toFloat()) * 100).toInt().coerceIn(0, 100)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        // Space matching Search Bar height at top
+        Spacer(modifier = Modifier.height(58.dp))
+
+        // 1. Playlist Tag & Track Title & Heart Row (Exactly matching image!)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = "Playlist: Starlight Selections",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                AutoScrollText(
+                    text = currentSong.title,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${currentSong.artist} • ${currentSong.album}",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Glowing Purple Heart Favorite Button (matching user's image)
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFA855F7).copy(alpha = 0.18f))
+                    .clickable { onToggleFavorite(currentSong.id) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
+                    tint = if (isFavorite) Color(0xFFA855F7) else Color(0xFFA855F7).copy(alpha = 0.7f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 2. Center Cosmic Orbit Disc + Attached Satellite Gauge
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Main Planetary Orbit Disc with Nebula Glow
+                Box(
+                    modifier = Modifier.size(220.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Outer Cosmic Nebula Ring Canvas
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val maxR = size.minDimension / 2f
+                        val centerPt = center
+
+                        // Deep Space Nebula Glow
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF6B21A8).copy(alpha = 0.55f),
+                                    Color(0xFF9333EA).copy(alpha = 0.35f),
+                                    Color(0xFF06B6D4).copy(alpha = 0.2f),
+                                    Color.Transparent
+                                ),
+                                center = centerPt,
+                                radius = maxR
+                            ),
+                            radius = maxR,
+                            center = centerPt
+                        )
+
+                        // Nebula Cosmic Dust Ring
+                        drawCircle(
+                            brush = Brush.sweepGradient(
+                                colors = listOf(
+                                    Color(0xFF00E5FF),
+                                    Color(0xFF8B5CF6),
+                                    Color(0xFFD946EF),
+                                    Color(0xFF3B82F6),
+                                    Color(0xFF00E5FF)
+                                )
+                            ),
+                            radius = maxR * 0.90f,
+                            center = centerPt,
+                            style = Stroke(width = 6.dp.toPx())
+                        )
+
+                        // Subtle starlight dust particles
+                        for (i in 0..12) {
+                            val angle = Math.toRadians((i * 30.0 + rotationAnim.value * 0.4).toDouble())
+                            val starR = maxR * (0.86f + (i % 3) * 0.03f)
+                            val starX = (centerPt.x + starR * Math.cos(angle)).toFloat()
+                            val starY = (centerPt.y + starR * Math.sin(angle)).toFloat()
+                            drawCircle(
+                                color = if (i % 2 == 0) Color(0xFF00E5FF) else Color(0xFFF472B6),
+                                radius = 1.8.dp.toPx(),
+                                center = Offset(starX, starY)
+                            )
+                        }
+                    }
+
+                    // Dark Planetary Disc
+                    Box(
+                        modifier = Modifier
+                            .size(190.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF111420))
+                            .border(2.dp, Color(0xFF232A3E), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Etched Planetary / Atomic Orbit Trajectories
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val centerPt = center
+                            val discR = size.minDimension / 2f
+
+                            // Orbit Ellipse 1 (Horizontal tilt)
+                            drawOval(
+                                color = Color(0xFF475569).copy(alpha = 0.45f),
+                                topLeft = Offset(centerPt.x - discR * 0.72f, centerPt.y - discR * 0.42f),
+                                size = androidx.compose.ui.geometry.Size(discR * 1.44f, discR * 0.84f),
+                                style = Stroke(width = 1.dp.toPx())
+                            )
+
+                            // Orbit Ellipse 2 (Cross tilt)
+                            drawOval(
+                                color = Color(0xFF475569).copy(alpha = 0.35f),
+                                topLeft = Offset(centerPt.x - discR * 0.42f, centerPt.y - discR * 0.72f),
+                                size = androidx.compose.ui.geometry.Size(discR * 0.84f, discR * 1.44f),
+                                style = Stroke(width = 1.dp.toPx())
+                            )
+
+                            // Outer Disc Groove Ring
+                            drawCircle(
+                                color = Color(0xFF1E293B),
+                                radius = discR * 0.88f,
+                                center = centerPt,
+                                style = Stroke(width = 1.dp.toPx())
+                            )
+                        }
+
+                        // Glowing Cyan Audio Waveform Visualizer in center
+                        Box(
+                            modifier = Modifier.size(110.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Soft cyan ambient radial aura behind wave bars
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            Color(0xFF00E5FF).copy(alpha = 0.28f),
+                                            Color.Transparent
+                                        ),
+                                        center = center,
+                                        radius = size.minDimension * 0.45f
+                                    ),
+                                    radius = size.minDimension * 0.45f,
+                                    center = center
+                                )
+                            }
+
+                            // 9 Vertical Cyan Waveform Bars
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val baseHeights = listOf(14.dp, 22.dp, 36.dp, 52.dp, 64.dp, 52.dp, 36.dp, 22.dp, 14.dp)
+                                baseHeights.forEachIndexed { index, baseH ->
+                                    val animatedFactor = if (isPlaying) {
+                                        val phase = (index % 3) * 0.25f
+                                        (pulseAnim.value * (0.8f + phase)).coerceIn(0.5f, 1.45f)
+                                    } else {
+                                        0.5f
+                                    }
+                                    val barH = baseH * animatedFactor
+
+                                    Box(
+                                        modifier = Modifier
+                                            .width(4.5.dp)
+                                            .height(barH)
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(
+                                                        Color(0xFF67E8F9),
+                                                        Color(0xFF00E5FF),
+                                                        Color(0xFF0891B2)
+                                                    )
+                                                ),
+                                                RoundedCornerShape(3.dp)
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width((-12).dp))
+
+                // Attached Satellite Orbit Node (HUD Gauge + 96 KHz FLAC Badge)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(top = 10.dp)
+                ) {
+                    // Circular Satellite Gauge Pod
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0C101D))
+                            .border(2.dp, Color(0xFF00E5FF).copy(alpha = 0.7f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Radial ticks and progress arc
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val r = size.minDimension / 2f
+                            val c = center
+
+                            // Outer radial tick marks
+                            val ticks = 24
+                            for (i in 0 until ticks) {
+                                val angleRad = Math.toRadians((i * (360.0 / ticks) - 90.0).toDouble())
+                                val innerR = r * 0.74f
+                                val outerR = r * 0.88f
+                                val isFilled = (i.toFloat() / ticks) <= (progressPercent / 100f)
+                                drawLine(
+                                    color = if (isFilled) Color(0xFF00E5FF) else Color(0xFF334155),
+                                    start = Offset(
+                                        (c.x + innerR * Math.cos(angleRad)).toFloat(),
+                                        (c.y + innerR * Math.sin(angleRad)).toFloat()
+                                    ),
+                                    end = Offset(
+                                        (c.x + outerR * Math.cos(angleRad)).toFloat(),
+                                        (c.y + outerR * Math.sin(angleRad)).toFloat()
+                                    ),
+                                    strokeWidth = 1.5.dp.toPx()
+                                )
+                            }
+                        }
+
+                        // Center Percentage Display
+                        Text(
+                            text = "$progressPercent%",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 96 KHz / FLAC Audio Badge
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "96 KHz",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFCBD5E1),
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = "FLAC",
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF00E5FF),
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // 3. Subtle Analog Tick Ruler
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            for (i in 0..24) {
+                val isCenter = i == 12
+                val isMajor = i % 6 == 0
+                val tickH = if (isCenter) 12.dp else if (isMajor) 8.dp else 4.dp
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 2.5.dp)
+                        .width(1.dp)
+                        .height(tickH)
+                        .background(
+                            if (isCenter) Color(0xFF00E5FF) else Color(0xFF64748B).copy(alpha = 0.45f)
+                        )
+                )
+            }
+        }
+
+        // 4. Progress Bar with Timestamps Inside / Aligned (matching user's image)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            TouchableProgressBar(
+                currentPositionMs = currentPositionMs,
+                durationMs = durationMs.coerceAtLeast(1L),
+                onSeekTo = onSeekTo,
+                barHeight = 22.dp,
+                touchTargetHeight = 44.dp,
+                activeGradient = listOf(Color(0xFF00E5FF), Color(0xFF14B8A6)),
+                inactiveColor = Color(0xFF241B3B),
+                thumbColor = Color(0xFF00E5FF),
+                thumbGlowColor = Color(0xFF00E5FF).copy(alpha = 0.6f),
+                showThumb = true,
+                tag = "cosmic_progress_slider"
+            )
+
+            // Timestamps placed inside pill progress bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = formatMs(currentPositionMs),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = formatMs(durationMs),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        // 5. Shuffle and Repeat Row with 3D Embossed Buttons & Purple Neon Glow (matching user's image)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Shuffle Button with Purple Neon Halo
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFFA855F7).copy(alpha = 0.4f),
+                                Color(0xFFA855F7).copy(alpha = 0.15f),
+                                Color.Transparent
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1E1A33))
+                        .border(
+                            BorderStroke(
+                                1.5.dp,
+                                if (shuffleEnabled) Color(0xFFA855F7) else Color(0xFFA855F7).copy(alpha = 0.5f)
+                            ),
+                            CircleShape
+                        )
+                        .clickable(onClick = onToggleShuffle),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = "Shuffle",
+                        tint = if (shuffleEnabled) Color(0xFFA855F7) else Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(36.dp))
+
+            // Repeat Button with Purple Neon Halo
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFFA855F7).copy(alpha = 0.4f),
+                                Color(0xFFA855F7).copy(alpha = 0.15f),
+                                Color.Transparent
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                val (repIcon, isRepActive) = when (repeatMode) {
+                    RepeatMode.OFF -> Icons.Default.Repeat to false
+                    RepeatMode.ALL -> Icons.Default.Repeat to true
+                    RepeatMode.ONE -> Icons.Default.RepeatOne to true
+                }
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1E1A33))
+                        .border(
+                            BorderStroke(
+                                1.5.dp,
+                                if (isRepActive) Color(0xFFA855F7) else Color(0xFFA855F7).copy(alpha = 0.5f)
+                            ),
+                            CircleShape
+                        )
+                        .clickable(onClick = onCycleRepeat),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = repIcon,
+                        contentDescription = "Repeat",
+                        tint = if (isRepActive) Color(0xFFA855F7) else Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 6. Playback Controls Row: Prev (cyan halo), Play/Pause (3D purple/cyan rim), Next (cyan halo)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Previous Button with Cyan Halo
+            Box(
+                modifier = Modifier
+                    .size(62.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFF00E5FF).copy(alpha = 0.28f),
+                                Color.Transparent
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                HoldableIconButton(
+                    onClick = onPrevious,
+                    onHoldStart = onStartRewind,
+                    onHoldEnd = onStopRewind,
+                    isHolding = isRewinding,
+                    size = 50.dp,
+                    activeGlowColor = Color(0xFF00E5FF).copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF161A28))
+                        .border(1.5.dp, Color(0xFF26334A), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "Previous Track",
+                        tint = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(28.dp))
+
+            // Play / Pause Massive 3D Cosmic Center Button (with concentric purple rim & glowing cyan icon)
+            Box(
+                modifier = Modifier
+                    .size(92.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFF9333EA).copy(alpha = 0.55f),
+                                Color(0xFF00E5FF).copy(alpha = 0.35f),
+                                Color.Transparent
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                // Beveled Outer Rim
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    Color(0xFF3B1E6D),
+                                    Color(0xFF140D28)
+                                )
+                            )
+                        )
+                        .border(
+                            BorderStroke(
+                                2.5.dp,
+                                Brush.sweepGradient(
+                                    listOf(
+                                        Color(0xFF9333EA),
+                                        Color(0xFF00E5FF),
+                                        Color(0xFFD946EF),
+                                        Color(0xFF9333EA)
+                                    )
+                                )
+                            ),
+                            CircleShape
+                        )
+                        .clickable(onClick = onTogglePlayPause),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        tint = Color(0xFF00E5FF),
+                        modifier = Modifier.size(42.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(28.dp))
+
+            // Next Button with Cyan Halo
+            Box(
+                modifier = Modifier
+                    .size(62.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFF00E5FF).copy(alpha = 0.28f),
+                                Color.Transparent
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                HoldableIconButton(
+                    onClick = onNext,
+                    onHoldStart = onStartFastForward,
+                    onHoldEnd = onStopFastForward,
+                    isHolding = isFastForwarding,
+                    size = 50.dp,
+                    activeGlowColor = Color(0xFF00E5FF).copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF161A28))
+                        .border(1.5.dp, Color(0xFF26334A), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next Track",
+                        tint = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
 
