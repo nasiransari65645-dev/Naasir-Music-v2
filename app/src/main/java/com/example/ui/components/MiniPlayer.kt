@@ -61,12 +61,13 @@ fun MiniPlayer(
     customVisualizerText: String = "Naasir",
     showVisualizerText: Boolean = true,
     visualizerTextColor: Color = Color.Unspecified,
+    isCosmicOrbit: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (currentSong == null) return
 
     val palette = LocalThemePalette.current
-    val resolvedVisualizerColor = if (visualizerTextColor != Color.Unspecified) visualizerTextColor else palette.primaryAccent
+    val resolvedVisualizerColor = if (visualizerTextColor != Color.Unspecified) visualizerTextColor else if (isCosmicOrbit) Color(0xFF9D4EDD) else palette.primaryAccent
 
     Surface(
         modifier = modifier
@@ -74,9 +75,12 @@ fun MiniPlayer(
             .padding(horizontal = 12.dp, vertical = 4.dp)
             .testTag("mini_player_container"),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = if (isCosmicOrbit) Color(0xFFF1F4F9).copy(alpha = 0.96f) else MaterialTheme.colorScheme.surface,
         shadowElevation = 4.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+        border = BorderStroke(
+            1.dp,
+            if (isCosmicOrbit) Color(0xFF9D4EDD).copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        )
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -103,15 +107,19 @@ fun MiniPlayer(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(1.5.dp, if (autoRotateActive) palette.primaryAccent else palette.secondaryAccent, CircleShape)
+                            .background(if (isCosmicOrbit) Color(0xFFE2E8F0) else MaterialTheme.colorScheme.surfaceVariant)
+                            .border(
+                                1.5.dp,
+                                if (isCosmicOrbit) Color(0xFF00E5FF) else if (autoRotateActive) palette.primaryAccent else palette.secondaryAccent,
+                                CircleShape
+                            )
                             .testTag("mini_player_visualizer_disc"),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
-                            tint = if (isPlaying) palette.primaryAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (isCosmicOrbit) Color(0xFF9D4EDD) else if (isPlaying) palette.primaryAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -125,7 +133,7 @@ fun MiniPlayer(
                     ) {
                         AutoScrollText(
                             text = currentSong.title,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = if (isCosmicOrbit) Color(0xFF0F172A) else MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -135,7 +143,7 @@ fun MiniPlayer(
                                 Text(
                                     text = ">> 2X SPEED • ",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = palette.primaryAccent,
+                                    color = if (isCosmicOrbit) Color(0xFF00E5FF) else palette.primaryAccent,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp
                                 )
@@ -143,7 +151,7 @@ fun MiniPlayer(
                                 Text(
                                     text = "<< REWIND • ",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = palette.secondaryAccent,
+                                    color = if (isCosmicOrbit) Color(0xFF9D4EDD) else palette.secondaryAccent,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp
                                 )
@@ -151,7 +159,7 @@ fun MiniPlayer(
                                 Text(
                                     text = "3D 8D • ",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = palette.primaryAccent,
+                                    color = if (isCosmicOrbit) Color(0xFF00E5FF) else palette.primaryAccent,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp
                                 )
@@ -159,7 +167,7 @@ fun MiniPlayer(
                             Text(
                                 text = currentSong.artist,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (isCosmicOrbit) Color(0xFF64748B) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -180,14 +188,14 @@ fun MiniPlayer(
                         onHoldStart = onStartRewind,
                         onHoldEnd = onStopRewind,
                         isHolding = isRewinding,
-                        activeGlowColor = palette.secondaryAccent,
+                        activeGlowColor = if (isCosmicOrbit) Color(0xFF9D4EDD) else palette.secondaryAccent,
                         size = 40.dp,
                         modifier = Modifier.testTag("mini_prev_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.SkipPrevious,
                             contentDescription = "Previous Track",
-                            tint = if (isRewinding) palette.secondaryAccent else MaterialTheme.colorScheme.onSurface,
+                            tint = if (isRewinding) (if (isCosmicOrbit) Color(0xFF9D4EDD) else palette.secondaryAccent) else (if (isCosmicOrbit) Color(0xFF0F172A) else MaterialTheme.colorScheme.onSurface),
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -198,13 +206,13 @@ fun MiniPlayer(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
+                            .background(if (isCosmicOrbit) Color(0xFF9D4EDD) else MaterialTheme.colorScheme.primary)
                             .testTag("mini_play_pause_button")
                     ) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = Color.White,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -215,7 +223,7 @@ fun MiniPlayer(
                         onHoldStart = onStartFastForward,
                         onHoldEnd = onStopFastForward,
                         isHolding = isFastForwarding,
-                        activeGlowColor = palette.primaryAccent,
+                        activeGlowColor = if (isCosmicOrbit) Color(0xFF00E5FF) else palette.primaryAccent,
                         size = 40.dp,
                         modifier = Modifier.testTag("mini_next_button")
                     ) {

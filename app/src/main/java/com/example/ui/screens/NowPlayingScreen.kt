@@ -273,7 +273,22 @@ fun NowPlayingScreen(
 
     val activeAccentColor = seekbarActiveColor
 
-    val backdropModifier = if (!customThemeSettings.isEnabled) {
+    val isCosmicOrbit = albumArtStyle == "Cosmic Orbit"
+
+    val backdropModifier = if (isCosmicOrbit) {
+        modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFF3F5F9), // Frosted ceramic silver theme background
+                        Color(0xFFE5E9F1),
+                        Color(0xFFDCE2EC),
+                        Color(0xFFE6EBF3)
+                    )
+                )
+            )
+    } else if (!customThemeSettings.isEnabled) {
         modifier
             .fillMaxSize()
             .background(activePalette.ambientBackdropBrush)
@@ -653,10 +668,10 @@ fun NowPlayingScreen(
                 .height(44.dp)
                 .testTag("now_playing_search_bar"),
             shape = RoundedCornerShape(22.dp),
-            color = if (albumArtStyle == "Cosmic Orbit") Color(0xFF1B142E).copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+            color = if (albumArtStyle == "Cosmic Orbit") Color(0xFFFFFFFF).copy(alpha = 0.88f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
             border = BorderStroke(
                 1.5.dp,
-                if (albumArtStyle == "Cosmic Orbit") Color(0xFFA855F7).copy(alpha = 0.85f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                if (albumArtStyle == "Cosmic Orbit") Color(0xFF9D4EDD).copy(alpha = 0.75f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
             )
         ) {
             Row(
@@ -668,7 +683,7 @@ fun NowPlayingScreen(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search",
-                    tint = if (albumArtStyle == "Cosmic Orbit") Color(0xFFA855F7) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (albumArtStyle == "Cosmic Orbit") Color(0xFF9D4EDD) else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -678,15 +693,15 @@ fun NowPlayingScreen(
                     singleLine = true,
                     maxLines = 1,
                     textStyle = TextStyle(
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = if (albumArtStyle == "Cosmic Orbit") Color(0xFF0F172A) else MaterialTheme.colorScheme.onSurface,
                         fontSize = 13.sp
                     ),
-                    cursorBrush = SolidColor(if (albumArtStyle == "Cosmic Orbit") Color(0xFFA855F7) else MaterialTheme.colorScheme.primary),
+                    cursorBrush = SolidColor(if (albumArtStyle == "Cosmic Orbit") Color(0xFF9D4EDD) else MaterialTheme.colorScheme.primary),
                     decorationBox = { innerTextField ->
                         if (searchQuery.isEmpty()) {
                             Text(
                                 text = if (albumArtStyle == "Cosmic Orbit") "Search tracks..." else "Search songs to play immediately...",
-                                color = if (albumArtStyle == "Cosmic Orbit") Color(0xFFC084FC).copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                color = if (albumArtStyle == "Cosmic Orbit") Color(0xFF7E8B9B) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                                 fontSize = 13.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -2393,12 +2408,12 @@ private fun CosmicOrbitNowPlayingLayout(
                     text = "Playlist: Starlight Selections",
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                    color = Color(0xFF64748B)
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 AutoScrollText(
                     text = currentSong.title,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = Color(0xFF0F172A),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     modifier = Modifier.fillMaxWidth()
@@ -2407,7 +2422,7 @@ private fun CosmicOrbitNowPlayingLayout(
                 Text(
                     text = "${currentSong.artist} • ${currentSong.album}",
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color(0xFF64748B),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -2420,14 +2435,14 @@ private fun CosmicOrbitNowPlayingLayout(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFA855F7).copy(alpha = 0.18f))
+                    .background(Color(0xFF9D4EDD).copy(alpha = 0.18f))
                     .clickable { onToggleFavorite(currentSong.id) },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
-                    tint = if (isFavorite) Color(0xFFA855F7) else Color(0xFFA855F7).copy(alpha = 0.7f),
+                    tint = if (isFavorite) Color(0xFF9D4EDD) else Color(0xFF9D4EDD).copy(alpha = 0.7f),
                     modifier = Modifier.size(24.dp)
                 )
             }
