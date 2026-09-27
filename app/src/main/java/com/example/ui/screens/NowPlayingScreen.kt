@@ -61,6 +61,7 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.SurroundSound
+import androidx.compose.material.icons.filled.Waves
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -1396,8 +1397,487 @@ private fun AlbumArtPresentation(
                 }
             }
 
+            "Cyber Neon" -> {
+                // 6. CYBER NEON HUD
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color(0xFF070B14))
+                        .border(
+                            BorderStroke(
+                                2.dp,
+                                Brush.sweepGradient(
+                                    listOf(
+                                        activeAccentColor,
+                                        Color(0xFF00E5FF),
+                                        Color(0xFFD500F9),
+                                        activeAccentColor
+                                    )
+                                )
+                            ),
+                            RoundedCornerShape(24.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val pulseScale = if (isPlaying) pulseAnim.value else 1f
+
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val maxR = size.minDimension / 2f
+                        val centerPt = center
+
+                        // Outer glowing pulse ring
+                        drawCircle(
+                            color = activeAccentColor.copy(alpha = 0.18f),
+                            radius = maxR * 0.88f * pulseScale,
+                            center = centerPt
+                        )
+
+                        // Cyber reticle ticks (36 radial ticks)
+                        val tickCount = 36
+                        for (i in 0 until tickCount) {
+                            val angleRad = Math.toRadians((i * (360.0 / tickCount) + rotationAnim.value * 0.5).toDouble())
+                            val innerR = maxR * 0.72f
+                            val outerR = maxR * if (i % 3 == 0) 0.82f else 0.76f
+                            val p1 = Offset(
+                                (centerPt.x + innerR * Math.cos(angleRad)).toFloat(),
+                                (centerPt.y + innerR * Math.sin(angleRad)).toFloat()
+                            )
+                            val p2 = Offset(
+                                (centerPt.x + outerR * Math.cos(angleRad)).toFloat(),
+                                (centerPt.y + outerR * Math.sin(angleRad)).toFloat()
+                            )
+                            val tickColor = if (i % 3 == 0) activeAccentColor else activeAccentColor.copy(alpha = 0.35f)
+                            drawLine(
+                                color = tickColor,
+                                start = p1,
+                                end = p2,
+                                strokeWidth = if (i % 3 == 0) 2.dp.toPx() else 1.dp.toPx()
+                            )
+                        }
+
+                        // Inner dashed ring
+                        drawCircle(
+                            color = Color(0xFF00E5FF).copy(alpha = 0.5f),
+                            radius = maxR * 0.60f,
+                            center = centerPt,
+                            style = Stroke(width = 1.5.dp.toPx())
+                        )
+                    }
+
+                    // Rotating Cyber Inner Reticle
+                    Box(
+                        modifier = Modifier
+                            .size(110.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0D1322))
+                            .border(2.dp, activeAccentColor, CircleShape)
+                            .rotate(-rotationAnim.value * 0.8f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            drawCircle(
+                                brush = Brush.sweepGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        activeAccentColor.copy(alpha = 0.6f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                radius = size.minDimension / 2f
+                            )
+                        }
+
+                        // Center Holographic Icon
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    // Top Cyber Telemetry Header
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 12.dp, start = 16.dp, end = 16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "CYBER // HUD",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = activeAccentColor,
+                            letterSpacing = 1.5.sp
+                        )
+                        Text(
+                            text = if (isPlaying) "AUDIO LINK ACTIVE" else "STANDBY",
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isPlaying) Color(0xFF00E5FF) else Color(0xFFEF4444),
+                            letterSpacing = 1.sp
+                        )
+                    }
+
+                    // Bottom Frequency Label
+                    Text(
+                        text = "96kHz • 24BIT DSD STREAM",
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 10.dp),
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
+
+            "Studio Console" -> {
+                // 7. STUDIO CONSOLE (Twin VU Meters + Master Knob)
+                Card(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(22.dp)),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF131722)),
+                    border = BorderStroke(2.dp, Color(0xFF2A3142)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Console Top Banner
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "MASTER CONSOLE",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = activeAccentColor,
+                                letterSpacing = 1.5.sp
+                            )
+                            Text(
+                                text = "BUS L / R",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // Middle Section: Left & Right VU Meters + Master Center Knob
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Left Channel VU Meter
+                            StudioVuMeterColumn(
+                                label = "L",
+                                isPlaying = isPlaying,
+                                pulseFactor = pulseAnim.value,
+                                accentColor = activeAccentColor
+                            )
+
+                            // Center Analog Gain Dial
+                            Box(
+                                modifier = Modifier
+                                    .size(90.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.radialGradient(
+                                            listOf(Color(0xFF262D3D), Color(0xFF0F121A))
+                                        )
+                                    )
+                                    .border(2.5.dp, Color(0xFF3B4459), CircleShape)
+                                    .rotate(if (isPlaying) (rotationAnim.value * 0.2f) % 90f - 45f else -45f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // Dial outer tick marks
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    drawCircle(
+                                        color = activeAccentColor.copy(alpha = 0.2f),
+                                        radius = size.minDimension * 0.44f,
+                                        style = Stroke(width = 1.dp.toPx())
+                                    )
+                                }
+                                // Dial Needle Indicator
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .padding(top = 8.dp)
+                                        .width(3.dp)
+                                        .height(18.dp)
+                                        .background(activeAccentColor, RoundedCornerShape(2.dp))
+                                )
+                                // Knob Cap Center
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF1E2433))
+                                        .border(1.dp, activeAccentColor.copy(alpha = 0.5f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.GraphicEq,
+                                        contentDescription = null,
+                                        tint = activeAccentColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
+                            // Right Channel VU Meter
+                            StudioVuMeterColumn(
+                                label = "R",
+                                isPlaying = isPlaying,
+                                pulseFactor = pulseAnim.value * 0.95f,
+                                accentColor = activeAccentColor
+                            )
+                        }
+
+                        // Console Bottom Info Strip
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "CLIP // 0.0dB",
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isPlaying) Color(0xFFF59E0B) else Color(0xFF64748B)
+                            )
+                            Text(
+                                text = songTitle.take(18),
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "HI-RES ANALOG",
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = activeAccentColor
+                            )
+                        }
+                    }
+                }
+            }
+
+            "Acoustic Orb" -> {
+                // 8. ACOUSTIC ORB (3D Harmonic Sound Sphere)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    Color(0xFF1E1435),
+                                    Color(0xFF090614)
+                                )
+                            )
+                        )
+                        .border(2.dp, activeAccentColor.copy(alpha = 0.6f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val orbScale = if (isPlaying) pulseAnim.value else 1f
+
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val maxR = size.minDimension / 2f
+                        val centerPt = center
+
+                        // 3 Layer Acoustic Wave ripples
+                        for (i in 1..4) {
+                            drawCircle(
+                                color = activeAccentColor.copy(alpha = (0.35f - i * 0.07f).coerceAtLeast(0.04f)),
+                                radius = maxR * (0.35f + i * 0.15f) * orbScale,
+                                center = centerPt,
+                                style = Stroke(width = (2.dp - (0.3f * i).dp).toPx().coerceAtLeast(1f))
+                            )
+                        }
+
+                        // Orbital dots
+                        val orbitCount = 8
+                        for (i in 0 until orbitCount) {
+                            val angleRad = Math.toRadians((i * (360.0 / orbitCount) + rotationAnim.value * 0.7).toDouble())
+                            val orbitR = maxR * 0.76f
+                            val dotPos = Offset(
+                                (centerPt.x + orbitR * Math.cos(angleRad)).toFloat(),
+                                (centerPt.y + orbitR * Math.sin(angleRad)).toFloat()
+                            )
+                            drawCircle(
+                                color = if (i % 2 == 0) activeAccentColor else Color(0xFF00E5FF),
+                                radius = if (i % 2 == 0) 4.dp.toPx() else 2.5.dp.toPx(),
+                                center = dotPos
+                            )
+                        }
+                    }
+
+                    // Glowing Central Plasma Core
+                    Box(
+                        modifier = Modifier
+                            .size((90.dp * orbScale).coerceIn(70.dp, 120.dp))
+                            .clip(CircleShape)
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(
+                                        Color.White,
+                                        activeAccentColor,
+                                        Color(0xFF7C3AED),
+                                        Color.Transparent
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SurroundSound,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(34.dp)
+                        )
+                    }
+                }
+            }
+
+            "Minimalist Edge" -> {
+                // 9. MINIMALIST EDGE (Modern Edge-to-Edge Frosted Cover)
+                Card(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(24.dp)),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(2.dp, activeAccentColor.copy(alpha = 0.8f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Background artwork or gradient art
+                        var hasImageError by remember(albumArtUri) { mutableStateOf(false) }
+
+                        if (albumArtUri != null && !hasImageError) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(albumArtUri)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Minimalist Album Art",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                                onError = { hasImageError = true }
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(
+                                                activeAccentColor.copy(alpha = 0.45f),
+                                                Color(0xFF0F172A),
+                                                Color(0xFF020617)
+                                            )
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    tint = activeAccentColor.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(80.dp)
+                                )
+                            }
+                        }
+
+                        // Gradient ambient shadow layer
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            Color.Transparent,
+                                            Color(0xFF030712).copy(alpha = 0.85f)
+                                        )
+                                    )
+                                )
+                        )
+
+                        // Floating Glassmorphism Pill at bottom
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFF0F172A).copy(alpha = 0.78f),
+                            border = BorderStroke(1.dp, activeAccentColor.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = songTitle,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = songArtist,
+                                        color = activeAccentColor,
+                                        fontSize = 10.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(activeAccentColor.copy(alpha = 0.25f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPlaying) Icons.Default.Waves else Icons.Default.MusicNote,
+                                        contentDescription = null,
+                                        tint = activeAccentColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             else -> {
-                // 6. FULL SCREEN / ACOUSTIC VISUALIZER CANVAS
+                // 10. FULL SCREEN / ACOUSTIC VISUALIZER CANVAS
                 Card(
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(28.dp),
@@ -1511,3 +1991,50 @@ private fun AlbumArtPresentation(
         }
     }
 }
+
+@Composable
+private fun StudioVuMeterColumn(
+    label: String,
+    isPlaying: Boolean,
+    pulseFactor: Float,
+    accentColor: Color
+) {
+    val segmentColors = listOf(
+        Color(0xFFEF4444), // +3dB Red (Peak)
+        Color(0xFFF59E0B), // 0dB Amber
+        Color(0xFF10B981), // -3dB Green
+        Color(0xFF10B981), // -6dB Green
+        Color(0xFF059669), // -12dB Green
+        Color(0xFF047857)  // -20dB Green
+    )
+    val activeCount = if (isPlaying) {
+        ((pulseFactor * 4.5f).toInt()).coerceIn(2, 6)
+    } else {
+        1
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        segmentColors.forEachIndexed { idx, col ->
+            val segFromBottom = segmentColors.size - 1 - idx
+            val isLit = segFromBottom < activeCount
+            Box(
+                modifier = Modifier
+                    .width(18.dp)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(1.dp))
+                    .background(if (isLit) col else Color(0xFF1E293B))
+            )
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 8.5.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = accentColor
+        )
+    }
+}
+
