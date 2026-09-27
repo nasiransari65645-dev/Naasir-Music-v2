@@ -55,6 +55,8 @@ class MediaPlaybackService : Service() {
     private var lastPositionMs: Long = 0L
     private var lastDurationMs: Long = 1L
     private var lastAccentColor: Int? = null
+    private var lastShuffleEnabled: Boolean = false
+    private var lastRepeatMode: RepeatMode = RepeatMode.OFF
 
     private val prefChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == null || key == "key_selected_theme" || key == "key_custom_color_map" || key == "key_theme_palette_id" || key == "key_edge_enabled" || key == "key_edge_notification_border") {
@@ -104,6 +106,8 @@ class MediaPlaybackService : Service() {
         const val EXTRA_POSITION_MS = "extra_position_ms"
         const val EXTRA_DURATION_MS = "extra_duration_ms"
         const val EXTRA_THEME_ACCENT_COLOR = "extra_theme_accent_color"
+        const val EXTRA_SHUFFLE_ENABLED = "extra_shuffle_enabled"
+        const val EXTRA_REPEAT_MODE = "extra_repeat_mode"
 
         @Volatile
         var isServiceRunning = false
@@ -117,6 +121,7 @@ class MediaPlaybackService : Service() {
             durationMs: Long
         ) {
             try {
+                val playerState = AudioPlayerManager.instance?.state?.value
                 val intent = Intent(context, MediaPlaybackService::class.java).apply {
                     action = ACTION_UPDATE
                     putExtra(EXTRA_SONG_TITLE, song?.title ?: "Naasir Music Pro")
@@ -128,6 +133,8 @@ class MediaPlaybackService : Service() {
                     putExtra(EXTRA_IS_PLAYING, isPlaying)
                     putExtra(EXTRA_POSITION_MS, positionMs)
                     putExtra(EXTRA_DURATION_MS, durationMs.coerceAtLeast(1L))
+                    putExtra(EXTRA_SHUFFLE_ENABLED, playerState?.shuffleEnabled ?: false)
+                    putExtra(EXTRA_REPEAT_MODE, playerState?.repeatMode?.name ?: "OFF")
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
@@ -289,11 +296,13 @@ class MediaPlaybackService : Service() {
 
                 override fun onSetShuffleMode(shuffleMode: Int) {
                     AudioPlayerManager.instance?.toggleShuffle()
+                    lastShuffleEnabled = AudioPlayerManager.instance?.state?.value?.shuffleEnabled ?: !lastShuffleEnabled
                     updateNotificationThemeInternal(null)
                 }
 
                 override fun onSetRepeatMode(repeatMode: Int) {
                     AudioPlayerManager.instance?.cycleRepeatMode()
+                    lastRepeatMode = AudioPlayerManager.instance?.state?.value?.repeatMode ?: lastRepeatMode.next()
                     updateNotificationThemeInternal(null)
                 }
 
@@ -301,10 +310,12 @@ class MediaPlaybackService : Service() {
                     when (action) {
                         ACTION_TOGGLE_SHUFFLE -> {
                             AudioPlayerManager.instance?.toggleShuffle()
+                            lastShuffleEnabled = AudioPlayerManager.instance?.state?.value?.shuffleEnabled ?: !lastShuffleEnabled
                             updateNotificationThemeInternal(null)
                         }
                         ACTION_TOGGLE_REPEAT -> {
                             AudioPlayerManager.instance?.cycleRepeatMode()
+                            lastRepeatMode = AudioPlayerManager.instance?.state?.value?.repeatMode ?: lastRepeatMode.next()
                             updateNotificationThemeInternal(null)
                         }
                     }
@@ -344,10 +355,14 @@ class MediaPlaybackService : Service() {
             }
             ACTION_TOGGLE_SHUFFLE -> {
                 AudioPlayerManager.instance?.toggleShuffle()
+                val currentShuffle = AudioPlayerManager.instance?.state?.value?.shuffleEnabled ?: !lastShuffleEnabled
+                lastShuffleEnabled = currentShuffle
                 updateNotificationThemeInternal(null)
             }
             ACTION_TOGGLE_REPEAT -> {
                 AudioPlayerManager.instance?.cycleRepeatMode()
+                val currentRepeat = AudioPlayerManager.instance?.state?.value?.repeatMode ?: lastRepeatMode.next()
+                lastRepeatMode = currentRepeat
                 updateNotificationThemeInternal(null)
             }
             ACTION_SEEK_TO -> {
@@ -365,6 +380,17 @@ class MediaPlaybackService : Service() {
                 val isPlaying = intent.getBooleanExtra(EXTRA_IS_PLAYING, false)
                 val positionMs = intent.getLongExtra(EXTRA_POSITION_MS, 0L)
                 val durationMs = intent.getLongExtra(EXTRA_DURATION_MS, 1L)
+                val shuffleEnabled = intent.getBooleanExtra(
+                    EXTRA_SHUFFLE_ENABLED,
+                    AudioPlayerManager.instance?.state?.value?.shuffleEnabled ?: lastShuffleEnabled
+                )
+                val repeatModeStr = intent.getStringExtra(EXTRA_REPEAT_MODE)
+                val repeatMode = repeatModeStr?.let {
+                    try { RepeatMode.valueOf(it) } catch (_: Throwable) { null }
+                } ?: AudioPlayerManager.instance?.state?.value?.repeatMode ?: lastRepeatMode
+
+                lastShuffleEnabled = shuffleEnabled
+                lastRepeatMode = repeatMode
 
                 VolumeOverlayManager.getInstance(applicationContext).onPlaybackStateChanged(isPlaying)
 
@@ -434,6 +460,9 @@ class MediaPlaybackService : Service() {
         val edgeSettings = prefs.loadEdgeLighting()
         val playerState = AudioPlayerManager.instance?.state?.value
 
+        val effectiveShuffle = playerState?.shuffleEnabled ?: lastShuffleEnabled
+        val effectiveRepeat = playerState?.repeatMode ?: lastRepeatMode
+
         val notification = try {
             MediaNotificationManager.buildNotification(
                 context = this,
@@ -446,12 +475,8 @@ class MediaPlaybackService : Service() {
                 isPlaying = isPlaying,
                 positionMs = positionMs,
                 durationMs = durationMs,
-                shuffleEnabled = playerState?.shuffleEnabled ?: prefs.loadShuffleEnabled(),
-                repeatMode = playerState?.repeatMode ?: try {
-                    RepeatMode.valueOf(prefs.loadRepeatMode())
-                } catch (_: Throwable) {
-                    RepeatMode.OFF
-                },
+                shuffleEnabled = effectiveShuffle,
+                repeatMode = effectiveRepeat,
                 themeAccentColor = themePrimaryArgb,
                 isEdgeLightingEnabled = edgeSettings.isEnabled,
                 isNotificationEdgeLightingEnabled = edgeSettings.isNotificationBorderEnabled,
@@ -471,8 +496,8 @@ class MediaPlaybackService : Service() {
                 isPlaying = isPlaying,
                 positionMs = positionMs,
                 durationMs = durationMs,
-                shuffleEnabled = playerState?.shuffleEnabled ?: prefs.loadShuffleEnabled(),
-                repeatMode = playerState?.repeatMode ?: RepeatMode.OFF,
+                shuffleEnabled = effectiveShuffle,
+                repeatMode = effectiveRepeat,
                 themeAccentColor = themePrimaryArgb,
                 isEdgeLightingEnabled = false,
                 isNotificationEdgeLightingEnabled = false,

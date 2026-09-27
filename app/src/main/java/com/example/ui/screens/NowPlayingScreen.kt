@@ -410,7 +410,7 @@ fun NowPlayingScreen(
                     Icon(
                         imageVector = Icons.Default.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (shuffleEnabled) activeShuffleRepeatActiveColor else Color(0xFF64748B),
+                        tint = if (shuffleEnabled) activeShuffleRepeatActiveColor else Color(0xFF808080),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -447,7 +447,7 @@ fun NowPlayingScreen(
                         .testTag("repeat_button")
                 ) {
                     val (icon, tint) = when (repeatMode) {
-                        RepeatMode.OFF -> Icons.Default.Repeat to Color(0xFF64748B)
+                        RepeatMode.OFF -> Icons.Default.Repeat to Color(0xFF808080)
                         RepeatMode.ALL -> Icons.Default.Repeat to activeShuffleRepeatActiveColor
                         RepeatMode.ONE -> Icons.Default.RepeatOne to activeShuffleRepeatActiveColor
                     }

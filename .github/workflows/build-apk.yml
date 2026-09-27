@@ -116,7 +116,14 @@ jobs:
 
       - name: Build debug APK
         run: |
-          gradle :app:assembleDebug --stacktrace --no-daemon -Dorg.gradle.workers.max=2
+          chmod +x ./gradlew 2>/dev/null || true
+          if [ -f "./gradlew" ]; then
+            echo "Building with ./gradlew..."
+            ./gradlew :app:assembleDebug --stacktrace --no-daemon -Dorg.gradle.workers.max=2
+          else
+            echo "Building with gradle..."
+            gradle :app:assembleDebug --stacktrace --no-daemon -Dorg.gradle.workers.max=2
+          fi
 
       - name: Verify the APK
         run: |
