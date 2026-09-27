@@ -520,12 +520,14 @@ class AudioPlayerManager(
             if (newShuffle) updateShuffleList()
             it.copy(shuffleEnabled = newShuffle)
         }
+        notifyServiceState()
     }
 
     fun cycleRepeatMode() {
         _state.update {
             it.copy(repeatMode = it.repeatMode.next())
         }
+        notifyServiceState()
     }
 
     fun toggleFavorite(songId: Long): Boolean {

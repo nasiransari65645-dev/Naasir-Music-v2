@@ -22,6 +22,7 @@ import android.widget.RemoteViews
 import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.IconCompat
 import com.example.MainActivity
 import com.example.R
 import com.example.model.RepeatMode
@@ -44,7 +45,7 @@ object MediaNotificationManager {
     const val ACTION_SEEK_TO = "com.example.audio.ACTION_SEEK_TO"
     const val EXTRA_SEEK_POSITION = "extra_seek_position"
 
-    private const val COLOR_INACTIVE = 0xFF94A3B8.toInt()
+    private const val COLOR_INACTIVE = 0xFF808080.toInt()
     private const val COLOR_WHITE = 0xFFFFFFFF.toInt()
     private const val COLOR_CARD_BACKGROUND = 0xFF101726.toInt()
 
@@ -320,6 +321,43 @@ object MediaNotificationManager {
             mediaSession.setMetadata(metadataBuilder.build())
         }
 
+        // Pre-build standard NotificationCompat.Action instances with tinted IconCompat
+        val shuffleActionTitle = if (shuffleEnabled) "Shuffle On" else "Shuffle Off"
+        val shuffleAction = NotificationCompat.Action.Builder(
+            IconCompat.createWithBitmap(iconShuffleBitmap),
+            shuffleActionTitle,
+            shufflePendingIntent
+        ).build()
+
+        val prevAction = NotificationCompat.Action.Builder(
+            IconCompat.createWithBitmap(iconPrevBitmap),
+            "Previous",
+            prevPendingIntent
+        ).build()
+
+        val playPauseAction = NotificationCompat.Action.Builder(
+            IconCompat.createWithBitmap(iconPlayPauseBitmap),
+            if (isPlaying) "Pause" else "Play",
+            playPausePendingIntent
+        ).build()
+
+        val nextAction = NotificationCompat.Action.Builder(
+            IconCompat.createWithBitmap(iconNextBitmap),
+            "Next",
+            nextPendingIntent
+        ).build()
+
+        val repeatActionTitle = when (repeatMode) {
+            RepeatMode.ONE -> "Repeat One"
+            RepeatMode.ALL -> "Repeat All"
+            RepeatMode.OFF -> "Repeat Off"
+        }
+        val repeatAction = NotificationCompat.Action.Builder(
+            IconCompat.createWithBitmap(iconRepeatBitmap),
+            repeatActionTitle,
+            repeatPendingIntent
+        ).build()
+
         // 6. Support for Android System Media Player (MediaStyle) when selected
         if (useSystemMediaNotification && mediaSession != null) {
             val mediaStyle = androidx.media.app.NotificationCompat.MediaStyle()
@@ -336,24 +374,15 @@ object MediaNotificationManager {
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setStyle(mediaStyle)
                 .setOngoing(true)
+                .addAction(shuffleAction)
+                .addAction(prevAction)
+                .addAction(playPauseAction)
+                .addAction(nextAction)
+                .addAction(repeatAction)
 
             if (artworkBitmap != null) {
                 systemBuilder.setLargeIcon(artworkBitmap)
             }
-
-            systemBuilder.addAction(R.drawable.ic_shuffle, "Shuffle", shufflePendingIntent)
-            systemBuilder.addAction(R.drawable.ic_skip_previous, "Previous", prevPendingIntent)
-            systemBuilder.addAction(
-                if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow,
-                if (isPlaying) "Pause" else "Play",
-                playPausePendingIntent
-            )
-            systemBuilder.addAction(R.drawable.ic_skip_next, "Next", nextPendingIntent)
-            systemBuilder.addAction(
-                if (repeatMode == RepeatMode.ONE) R.drawable.ic_repeat_one else R.drawable.ic_repeat,
-                "Repeat",
-                repeatPendingIntent
-            )
 
             return systemBuilder.build()
         }
@@ -379,24 +408,15 @@ object MediaNotificationManager {
             .setStyle(style)
             .setCustomContentView(smallViews)
             .setCustomBigContentView(bigViews)
+            .addAction(shuffleAction)
+            .addAction(prevAction)
+            .addAction(playPauseAction)
+            .addAction(nextAction)
+            .addAction(repeatAction)
 
         if (artworkBitmap != null) {
             builder.setLargeIcon(artworkBitmap)
         }
-
-        builder.addAction(R.drawable.ic_shuffle, "Shuffle", shufflePendingIntent)
-        builder.addAction(R.drawable.ic_skip_previous, "Previous", prevPendingIntent)
-        builder.addAction(
-            if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow,
-            if (isPlaying) "Pause" else "Play",
-            playPausePendingIntent
-        )
-        builder.addAction(R.drawable.ic_skip_next, "Next", nextPendingIntent)
-        builder.addAction(
-            if (repeatMode == RepeatMode.ONE) R.drawable.ic_repeat_one else R.drawable.ic_repeat,
-            "Repeat",
-            repeatPendingIntent
-        )
 
         return builder.build()
     }
