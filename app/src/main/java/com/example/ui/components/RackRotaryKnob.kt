@@ -90,11 +90,13 @@ fun RackRotaryKnob(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        val isLight = MaterialTheme.colorScheme.surface == Color(0xFFE2E7F0) || MaterialTheme.colorScheme.background == Color(0xFFE8ECF2)
+
         // Knob Header Label
         Text(
             text = title,
             style = MaterialTheme.typography.labelSmall,
-            color = if (isEnabled) Color(0xFFE2E8F0) else Color(0xFF64748B),
+            color = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp,
             fontSize = 11.sp,
@@ -158,7 +160,7 @@ fun RackRotaryKnob(
 
                 // 1. Background Inactive Arc Track
                 drawArc(
-                    color = Color(0xFF1E293B),
+                    color = if (isLight) Color(0xFFCBD5E1) else Color(0xFF1E293B),
                     startAngle = startAngleDeg,
                     sweepAngle = sweepAngleDeg,
                     useCenter = false,
@@ -219,16 +221,24 @@ fun RackRotaryKnob(
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
-                            colors = listOf(
-                                Color(0xFF1E293B),
-                                Color(0xFF0F172A),
-                                Color(0xFF070B14)
-                            )
+                            colors = if (isLight) {
+                                listOf(
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFE2E7F0),
+                                    Color(0xFFCBD5E1)
+                                )
+                            } else {
+                                listOf(
+                                    Color(0xFF1E293B),
+                                    Color(0xFF0F172A),
+                                    Color(0xFF070B14)
+                                )
+                            }
                         )
                     )
                     .border(
                         1.5.dp,
-                        if (isEnabled) activeColor.copy(alpha = 0.45f) else Color(0xFF334155),
+                        if (isEnabled) activeColor.copy(alpha = 0.55f) else (if (isLight) Color(0xFFCBD5E1) else Color(0xFF334155)),
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -260,7 +270,7 @@ fun RackRotaryKnob(
 
                     // Center Metallic Cap Dot
                     drawCircle(
-                        color = if (isEnabled) Color(0xFF1E293B) else Color(0xFF0F172A),
+                        color = if (isEnabled) (if (isLight) Color(0xFFDCE2EC) else Color(0xFF1E293B)) else Color(0xFF0F172A),
                         radius = 7.dp.toPx(),
                         center = center
                     )
@@ -283,13 +293,13 @@ fun RackRotaryKnob(
             Text(
                 text = minLabel,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF64748B),
+                color = if (isLight) Color(0xFF7E8B9B) else Color(0xFF64748B),
                 fontSize = 9.sp
             )
             Text(
                 text = maxLabel,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF64748B),
+                color = if (isLight) Color(0xFF7E8B9B) else Color(0xFF64748B),
                 fontSize = 9.sp
             )
         }
@@ -300,7 +310,7 @@ fun RackRotaryKnob(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
-                .background(if (isEnabled) Color(0xFF030712) else Color(0xFF0B101D))
+                .background(if (isEnabled) (if (isLight) Color(0xFF1E222B) else Color(0xFF030712)) else Color(0xFF0B101D))
                 .border(
                     1.dp,
                     if (isEnabled) activeColor.copy(alpha = 0.5f) else Color(0xFF1E293B),

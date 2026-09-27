@@ -81,6 +81,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -2716,7 +2717,7 @@ private fun CosmicOrbitNowPlayingLayout(
             }
         }
 
-        // 4. Progress Bar with Timestamps Inside / Aligned (matching user's image)
+        // 4. Progress Bar with Timestamps Inside / Aligned
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2729,15 +2730,15 @@ private fun CosmicOrbitNowPlayingLayout(
                 onSeekTo = onSeekTo,
                 barHeight = 22.dp,
                 touchTargetHeight = 44.dp,
-                activeGradient = listOf(Color(0xFF00E5FF), Color(0xFF14B8A6)),
-                inactiveColor = Color(0xFF241B3B),
-                thumbColor = Color(0xFF00E5FF),
-                thumbGlowColor = Color(0xFF00E5FF).copy(alpha = 0.6f),
+                activeGradient = listOf(Color(0xFF00F5FF), Color(0xFF9D4EDD)),
+                inactiveColor = Color(0xFFD5DCE7),
+                thumbColor = Color(0xFF00F5FF),
+                thumbGlowColor = Color(0xFF00F5FF).copy(alpha = 0.6f),
                 showThumb = true,
                 tag = "cosmic_progress_slider"
             )
 
-            // Timestamps placed inside pill progress bar
+            // Timestamps placed inside pill progress bar with clean high-contrast dark slate font
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2748,51 +2749,71 @@ private fun CosmicOrbitNowPlayingLayout(
                 Text(
                     text = formatMs(currentPositionMs),
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E222B)
                 )
                 Text(
                     text = formatMs(durationMs),
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E222B)
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // 5. Shuffle and Repeat Row with 3D Embossed Buttons & Purple Neon Glow (matching user's image)
+        // 5. Shuffle and Repeat Row with 3D Extruded Neumorphic Buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Shuffle Button with Purple Neon Halo
+            // Shuffle Button with Neumorphic Dual Shadow (Bottom-Right: dark shadow, Top-Left: white highlight)
             Box(
                 modifier = Modifier
                     .size(54.dp)
                     .clip(CircleShape)
                     .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0xFFA855F7).copy(alpha = 0.4f),
-                                Color(0xFFA855F7).copy(alpha = 0.15f),
-                                Color.Transparent
+                        if (shuffleEnabled) {
+                            Brush.radialGradient(
+                                listOf(
+                                    Color(0xFF9D4EDD).copy(alpha = 0.35f),
+                                    Color(0xFF9D4EDD).copy(alpha = 0.10f),
+                                    Color.Transparent
+                                )
                             )
-                        )
+                        } else {
+                            SolidColor(Color.Transparent)
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
                         .size(46.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1E1A33))
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = CircleShape,
+                            ambientColor = Color(0x2B000000),
+                            spotColor = Color(0x2B000000)
+                        )
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFE2E7F0),
+                                    Color(0xFFD4DAE6)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(80f, 80f)
+                            ),
+                            CircleShape
+                        )
                         .border(
                             BorderStroke(
                                 1.5.dp,
-                                if (shuffleEnabled) Color(0xFFA855F7) else Color(0xFFA855F7).copy(alpha = 0.5f)
+                                if (shuffleEnabled) Color(0xFF9D4EDD) else Color.White.copy(alpha = 0.9f)
                             ),
                             CircleShape
                         )
@@ -2802,7 +2823,7 @@ private fun CosmicOrbitNowPlayingLayout(
                     Icon(
                         imageVector = Icons.Default.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (shuffleEnabled) Color(0xFFA855F7) else Color.White,
+                        tint = if (shuffleEnabled) Color(0xFF9D4EDD) else Color(0xFF1E222B),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -2810,36 +2831,56 @@ private fun CosmicOrbitNowPlayingLayout(
 
             Spacer(modifier = Modifier.width(36.dp))
 
-            // Repeat Button with Purple Neon Halo
+            // Repeat Button with Neumorphic Dual Shadow
+            val (repIcon, isRepActive) = when (repeatMode) {
+                RepeatMode.OFF -> Icons.Default.Repeat to false
+                RepeatMode.ALL -> Icons.Default.Repeat to true
+                RepeatMode.ONE -> Icons.Default.RepeatOne to true
+            }
             Box(
                 modifier = Modifier
                     .size(54.dp)
                     .clip(CircleShape)
                     .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0xFFA855F7).copy(alpha = 0.4f),
-                                Color(0xFFA855F7).copy(alpha = 0.15f),
-                                Color.Transparent
+                        if (isRepActive) {
+                            Brush.radialGradient(
+                                listOf(
+                                    Color(0xFF9D4EDD).copy(alpha = 0.35f),
+                                    Color(0xFF9D4EDD).copy(alpha = 0.10f),
+                                    Color.Transparent
+                                )
                             )
-                        )
+                        } else {
+                            SolidColor(Color.Transparent)
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                val (repIcon, isRepActive) = when (repeatMode) {
-                    RepeatMode.OFF -> Icons.Default.Repeat to false
-                    RepeatMode.ALL -> Icons.Default.Repeat to true
-                    RepeatMode.ONE -> Icons.Default.RepeatOne to true
-                }
                 Box(
                     modifier = Modifier
                         .size(46.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1E1A33))
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = CircleShape,
+                            ambientColor = Color(0x2B000000),
+                            spotColor = Color(0x2B000000)
+                        )
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFE2E7F0),
+                                    Color(0xFFD4DAE6)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(80f, 80f)
+                            ),
+                            CircleShape
+                        )
                         .border(
                             BorderStroke(
                                 1.5.dp,
-                                if (isRepActive) Color(0xFFA855F7) else Color(0xFFA855F7).copy(alpha = 0.5f)
+                                if (isRepActive) Color(0xFF9D4EDD) else Color.White.copy(alpha = 0.9f)
                             ),
                             CircleShape
                         )
@@ -2849,7 +2890,7 @@ private fun CosmicOrbitNowPlayingLayout(
                     Icon(
                         imageVector = repIcon,
                         contentDescription = "Repeat",
-                        tint = if (isRepActive) Color(0xFFA855F7) else Color.White,
+                        tint = if (isRepActive) Color(0xFF9D4EDD) else Color(0xFF1E222B),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -2858,24 +2899,28 @@ private fun CosmicOrbitNowPlayingLayout(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 6. Playback Controls Row: Prev (cyan halo), Play/Pause (3D purple/cyan rim), Next (cyan halo)
+        // 6. Playback Controls Row: Prev (3D extruded), Play/Pause (3D ceramic dual-shadow with cyan/purple halo), Next (3D extruded)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Previous Button with Cyan Halo
+            // Previous Button with 3D Neumorphic Extrusion
             Box(
                 modifier = Modifier
                     .size(62.dp)
                     .clip(CircleShape)
                     .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0xFF00E5FF).copy(alpha = 0.28f),
-                                Color.Transparent
+                        if (isRewinding) {
+                            Brush.radialGradient(
+                                listOf(
+                                    Color(0xFF00F5FF).copy(alpha = 0.35f),
+                                    Color.Transparent
+                                )
                             )
-                        )
+                        } else {
+                            SolidColor(Color.Transparent)
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -2884,26 +2929,46 @@ private fun CosmicOrbitNowPlayingLayout(
                     onHoldStart = onStartRewind,
                     onHoldEnd = onStopRewind,
                     isHolding = isRewinding,
-                    size = 50.dp,
-                    activeGlowColor = Color(0xFF00E5FF).copy(alpha = 0.5f),
+                    size = 52.dp,
+                    activeGlowColor = Color(0xFF00F5FF).copy(alpha = 0.5f),
                     modifier = Modifier
-                        .size(50.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF161A28))
-                        .border(1.5.dp, Color(0xFF26334A), CircleShape)
+                        .size(52.dp)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = CircleShape,
+                            ambientColor = Color(0x2B000000),
+                            spotColor = Color(0x2B000000)
+                        )
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFE2E7F0),
+                                    Color(0xFFD4DAE6)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(80f, 80f)
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            1.5.dp,
+                            if (isRewinding) Color(0xFF00F5FF) else Color.White.copy(alpha = 0.9f),
+                            CircleShape
+                        )
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Previous Track",
-                        tint = Color.White.copy(alpha = 0.9f),
+                        tint = if (isRewinding) Color(0xFF00F5FF) else Color(0xFF1E222B),
                         modifier = Modifier.size(28.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(28.dp))
+            Spacer(modifier = Modifier.width(26.dp))
 
-            // Play / Pause Massive 3D Cosmic Center Button (with concentric purple rim & glowing cyan icon)
+            // Play / Pause Massive 3D Cosmic Center Button (Extruded Ceramic body with Dual Shadow & Glowing Cyan Icon)
             Box(
                 modifier = Modifier
                     .size(92.dp)
@@ -2911,36 +2976,44 @@ private fun CosmicOrbitNowPlayingLayout(
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                Color(0xFF9333EA).copy(alpha = 0.55f),
-                                Color(0xFF00E5FF).copy(alpha = 0.35f),
+                                Color(0xFF9D4EDD).copy(alpha = 0.40f),
+                                Color(0xFF00F5FF).copy(alpha = 0.25f),
                                 Color.Transparent
                             )
                         )
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                // Beveled Outer Rim
                 Box(
                     modifier = Modifier
                         .size(80.dp)
-                        .clip(CircleShape)
+                        .shadow(
+                            elevation = 6.dp,
+                            shape = CircleShape,
+                            ambientColor = Color(0x2B000000),
+                            spotColor = Color(0x2B000000)
+                        )
                         .background(
                             Brush.linearGradient(
-                                listOf(
-                                    Color(0xFF3B1E6D),
-                                    Color(0xFF140D28)
-                                )
-                            )
+                                colors = listOf(
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFE2E7F0),
+                                    Color(0xFFD2D8E4)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(120f, 120f)
+                            ),
+                            CircleShape
                         )
                         .border(
                             BorderStroke(
-                                2.5.dp,
+                                2.2.dp,
                                 Brush.sweepGradient(
                                     listOf(
-                                        Color(0xFF9333EA),
-                                        Color(0xFF00E5FF),
-                                        Color(0xFFD946EF),
-                                        Color(0xFF9333EA)
+                                        Color(0xFF9D4EDD),
+                                        Color(0xFF00F5FF),
+                                        Color(0xFFC084FC),
+                                        Color(0xFF9D4EDD)
                                     )
                                 )
                             ),
@@ -2952,26 +3025,30 @@ private fun CosmicOrbitNowPlayingLayout(
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = Color(0xFF00E5FF),
+                        tint = Color(0xFF00F5FF),
                         modifier = Modifier.size(42.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(28.dp))
+            Spacer(modifier = Modifier.width(26.dp))
 
-            // Next Button with Cyan Halo
+            // Next Button with 3D Neumorphic Extrusion
             Box(
                 modifier = Modifier
                     .size(62.dp)
                     .clip(CircleShape)
                     .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0xFF00E5FF).copy(alpha = 0.28f),
-                                Color.Transparent
+                        if (isFastForwarding) {
+                            Brush.radialGradient(
+                                listOf(
+                                    Color(0xFF00F5FF).copy(alpha = 0.35f),
+                                    Color.Transparent
+                                )
                             )
-                        )
+                        } else {
+                            SolidColor(Color.Transparent)
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -2980,18 +3057,38 @@ private fun CosmicOrbitNowPlayingLayout(
                     onHoldStart = onStartFastForward,
                     onHoldEnd = onStopFastForward,
                     isHolding = isFastForwarding,
-                    size = 50.dp,
-                    activeGlowColor = Color(0xFF00E5FF).copy(alpha = 0.5f),
+                    size = 52.dp,
+                    activeGlowColor = Color(0xFF00F5FF).copy(alpha = 0.5f),
                     modifier = Modifier
-                        .size(50.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF161A28))
-                        .border(1.5.dp, Color(0xFF26334A), CircleShape)
+                        .size(52.dp)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = CircleShape,
+                            ambientColor = Color(0x2B000000),
+                            spotColor = Color(0x2B000000)
+                        )
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFE2E7F0),
+                                    Color(0xFFD4DAE6)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(80f, 80f)
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            1.5.dp,
+                            if (isFastForwarding) Color(0xFF00F5FF) else Color.White.copy(alpha = 0.9f),
+                            CircleShape
+                        )
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next Track",
-                        tint = Color.White.copy(alpha = 0.9f),
+                        tint = if (isFastForwarding) Color(0xFF00F5FF) else Color(0xFF1E222B),
                         modifier = Modifier.size(28.dp)
                     )
                 }

@@ -150,6 +150,21 @@ enum class AppNaturalTheme(
         onSurfaceVariantColor = Color(0xFFCBD5E1),
         outlineColor = Color(0xFF7E22CE),
         palette = listOf(Color(0xFF0E0618), Color(0xFFA855F7), Color(0xFFC084FC), Color(0xFFFFFFFF))
+    ),
+    COSMIC_ORBIT(
+        title = "Cosmic Orbit",
+        description = "Frosted Ceramic Silver with Electric Cyan and Cosmic Violet accents",
+        isDark = false,
+        backgroundColor = Color(0xFFE8ECF2),
+        surfaceColor = Color(0xFFE2E7F0),
+        cardColor = Color(0xFFE2E7F0),
+        primaryColor = Color(0xFF9D4EDD), // Cosmic Violet/Purple
+        secondaryColor = Color(0xFF00F5FF), // Electric Cyan
+        onBackgroundColor = Color(0xFF1E222B),
+        onSurfaceColor = Color(0xFF1E222B),
+        onSurfaceVariantColor = Color(0xFF7E8B9B),
+        outlineColor = Color(0xFFCBD5E1),
+        palette = listOf(Color(0xFFE8ECF2), Color(0xFF00F5FF), Color(0xFF9D4EDD), Color(0xFF1E222B))
     );
 
     // Backward-compatibility aliases
@@ -203,6 +218,7 @@ enum class AppNaturalTheme(
                     "BLACK", "PURE_BLACK", "COSMIC_DARK", "OLED_MIDNIGHT", "CYBER_NEON" -> BLACK
                     "WHITE", "PURE_WHITE", "CLEAN_WHITE", "LIGHT_WHITE" -> WHITE
                     "PURPLE", "ROYAL_VIOLET", "RETRO_WAVE", "ROYAL_AMETHYST" -> PURPLE
+                    "COSMIC_ORBIT", "COSMIC ORBIT" -> COSMIC_ORBIT
                     else -> BLUE
                 }
             }
@@ -210,6 +226,28 @@ enum class AppNaturalTheme(
     }
 
     fun toColorScheme(): ColorScheme {
+        if (this == COSMIC_ORBIT) {
+            return lightColorScheme(
+                primary = Color(0xFF9D4EDD),
+                onPrimary = Color.White,
+                primaryContainer = Color(0xFFE2E7F0),
+                onPrimaryContainer = Color(0xFF9D4EDD),
+                secondary = Color(0xFF00F5FF),
+                onSecondary = Color(0xFF1E222B),
+                secondaryContainer = Color(0xFFE2E7F0),
+                onSecondaryContainer = Color(0xFF1E222B),
+                tertiary = Color(0xFF00F5FF),
+                onTertiary = Color(0xFF1E222B),
+                background = Color(0xFFE8ECF2),
+                onBackground = Color(0xFF1E222B),
+                surface = Color(0xFFE2E7F0),
+                onSurface = Color(0xFF1E222B),
+                surfaceVariant = Color(0xFFE4E9F2),
+                onSurfaceVariant = Color(0xFF7E8B9B),
+                outline = Color(0xFFCBD5E1),
+                outlineVariant = Color(0xFF9D4EDD).copy(alpha = 0.35f)
+            )
+        }
         return if (isDark) {
             darkColorScheme(
                 primary = primaryColor,

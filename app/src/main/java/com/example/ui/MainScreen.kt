@@ -243,61 +243,62 @@ fun MainScreen(
         }
     }
 
-    val activeNaturalTheme = uiState.selectedTheme
+    val isCosmicOrbit = uiState.albumArtStyle == "Cosmic Orbit" || uiState.selectedTheme == com.example.model.AppNaturalTheme.COSMIC_ORBIT
+    val isNowPlaying = uiState.selectedTab == AppTab.NOW_PLAYING
+    val activeNaturalTheme = if (isCosmicOrbit) com.example.model.AppNaturalTheme.COSMIC_ORBIT else uiState.selectedTheme
     val palette = com.example.model.getPaletteForPreset(activeNaturalTheme)
 
     CompositionLocalProvider(LocalAppThemePalette provides palette) {
         MyApplicationTheme(
-            naturalTheme = activeNaturalTheme
+            naturalTheme = activeNaturalTheme,
+            isDarkTheme = !isCosmicOrbit && activeNaturalTheme.isDark
         ) {
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = {
                     ModalDrawerSheet(
-                        drawerContainerColor = MaterialTheme.colorScheme.surface,
-                        drawerContentColor = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.width(310.dp)
+                        drawerContainerColor = if (isCosmicOrbit) Color(0xFFE8ECF2) else MaterialTheme.colorScheme.surface,
+                        drawerContentColor = if (isCosmicOrbit) Color(0xFF1E222B) else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.width(320.dp)
                     ) {
-                    SideNavigationDrawerContent(
-                        totalSongsCount = uiState.songs.size,
-                        activeCategory = uiState.activeCategory,
-                        onSelectCategory = { category ->
-                            viewModel.setActiveCategory(category)
-                            viewModel.selectTab(AppTab.ALL_SONGS)
-                            coroutineScope.launch { drawerState.close() }
-                        },
-                        onNavigateSettings = {
-                            viewModel.selectTab(AppTab.SETTINGS)
-                            coroutineScope.launch { drawerState.close() }
-                        },
-                        onCloseDrawer = {
-                            coroutineScope.launch { drawerState.close() }
-                        }
-                    )
-                }
-            }
-        ) {
-            val isCosmicOrbit = uiState.albumArtStyle == "Cosmic Orbit"
-            val isNowPlaying = uiState.selectedTab == AppTab.NOW_PLAYING
-
-            Box(modifier = Modifier.fillMaxSize()) {
-                Scaffold(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .windowInsetsPadding(WindowInsets.statusBars),
-                    containerColor = if (isCosmicOrbit && isNowPlaying) Color(0xFFE8ECF2) else MaterialTheme.colorScheme.background,
-                    topBar = {
-                        NaasirTopBar(
-                            isPlaying = uiState.playerState.isPlaying,
-                            autoRotateActive = uiState.playerState.autoRotateEnabled,
-                            backgroundColor = if (isCosmicOrbit && isNowPlaying) Color(0xFFF3F5F9) else MaterialTheme.colorScheme.background,
-                            primaryColor = if (isCosmicOrbit) Color(0xFF9D4EDD) else palette.primaryAccent,
-                            isLightBackground = isCosmicOrbit && isNowPlaying,
-                            onOpenDrawer = {
-                                coroutineScope.launch { drawerState.open() }
-                            }
+                        SideNavigationDrawerContent(
+                            totalSongsCount = uiState.songs.size,
+                            activeCategory = uiState.activeCategory,
+                            onSelectCategory = { category ->
+                                viewModel.setActiveCategory(category)
+                                viewModel.selectTab(AppTab.ALL_SONGS)
+                                coroutineScope.launch { drawerState.close() }
+                            },
+                            onNavigateSettings = {
+                                viewModel.selectTab(AppTab.SETTINGS)
+                                coroutineScope.launch { drawerState.close() }
+                            },
+                            onCloseDrawer = {
+                                coroutineScope.launch { drawerState.close() }
+                            },
+                            isCosmicOrbit = isCosmicOrbit
                         )
-                    },
+                    }
+                }
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Scaffold(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .windowInsetsPadding(WindowInsets.statusBars),
+                        containerColor = if (isCosmicOrbit) Color(0xFFE8ECF2) else MaterialTheme.colorScheme.background,
+                        topBar = {
+                            NaasirTopBar(
+                                isPlaying = uiState.playerState.isPlaying,
+                                autoRotateActive = uiState.playerState.autoRotateEnabled,
+                                backgroundColor = if (isCosmicOrbit) Color(0xFFF3F5F9) else MaterialTheme.colorScheme.background,
+                                primaryColor = if (isCosmicOrbit) Color(0xFF9D4EDD) else palette.primaryAccent,
+                                isLightBackground = isCosmicOrbit,
+                                onOpenDrawer = {
+                                    coroutineScope.launch { drawerState.open() }
+                                }
+                            )
+                        },
                     bottomBar = {
                         Column(
                             modifier = Modifier

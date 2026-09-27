@@ -240,13 +240,23 @@ data class AppThemePalette(
         )
 
     val ambientBackdropBrush: Brush
-        get() = Brush.verticalGradient(
-            colors = listOf(
-                c6SurfaceGlow.copy(alpha = 0.22f),
-                surface.copy(alpha = 0.85f),
-                background
+        get() = if (id.equals("cosmic_orbit", ignoreCase = true)) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFF3F5F9),
+                    Color(0xFFE8ECF2),
+                    Color(0xFFE2E7F0)
+                )
             )
-        )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    c6SurfaceGlow.copy(alpha = 0.22f),
+                    surface.copy(alpha = 0.85f),
+                    background
+                )
+            )
+        }
 
     val visualizerBrush: Brush
         get() = Brush.verticalGradient(
@@ -268,6 +278,21 @@ fun getPaletteById(id: String): AppThemePalette {
 }
 
 fun getPaletteForPreset(preset: AppNaturalTheme): AppThemePalette {
+    if (preset == AppNaturalTheme.COSMIC_ORBIT) {
+        return AppThemePalette(
+            id = "cosmic_orbit",
+            name = "Cosmic Orbit",
+            subtitle = preset.description,
+            c1Primary = Color(0xFF9D4EDD),
+            c2Secondary = Color(0xFF00F5FF),
+            c3Tertiary = Color(0xFFC084FC),
+            c4Accent = Color(0xFF00F5FF),
+            c5VinylRing = Color(0xFF9D4EDD),
+            c6SurfaceGlow = Color(0xFFE2E7F0),
+            surface = Color(0xFFE2E7F0),
+            background = Color(0xFFE8ECF2)
+        )
+    }
     return AppThemePalette(
         id = preset.name.lowercase(),
         name = preset.title,

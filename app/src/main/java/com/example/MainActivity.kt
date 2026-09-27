@@ -41,14 +41,17 @@ class MainActivity : ComponentActivity() {
       val appThemeMode by musicViewModel.appThemeMode.collectAsStateWithLifecycle()
       val uiState by musicViewModel.uiState.collectAsStateWithLifecycle()
       val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
-      val isDarkTheme = when (appThemeMode) {
+      val isCosmicOrbit = uiState.albumArtStyle == "Cosmic Orbit" || uiState.selectedTheme == com.example.model.AppNaturalTheme.COSMIC_ORBIT
+      val activeTheme = if (isCosmicOrbit) com.example.model.AppNaturalTheme.COSMIC_ORBIT else uiState.selectedTheme
+      val isDarkTheme = if (isCosmicOrbit) false else when (appThemeMode) {
         com.example.model.AppThemeMode.DARK_OLED -> true
         com.example.model.AppThemeMode.LIGHT_WHITE -> false
         com.example.model.AppThemeMode.SYSTEM_DEFAULT -> isSystemDark
       }
 
       MyApplicationTheme(
-        naturalTheme = uiState.selectedTheme
+        naturalTheme = activeTheme,
+        isDarkTheme = isDarkTheme
       ) {
         Surface(
           modifier = Modifier.fillMaxSize(),

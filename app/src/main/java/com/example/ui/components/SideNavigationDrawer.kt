@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Headphones
@@ -50,11 +51,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.LibraryCategory
@@ -75,6 +80,7 @@ fun SideNavigationDrawerContent(
     onSelectCategory: (LibraryCategory) -> Unit,
     onNavigateSettings: () -> Unit,
     onCloseDrawer: () -> Unit,
+    isCosmicOrbit: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val palette = LocalThemePalette.current
@@ -98,33 +104,74 @@ fun SideNavigationDrawerContent(
             .fillMaxHeight()
             .width(320.dp)
             .testTag("side_navigation_drawer"),
-        color = MaterialTheme.colorScheme.surface,
+        color = if (isCosmicOrbit) Color(0xFFE8ECF2) else MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
+                .background(
+                    if (isCosmicOrbit) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFE8ECF2),
+                                Color(0xFFE2E7F0),
+                                Color(0xFFDCE2EC)
+                            )
+                        )
+                    } else {
+                        SolidColor(MaterialTheme.colorScheme.surface)
+                    }
+                )
                 .verticalScroll(rememberScrollState())
                 .padding(vertical = 16.dp)
         ) {
-            // Header: App icon and App Name at the top
+            // Header: Neumorphic container keeping "Naasir Music PRO" branding and track count
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                MaterialTheme.colorScheme.surface
-                            )
-                        )
-                    )
-                    .border(
-                        1.dp,
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                        RoundedCornerShape(16.dp)
+                    .then(
+                        if (isCosmicOrbit) {
+                            Modifier
+                                .shadow(
+                                    elevation = 5.dp,
+                                    shape = RoundedCornerShape(18.dp),
+                                    ambientColor = Color(0x28000000),
+                                    spotColor = Color(0x28000000)
+                                )
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFFFFFFFF),
+                                            Color(0xFFE4E9F2),
+                                            Color(0xFFD8DEE8)
+                                        )
+                                    ),
+                                    RoundedCornerShape(18.dp)
+                                )
+                                .border(
+                                    1.dp,
+                                    Color.White.copy(alpha = 0.85f),
+                                    RoundedCornerShape(18.dp)
+                                )
+                        } else {
+                            Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            MaterialTheme.colorScheme.surface
+                                        )
+                                    )
+                                )
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                    RoundedCornerShape(16.dp)
+                                )
+                        }
                     )
                     .padding(16.dp)
             ) {
@@ -134,7 +181,7 @@ fun SideNavigationDrawerContent(
                     NaasirMusicLogo(
                         size = 52.dp,
                         animatedWavePulse = true,
-                        glowIntensity = 0.6f,
+                        glowIntensity = if (isCosmicOrbit) 0.85f else 0.6f,
                         onClick = { /* Interactive click zoom */ }
                     )
 
@@ -144,21 +191,29 @@ fun SideNavigationDrawerContent(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Naasir Music",
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = if (isCosmicOrbit) Color(0xFF1E222B) else MaterialTheme.colorScheme.onSurface,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(palette.primaryAccent)
-                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        if (isCosmicOrbit) {
+                                            Brush.horizontalGradient(
+                                                colors = listOf(Color(0xFF00F5FF), Color(0xFF9D4EDD))
+                                            )
+                                        } else {
+                                            SolidColor(palette.primaryAccent)
+                                        }
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
                                     text = "PRO",
-                                    color = MaterialTheme.colorScheme.surface,
-                                    fontSize = 9.sp,
+                                    color = Color.White,
+                                    fontSize = 9.5.sp,
                                     fontWeight = FontWeight.Black
                                 )
                             }
@@ -166,7 +221,7 @@ fun SideNavigationDrawerContent(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = if (totalSongsCount > 0) "$totalSongsCount local tracks" else "Hi-Res Audio Player",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isCosmicOrbit) Color(0xFF7E8B9B) else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
@@ -178,7 +233,7 @@ fun SideNavigationDrawerContent(
             // Navigation Items Section
             Text(
                 text = "LIBRARY VIEWS",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (isCosmicOrbit) Color(0xFF7E8B9B) else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
@@ -187,18 +242,34 @@ fun SideNavigationDrawerContent(
 
             navItems.forEach { item ->
                 val isSelected = item.category != null && item.category == activeCategory
-                DrawerNavigationRow(
-                    title = item.title,
-                    icon = item.icon,
-                    isSelected = isSelected,
-                    testTag = item.testTag,
-                    onClick = {
-                        item.category?.let { cat ->
-                            onSelectCategory(cat)
-                            onCloseDrawer()
+                if (isCosmicOrbit) {
+                    NeumorphicDrawerCardRow(
+                        title = item.title,
+                        subtitle = item.subtitle,
+                        icon = item.icon,
+                        isSelected = isSelected,
+                        testTag = item.testTag,
+                        onClick = {
+                            item.category?.let { cat ->
+                                onSelectCategory(cat)
+                                onCloseDrawer()
+                            }
                         }
-                    }
-                )
+                    )
+                } else {
+                    DrawerNavigationRow(
+                        title = item.title,
+                        icon = item.icon,
+                        isSelected = isSelected,
+                        testTag = item.testTag,
+                        onClick = {
+                            item.category?.let { cat ->
+                                onSelectCategory(cat)
+                                onCloseDrawer()
+                            }
+                        }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -207,12 +278,12 @@ fun SideNavigationDrawerContent(
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                color = if (isCosmicOrbit) Color(0xFFCBD5E1) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
             )
 
             Text(
                 text = "MEDIA & SYSTEM",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (isCosmicOrbit) Color(0xFF7E8B9B) else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
@@ -220,36 +291,71 @@ fun SideNavigationDrawerContent(
             )
 
             // Network / Cloud
-            DrawerNavigationRow(
-                title = "Network / Cloud",
-                icon = Icons.Default.Cloud,
-                iconTint = palette.primaryAccent,
-                isSelected = false,
-                testTag = "drawer_item_network_cloud",
-                onClick = {
-                    showNetworkDialog = true
-                }
-            )
+            if (isCosmicOrbit) {
+                NeumorphicDrawerCardRow(
+                    title = "Network / Cloud",
+                    subtitle = "Stream UPnP, SMB, Cloud Drive",
+                    icon = Icons.Default.Cloud,
+                    isSelected = false,
+                    testTag = "drawer_item_network_cloud",
+                    onClick = {
+                        showNetworkDialog = true
+                    }
+                )
+            } else {
+                DrawerNavigationRow(
+                    title = "Network / Cloud",
+                    icon = Icons.Default.Cloud,
+                    iconTint = palette.primaryAccent,
+                    isSelected = false,
+                    testTag = "drawer_item_network_cloud",
+                    onClick = {
+                        showNetworkDialog = true
+                    }
+                )
+            }
 
             // Settings / Preferences
-            DrawerNavigationRow(
-                title = "Settings / Preferences",
-                icon = Icons.Default.Settings,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                isSelected = false,
-                testTag = "drawer_item_settings",
-                onClick = {
-                    onNavigateSettings()
-                    onCloseDrawer()
-                }
-            )
+            if (isCosmicOrbit) {
+                NeumorphicDrawerCardRow(
+                    title = "Settings / Preferences",
+                    subtitle = "Audio engine, UI & themes",
+                    icon = Icons.Default.Settings,
+                    isSelected = false,
+                    testTag = "drawer_item_settings",
+                    onClick = {
+                        onNavigateSettings()
+                        onCloseDrawer()
+                    }
+                )
+            } else {
+                DrawerNavigationRow(
+                    title = "Settings / Preferences",
+                    icon = Icons.Default.Settings,
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    isSelected = false,
+                    testTag = "drawer_item_settings",
+                    onClick = {
+                        onNavigateSettings()
+                        onCloseDrawer()
+                    }
+                )
+            }
 
             // Pro / Purchase (with a highlighted gift icon)
-            ProDrawerRow(
-                onClick = {
-                    showProDialog = true
-                }
-            )
+            if (isCosmicOrbit) {
+                NeumorphicProDrawerCard(
+                    onClick = {
+                        showProDialog = true
+                    }
+                )
+            } else {
+                ProDrawerRow(
+                    onClick = {
+                        showProDialog = true
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -358,6 +464,267 @@ fun SideNavigationDrawerContent(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun NeumorphicDrawerCardRow(
+    title: String,
+    subtitle: String?,
+    icon: ImageVector,
+    isSelected: Boolean,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 3.5.dp)
+            .shadow(
+                elevation = if (isSelected) 6.dp else 3.5.dp,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = Color(0x2B000000),
+                spotColor = Color(0x2B000000)
+            )
+            .background(
+                brush = Brush.linearGradient(
+                    colors = if (isSelected) {
+                        listOf(
+                            Color(0xFFFFFFFF),
+                            Color(0xFFE8EEF8),
+                            Color(0xFFDEE5F2)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFFFFFFFF),
+                            Color(0xFFE4E9F2),
+                            Color(0xFFD8DEE8)
+                        )
+                    },
+                    start = Offset.Zero,
+                    end = Offset(300f, 150f)
+                ),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .border(
+                width = if (isSelected) 1.8.dp else 1.dp,
+                brush = if (isSelected) {
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF00F5FF),
+                            Color(0xFF9D4EDD)
+                        )
+                    )
+                } else {
+                    SolidColor(Color.White.copy(alpha = 0.85f))
+                },
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp)
+            .testTag(testTag),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left Icon Box: Metallic dark-inset rounded square with neon glowing icon (Cyan/Purple)
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .shadow(
+                        elevation = 2.dp,
+                        shape = RoundedCornerShape(10.dp),
+                        ambientColor = Color(0x35000000),
+                        spotColor = Color(0x35000000)
+                    )
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF242A36),
+                                Color(0xFF1E222B),
+                                Color(0xFF13171F)
+                            )
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (isSelected) Color(0xFF00F5FF).copy(alpha = 0.85f) else Color(0xFF333B4A),
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = if (isSelected) Color(0xFF00F5FF) else Color(0xFF9D4EDD),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Text: Dark bold slate font for titles with clean subtitles
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = Color(0xFF1E222B),
+                    fontSize = 14.sp,
+                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(1.dp))
+                    Text(
+                        text = subtitle,
+                        color = if (isSelected) Color(0xFF9D4EDD) else Color(0xFF7E8B9B),
+                        fontSize = 11.sp,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Right: Active Item Indicator or Subtle chevron (>) indicator
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(Color(0xFF00F5FF), Color(0xFF9D4EDD))
+                            )
+                        )
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = Color(0xFF94A3B8),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NeumorphicProDrawerCard(
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = Color(0x2B000000),
+                spotColor = Color(0x2B000000)
+            )
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFFFFFFF),
+                        Color(0xFFE4E9F2),
+                        Color(0xFFD8DEE8)
+                    ),
+                    start = Offset.Zero,
+                    end = Offset(300f, 150f)
+                ),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .border(
+                width = 1.2.dp,
+                brush = Brush.horizontalGradient(
+                    colors = listOf(Color(0xFFFFB703), Color(0xFF9D4EDD))
+                ),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .testTag("drawer_item_pro_purchase")
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .shadow(
+                        elevation = 2.dp,
+                        shape = RoundedCornerShape(10.dp),
+                        ambientColor = Color(0x35000000),
+                        spotColor = Color(0x35000000)
+                    )
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF2D2312),
+                                Color(0xFF1E180B),
+                                Color(0xFF141006)
+                            )
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Color(0xFFFFB703).copy(alpha = 0.8f),
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CardGiftcard,
+                    contentDescription = "Pro Gift",
+                    tint = Color(0xFFFFB703),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Pro / Purchase",
+                    color = Color(0xFF1E222B),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Special Gift • Lifetime Access",
+                    color = Color(0xFFB45309),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(Color(0xFFFFB703), Color(0xFFF59E0B))
+                        )
+                    )
+                    .padding(horizontal = 6.dp, vertical = 2.5.dp)
+            ) {
+                Text(
+                    text = "50% OFF",
+                    color = Color(0xFF080B14),
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Black
+                )
+            }
+        }
     }
 }
 

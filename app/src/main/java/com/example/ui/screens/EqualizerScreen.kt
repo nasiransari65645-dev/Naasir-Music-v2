@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.EqualizerFrequencies
 import com.example.model.EqualizerPresets
 import com.example.model.EqualizerState
+import com.example.ui.components.RackRotaryKnob
 
 /**
  * Production-ready 13-Band Pro Equalizer
@@ -544,99 +545,56 @@ private fun EqualizerSubScreen(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                // Pre-Amp Gain (-10 dB to +10 dB)
+                // 3D Metallic Rotary Knob Dials for Pre-Amp, Bass Punch, and Treble Sparkle
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Pre-Amp Gain",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                    RackRotaryKnob(
+                        value = eq.preAmpGainDb,
+                        valueRange = -10f..10f,
+                        onValueChange = onSetPreAmp,
+                        title = "PRE-AMP",
+                        readoutText = "${if (eq.preAmpGainDb > 0) "+" else ""}${String.format("%.1f", eq.preAmpGainDb)}dB",
+                        minLabel = "-10dB",
+                        maxLabel = "+10dB",
+                        knobSize = 64.dp,
+                        activeColor = Color(0xFF00F5FF),
+                        isEnabled = eq.isEnabled,
+                        testTag = "rack_knob_preamp"
                     )
-                    Text(
-                        text = "${if (eq.preAmpGainDb > 0) "+" else ""}${String.format("%.1f", eq.preAmpGainDb)} dB",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (eq.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+                    RackRotaryKnob(
+                        value = eq.bassPunch,
+                        valueRange = 0f..1f,
+                        onValueChange = onSetBassPunch,
+                        title = "BASS PUNCH",
+                        readoutText = "${(eq.bassPunch * 100).toInt()}%",
+                        minLabel = "0%",
+                        maxLabel = "100%",
+                        knobSize = 64.dp,
+                        activeColor = Color(0xFF9D4EDD),
+                        isEnabled = eq.isEnabled,
+                        testTag = "rack_knob_bass_punch"
+                    )
+
+                    RackRotaryKnob(
+                        value = eq.trebleSparkle,
+                        valueRange = 0f..1f,
+                        onValueChange = onSetTrebleSparkle,
+                        title = "TREBLE",
+                        readoutText = "${(eq.trebleSparkle * 100).toInt()}%",
+                        minLabel = "0%",
+                        maxLabel = "100%",
+                        knobSize = 64.dp,
+                        activeColor = Color(0xFF00F5FF),
+                        isEnabled = eq.isEnabled,
+                        testTag = "rack_knob_treble"
                     )
                 }
-                Slider(
-                    value = eq.preAmpGainDb,
-                    onValueChange = onSetPreAmp,
-                    valueRange = -10f..10f,
-                    enabled = eq.isEnabled,
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    modifier = Modifier.testTag("slider_preamp")
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Bass Punch (0 to 100%)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Bass Punch",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "${(eq.bassPunch * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (eq.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Slider(
-                    value = eq.bassPunch,
-                    onValueChange = onSetBassPunch,
-                    valueRange = 0f..1f,
-                    enabled = eq.isEnabled,
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    modifier = Modifier.testTag("slider_bass_punch")
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Treble Sparkle (0 to 100%)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Treble Sparkle",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "${(eq.trebleSparkle * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (eq.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Slider(
-                    value = eq.trebleSparkle,
-                    onValueChange = onSetTrebleSparkle,
-                    valueRange = 0f..1f,
-                    enabled = eq.isEnabled,
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    modifier = Modifier.testTag("slider_treble_sparkle")
-                )
             }
         }
     }
@@ -652,6 +610,8 @@ private fun BandSliderRow(
     onGainChange: (Float) -> Unit,
     index: Int
 ) {
+    val isCosmicOrbit = MaterialTheme.colorScheme.surface == Color(0xFFE2E7F0) || MaterialTheme.colorScheme.background == Color(0xFFE8ECF2)
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -665,16 +625,20 @@ private fun BandSliderRow(
             modifier = Modifier.width(62.dp)
         )
 
-        // Fader Slider (-12 dB to +12 dB)
+        // Fader Slider (-12 dB to +12 dB) with cyan/purple glowing tracks
         Slider(
             value = gainDb,
             onValueChange = onGainChange,
             valueRange = -12f..12f,
             enabled = enabledOrDim(isEnabled),
             colors = SliderDefaults.colors(
-                thumbColor = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                activeTrackColor = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                thumbColor = if (isEnabled) {
+                    if (isCosmicOrbit) Color(0xFF9D4EDD) else MaterialTheme.colorScheme.primary
+                } else MaterialTheme.colorScheme.onSurfaceVariant,
+                activeTrackColor = if (isEnabled) {
+                    if (isCosmicOrbit) Color(0xFF00F5FF) else MaterialTheme.colorScheme.primary
+                } else MaterialTheme.colorScheme.outline,
+                inactiveTrackColor = if (isCosmicOrbit) Color(0xFFCBD5E1) else MaterialTheme.colorScheme.surfaceVariant
             ),
             modifier = Modifier
                 .weight(1f)
@@ -687,7 +651,9 @@ private fun BandSliderRow(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = if (isEnabled) {
-                if (gainDb != 0f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                if (gainDb != 0f) {
+                    if (isCosmicOrbit) Color(0xFF9D4EDD) else MaterialTheme.colorScheme.primary
+                } else MaterialTheme.colorScheme.onSurfaceVariant
             } else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(52.dp)
         )

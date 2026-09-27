@@ -94,7 +94,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -619,15 +623,47 @@ private fun SettingsCategoryCard(
     category: SettingsSubCategory,
     onClick: () -> Unit
 ) {
-    Card(
+    val isCosmicOrbit = MaterialTheme.colorScheme.surface == Color(0xFFE2E7F0) || MaterialTheme.colorScheme.background == Color(0xFFE8ECF2)
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (isCosmicOrbit) {
+                    Modifier
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(16.dp),
+                            ambientColor = Color(0x2B000000),
+                            spotColor = Color(0x2B000000)
+                        )
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFE4E9F2),
+                                    Color(0xFFD8DEE8)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(350f, 150f)
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .border(
+                            1.dp,
+                            Color.White.copy(alpha = 0.9f),
+                            RoundedCornerShape(16.dp)
+                        )
+                } else {
+                    Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                }
+            )
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .testTag("settings_card_${category.name.lowercase()}"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            .testTag("settings_card_${category.name.lowercase()}")
     ) {
         Row(
             modifier = Modifier
@@ -640,13 +676,26 @@ private fun SettingsCategoryCard(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(category.accentColor.copy(alpha = 0.15f)),
+                    .background(
+                        if (isCosmicOrbit) {
+                            Brush.linearGradient(
+                                colors = listOf(Color(0xFF262C38), Color(0xFF1E222B))
+                            )
+                        } else {
+                            SolidColor(category.accentColor.copy(alpha = 0.15f))
+                        }
+                    )
+                    .border(
+                        1.dp,
+                        if (isCosmicOrbit) category.accentColor.copy(alpha = 0.6f) else Color.Transparent,
+                        RoundedCornerShape(12.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = category.icon,
                     contentDescription = category.title,
-                    tint = category.accentColor,
+                    tint = if (isCosmicOrbit) (if (category.accentColor == Color(0xFF10B981)) Color(0xFF00F5FF) else category.accentColor) else category.accentColor,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -680,7 +729,7 @@ private fun SettingsCategoryCard(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Open ${category.title}",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                tint = if (isCosmicOrbit) Color(0xFF7E8B9B) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp)
             )
         }

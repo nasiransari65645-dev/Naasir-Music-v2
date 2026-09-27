@@ -1128,6 +1128,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     fun setAlbumArtStyle(style: String) {
         _albumArtStyle.value = style
         prefsManager.saveAlbumArtStyle(style)
+        if (style == "Cosmic Orbit") {
+            setTheme(com.example.model.AppNaturalTheme.COSMIC_ORBIT)
+        }
     }
 
     fun setSpinningVinyl(enabled: Boolean) {
