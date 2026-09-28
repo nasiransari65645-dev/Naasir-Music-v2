@@ -610,8 +610,6 @@ private fun BandSliderRow(
     onGainChange: (Float) -> Unit,
     index: Int
 ) {
-    val isCosmicOrbit = MaterialTheme.colorScheme.surface == Color(0xFFE2E7F0) || MaterialTheme.colorScheme.background == Color(0xFFE8ECF2)
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -625,20 +623,16 @@ private fun BandSliderRow(
             modifier = Modifier.width(62.dp)
         )
 
-        // Fader Slider (-12 dB to +12 dB) with cyan/purple glowing tracks
+        // Fader Slider (-12 dB to +12 dB) with cyan glowing tracks
         Slider(
             value = gainDb,
             onValueChange = onGainChange,
             valueRange = -12f..12f,
             enabled = enabledOrDim(isEnabled),
             colors = SliderDefaults.colors(
-                thumbColor = if (isEnabled) {
-                    if (isCosmicOrbit) Color(0xFF9D4EDD) else MaterialTheme.colorScheme.primary
-                } else MaterialTheme.colorScheme.onSurfaceVariant,
-                activeTrackColor = if (isEnabled) {
-                    if (isCosmicOrbit) Color(0xFF00F5FF) else MaterialTheme.colorScheme.primary
-                } else MaterialTheme.colorScheme.outline,
-                inactiveTrackColor = if (isCosmicOrbit) Color(0xFFCBD5E1) else MaterialTheme.colorScheme.surfaceVariant
+                thumbColor = if (isEnabled) Color(0xFF00E5FF) else MaterialTheme.colorScheme.onSurfaceVariant,
+                activeTrackColor = if (isEnabled) Color(0xFF00E5FF) else MaterialTheme.colorScheme.outline,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
             ),
             modifier = Modifier
                 .weight(1f)
@@ -651,9 +645,7 @@ private fun BandSliderRow(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = if (isEnabled) {
-                if (gainDb != 0f) {
-                    if (isCosmicOrbit) Color(0xFF9D4EDD) else MaterialTheme.colorScheme.primary
-                } else MaterialTheme.colorScheme.onSurfaceVariant
+                if (gainDb != 0f) Color(0xFF00E5FF) else MaterialTheme.colorScheme.onSurfaceVariant
             } else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(52.dp)
         )

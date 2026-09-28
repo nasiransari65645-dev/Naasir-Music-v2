@@ -172,7 +172,7 @@ enum class SettingsSubCategory(
     ),
     LOOK_AND_FEEL(
         title = "Look & Feel",
-        subtitle = "Neon color accents, edge lighting borders, visualizer styling, and UI themes",
+        subtitle = "Player UI designs, dynamic edge lighting borders, and audio visualizer",
         icon = Icons.Default.Palette,
         accentColor = Color(0xFF00E676)
     ),
@@ -623,47 +623,15 @@ private fun SettingsCategoryCard(
     category: SettingsSubCategory,
     onClick: () -> Unit
 ) {
-    val isCosmicOrbit = MaterialTheme.colorScheme.surface == Color(0xFFE2E7F0) || MaterialTheme.colorScheme.background == Color(0xFFE8ECF2)
-
-    Box(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .then(
-                if (isCosmicOrbit) {
-                    Modifier
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(16.dp),
-                            ambientColor = Color(0x2B000000),
-                            spotColor = Color(0x2B000000)
-                        )
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFE4E9F2),
-                                    Color(0xFFD8DEE8)
-                                ),
-                                start = Offset.Zero,
-                                end = Offset(350f, 150f)
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .border(
-                            1.dp,
-                            Color.White.copy(alpha = 0.9f),
-                            RoundedCornerShape(16.dp)
-                        )
-                } else {
-                    Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-                }
-            )
-            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .testTag("settings_card_${category.name.lowercase()}")
+            .testTag("settings_card_${category.name.lowercase()}"),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier
@@ -676,18 +644,10 @@ private fun SettingsCategoryCard(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isCosmicOrbit) {
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFF262C38), Color(0xFF1E222B))
-                            )
-                        } else {
-                            SolidColor(category.accentColor.copy(alpha = 0.15f))
-                        }
-                    )
+                    .background(category.accentColor.copy(alpha = 0.15f))
                     .border(
                         1.dp,
-                        if (isCosmicOrbit) category.accentColor.copy(alpha = 0.6f) else Color.Transparent,
+                        category.accentColor.copy(alpha = 0.35f),
                         RoundedCornerShape(12.dp)
                     ),
                 contentAlignment = Alignment.Center
@@ -695,7 +655,7 @@ private fun SettingsCategoryCard(
                 Icon(
                     imageVector = category.icon,
                     contentDescription = category.title,
-                    tint = if (isCosmicOrbit) (if (category.accentColor == Color(0xFF10B981)) Color(0xFF00F5FF) else category.accentColor) else category.accentColor,
+                    tint = category.accentColor,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -729,7 +689,7 @@ private fun SettingsCategoryCard(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Open ${category.title}",
-                tint = if (isCosmicOrbit) Color(0xFF7E8B9B) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -2077,116 +2037,6 @@ private fun LookAndFeelSubScreen(
                         color = Color(0xFF10B981),
                         fontWeight = FontWeight.Medium
                     )
-                }
-            }
-        }
-    }
-
-    // 1. 9 Natural Themes Selector Tile
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("setting_theme_mode_card"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ColorLens,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "8 High-Contrast Themes",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Active: ${selectedTheme.title} • Tap any theme to apply app-wide",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Quick horizontal list of all 8 high-contrast themes
-            androidx.compose.foundation.lazy.LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(com.example.model.AppNaturalTheme.entries.toTypedArray()) { theme ->
-                    val isSelected = theme == selectedTheme
-                    Surface(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onSelectTheme(theme) }
-                            .testTag("natural_theme_${theme.name.lowercase()}"),
-                        color = theme.surfaceColor,
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(
-                            width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) theme.primaryColor else theme.outlineColor.copy(alpha = 0.4f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clip(CircleShape)
-                                    .background(theme.primaryColor)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = theme.title,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = theme.onSurfaceColor
-                                )
-                                Text(
-                                    text = if (theme.isDark) "Dark" else "Light",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = theme.onSurfaceVariantColor,
-                                    fontSize = 9.sp
-                                )
-                            }
-                            if (isSelected) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = theme.primaryColor,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }

@@ -243,22 +243,21 @@ fun MainScreen(
         }
     }
 
-    val isCosmicOrbit = uiState.albumArtStyle == "Cosmic Orbit" || uiState.selectedTheme == com.example.model.AppNaturalTheme.COSMIC_ORBIT
+    val activeNaturalTheme = com.example.model.AppNaturalTheme.BLUE
     val isNowPlaying = uiState.selectedTab == AppTab.NOW_PLAYING
-    val activeNaturalTheme = if (isCosmicOrbit) com.example.model.AppNaturalTheme.COSMIC_ORBIT else uiState.selectedTheme
     val palette = com.example.model.getPaletteForPreset(activeNaturalTheme)
 
     CompositionLocalProvider(LocalAppThemePalette provides palette) {
         MyApplicationTheme(
             naturalTheme = activeNaturalTheme,
-            isDarkTheme = !isCosmicOrbit && activeNaturalTheme.isDark
+            isDarkTheme = true
         ) {
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = {
                     ModalDrawerSheet(
-                        drawerContainerColor = if (isCosmicOrbit) Color(0xFFE8ECF2) else MaterialTheme.colorScheme.surface,
-                        drawerContentColor = if (isCosmicOrbit) Color(0xFF1E222B) else MaterialTheme.colorScheme.onSurface,
+                        drawerContainerColor = MaterialTheme.colorScheme.surface,
+                        drawerContentColor = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.width(320.dp)
                     ) {
                         SideNavigationDrawerContent(
@@ -276,7 +275,7 @@ fun MainScreen(
                             onCloseDrawer = {
                                 coroutineScope.launch { drawerState.close() }
                             },
-                            isCosmicOrbit = isCosmicOrbit
+                            isCosmicOrbit = false
                         )
                     }
                 }
@@ -286,14 +285,14 @@ fun MainScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .windowInsetsPadding(WindowInsets.statusBars),
-                        containerColor = if (isCosmicOrbit) Color(0xFFE8ECF2) else MaterialTheme.colorScheme.background,
+                        containerColor = MaterialTheme.colorScheme.background,
                         topBar = {
                             NaasirTopBar(
                                 isPlaying = uiState.playerState.isPlaying,
                                 autoRotateActive = uiState.playerState.autoRotateEnabled,
-                                backgroundColor = if (isCosmicOrbit) Color(0xFFF3F5F9) else MaterialTheme.colorScheme.background,
-                                primaryColor = if (isCosmicOrbit) Color(0xFF9D4EDD) else palette.primaryAccent,
-                                isLightBackground = isCosmicOrbit,
+                                backgroundColor = MaterialTheme.colorScheme.background,
+                                primaryColor = palette.primaryAccent,
+                                isLightBackground = false,
                                 onOpenDrawer = {
                                     coroutineScope.launch { drawerState.open() }
                                 }
@@ -327,77 +326,50 @@ fun MainScreen(
                                     customVisualizerText = uiState.customVisualizerText,
                                     showVisualizerText = uiState.showVisualizerText,
                                     visualizerTextColor = Color(uiState.visualizerTextColorHex),
-                                    isCosmicOrbit = isCosmicOrbit
+                                    isCosmicOrbit = false
                                 )
                             }
 
-                            // Dynamic Themed Bottom Navigation Bar
+                            // Themed Bottom Navigation Bar
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(
-                                        if (isCosmicOrbit) {
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    Color(0xFFF8FAFC).copy(alpha = 0.95f), // Frosted ceramic silver glassmorphism
-                                                    Color(0xFFEDF2F7).copy(alpha = 0.96f),
-                                                    Color(0xFFE2E8F0).copy(alpha = 0.98f)
-                                                )
-                                            )
-                                        } else {
-                                            SolidColor(MaterialTheme.colorScheme.surface)
-                                        }
-                                    )
+                                    .background(MaterialTheme.colorScheme.surface)
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    // Thin top subtle glowing highlight/divider line (1dp, soft purple/cyan accent)
-                                    if (isCosmicOrbit) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(1.dp)
-                                                .background(
-                                                    Brush.horizontalGradient(
-                                                        colors = listOf(
-                                                            Color(0xFF9D4EDD).copy(alpha = 0.40f),
-                                                            Color(0xFF00E5FF).copy(alpha = 0.70f),
-                                                            Color(0xFFC084FC).copy(alpha = 0.55f),
-                                                            Color(0xFF00E5FF).copy(alpha = 0.35f)
-                                                        )
+                                    // Top subtle accent line
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(
+                                                        palette.primaryAccent.copy(alpha = 0.15f),
+                                                        palette.primaryAccent.copy(alpha = 0.60f),
+                                                        palette.secondaryAccent.copy(alpha = 0.60f),
+                                                        palette.primaryAccent.copy(alpha = 0.15f)
                                                     )
                                                 )
-                                        )
-                                    }
+                                            )
+                                    )
 
                                     NavigationBar(
                                         containerColor = Color.Transparent,
-                                        contentColor = if (isCosmicOrbit) Color(0xFF1E293B) else MaterialTheme.colorScheme.onSurface,
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
                                         tonalElevation = 0.dp,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(72.dp)
                                             .testTag("main_bottom_nav")
                                     ) {
-                                        val cosmicInactiveColor = Color(0xFF7E8B9B)
-                                        val cosmicActiveColor = Color(0xFF9D4EDD)
-
-                                        val navItemColors = if (isCosmicOrbit) {
-                                            NavigationBarItemDefaults.colors(
-                                                selectedIconColor = cosmicActiveColor,
-                                                selectedTextColor = cosmicActiveColor,
-                                                indicatorColor = cosmicActiveColor.copy(alpha = 0.16f),
-                                                unselectedIconColor = cosmicInactiveColor,
-                                                unselectedTextColor = cosmicInactiveColor
-                                            )
-                                        } else {
-                                            NavigationBarItemDefaults.colors(
-                                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
+                                        val navItemColors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
 
                                         // Tab 1: Library
                                         val isLibrarySelected = uiState.selectedTab == AppTab.ALL_SONGS
@@ -405,29 +377,11 @@ fun MainScreen(
                                             selected = isLibrarySelected,
                                             onClick = { viewModel.selectTab(AppTab.ALL_SONGS) },
                                             icon = {
-                                                Box(
-                                                    contentAlignment = Alignment.Center,
-                                                    modifier = if (isLibrarySelected && isCosmicOrbit) {
-                                                        Modifier
-                                                            .background(
-                                                                Brush.radialGradient(
-                                                                    colors = listOf(
-                                                                        Color(0xFF9D4EDD).copy(alpha = 0.35f),
-                                                                        Color(0xFF9D4EDD).copy(alpha = 0.10f),
-                                                                        Color.Transparent
-                                                                    )
-                                                                ),
-                                                                CircleShape
-                                                            )
-                                                            .padding(3.dp)
-                                                    } else Modifier
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.LibraryMusic,
-                                                        contentDescription = "Library",
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
+                                                Icon(
+                                                    imageVector = Icons.Default.LibraryMusic,
+                                                    contentDescription = "Library",
+                                                    modifier = Modifier.size(24.dp)
+                                                )
                                             },
                                             label = {
                                                 Text(
@@ -440,87 +394,64 @@ fun MainScreen(
                                                         fontWeight = if (isLibrarySelected) FontWeight.Bold else FontWeight.Medium,
                                                         letterSpacing = (-0.2).sp
                                                     ),
-                                                    color = if (isCosmicOrbit) {
-                                                        if (isLibrarySelected) cosmicActiveColor else cosmicInactiveColor
-                                                    } else {
-                                                        if (isLibrarySelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                                    }
+                                                    color = if (isLibrarySelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             },
                                             colors = navItemColors,
                                             modifier = Modifier.testTag("nav_tab_library")
                                         )
 
-                                        // Tab: Now Playing (Removed/hidden for Cosmic Orbit, or when viewing Now Playing screen)
-                                        if (!isCosmicOrbit && uiState.selectedTab != AppTab.NOW_PLAYING) {
-                                            val isNowPlayingSelected = uiState.selectedTab == AppTab.NOW_PLAYING
-                                            NavigationBarItem(
-                                                selected = isNowPlayingSelected,
-                                                onClick = { viewModel.selectTab(AppTab.NOW_PLAYING) },
-                                                icon = {
-                                                    Icon(
-                                                        imageVector = Icons.Default.PlayCircle,
-                                                        contentDescription = "Now Playing",
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                },
-                                                label = {
-                                                    Text(
-                                                        text = "Now Playing",
-                                                        maxLines = 1,
-                                                        softWrap = false,
-                                                        overflow = TextOverflow.Clip,
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontSize = 11.5.sp,
-                                                            fontWeight = if (isNowPlayingSelected) FontWeight.Bold else FontWeight.Medium,
-                                                            letterSpacing = (-0.2).sp
-                                                        )
-                                                    )
-                                                },
-                                                colors = navItemColors,
-                                                modifier = Modifier.testTag("nav_tab_now_playing")
-                                            )
-                                        }
+                                        // Tab 2: Now Playing
+                                        val isNowPlayingSelected = uiState.selectedTab == AppTab.NOW_PLAYING
+                                        NavigationBarItem(
+                                            selected = isNowPlayingSelected,
+                                            onClick = { viewModel.selectTab(AppTab.NOW_PLAYING) },
+                                            icon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.PlayCircle,
+                                                    contentDescription = "Now Playing",
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            },
+                                            label = {
+                                                Text(
+                                                    text = "Now Playing",
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Clip,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 11.5.sp,
+                                                        fontWeight = if (isNowPlayingSelected) FontWeight.Bold else FontWeight.Medium,
+                                                        letterSpacing = (-0.2).sp
+                                                    ),
+                                                    color = if (isNowPlayingSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            },
+                                            colors = navItemColors,
+                                            modifier = Modifier.testTag("nav_tab_now_playing")
+                                        )
 
-                                        // Tab 2: Equalizer
+                                        // Tab 3: Equalizer
                                         val isEqSelected = uiState.selectedTab == AppTab.EQUALIZER
                                         NavigationBarItem(
                                             selected = isEqSelected,
                                             onClick = { viewModel.selectTab(AppTab.EQUALIZER) },
                                             icon = {
-                                                Box(
-                                                    contentAlignment = Alignment.Center,
-                                                    modifier = if (isEqSelected && isCosmicOrbit) {
-                                                        Modifier
-                                                            .background(
-                                                                Brush.radialGradient(
-                                                                    colors = listOf(
-                                                                        Color(0xFF9D4EDD).copy(alpha = 0.35f),
-                                                                        Color(0xFF9D4EDD).copy(alpha = 0.10f),
-                                                                        Color.Transparent
-                                                                    )
-                                                                ),
-                                                                CircleShape
+                                                BadgedBox(
+                                                    badge = {
+                                                        if (uiState.playerState.equalizerState.isEnabled) {
+                                                            Badge(
+                                                                containerColor = palette.primaryAccent,
+                                                                modifier = Modifier.size(6.dp)
                                                             )
-                                                            .padding(3.dp)
-                                                    } else Modifier
-                                                ) {
-                                                    BadgedBox(
-                                                        badge = {
-                                                            if (uiState.playerState.equalizerState.isEnabled) {
-                                                                Badge(
-                                                                    containerColor = if (isCosmicOrbit) Color(0xFF00E5FF) else palette.primaryAccent,
-                                                                    modifier = Modifier.size(6.dp)
-                                                                )
-                                                            }
                                                         }
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.GraphicEq,
-                                                            contentDescription = "Equalizer",
-                                                            modifier = Modifier.size(24.dp)
-                                                        )
                                                     }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.GraphicEq,
+                                                        contentDescription = "Equalizer",
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
                                                 }
                                             },
                                             label = {
@@ -534,56 +465,34 @@ fun MainScreen(
                                                         fontWeight = if (isEqSelected) FontWeight.Bold else FontWeight.Medium,
                                                         letterSpacing = (-0.2).sp
                                                     ),
-                                                    color = if (isCosmicOrbit) {
-                                                        if (isEqSelected) cosmicActiveColor else cosmicInactiveColor
-                                                    } else {
-                                                        if (isEqSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                                    }
+                                                    color = if (isEqSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             },
                                             colors = navItemColors,
                                             modifier = Modifier.testTag("nav_tab_equalizer")
                                         )
 
-                                        // Tab 3: 3D Effects
+                                        // Tab 4: 3D Effects
                                         val isSpatialSelected = uiState.selectedTab == AppTab.SPATIAL_3D
                                         NavigationBarItem(
                                             selected = isSpatialSelected,
                                             onClick = { viewModel.selectTab(AppTab.SPATIAL_3D) },
                                             icon = {
-                                                Box(
-                                                    contentAlignment = Alignment.Center,
-                                                    modifier = if (isSpatialSelected && isCosmicOrbit) {
-                                                        Modifier
-                                                            .background(
-                                                                Brush.radialGradient(
-                                                                    colors = listOf(
-                                                                        Color(0xFF9D4EDD).copy(alpha = 0.35f),
-                                                                        Color(0xFF9D4EDD).copy(alpha = 0.10f),
-                                                                        Color.Transparent
-                                                                    )
-                                                                ),
-                                                                CircleShape
+                                                BadgedBox(
+                                                    badge = {
+                                                        if (uiState.playerState.autoRotateEnabled) {
+                                                            Badge(
+                                                                containerColor = palette.secondaryAccent,
+                                                                modifier = Modifier.size(6.dp)
                                                             )
-                                                            .padding(3.dp)
-                                                    } else Modifier
-                                                ) {
-                                                    BadgedBox(
-                                                        badge = {
-                                                            if (uiState.playerState.autoRotateEnabled) {
-                                                                Badge(
-                                                                    containerColor = if (isCosmicOrbit) Color(0xFF00E5FF) else palette.secondaryAccent,
-                                                                    modifier = Modifier.size(6.dp)
-                                                                )
-                                                            }
                                                         }
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.SurroundSound,
-                                                            contentDescription = "3D Effects",
-                                                            modifier = Modifier.size(24.dp)
-                                                        )
                                                     }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.SurroundSound,
+                                                        contentDescription = "3D Effects",
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
                                                 }
                                             },
                                             label = {
@@ -597,46 +506,24 @@ fun MainScreen(
                                                         fontWeight = if (isSpatialSelected) FontWeight.Bold else FontWeight.Medium,
                                                         letterSpacing = (-0.2).sp
                                                     ),
-                                                    color = if (isCosmicOrbit) {
-                                                        if (isSpatialSelected) cosmicActiveColor else cosmicInactiveColor
-                                                    } else {
-                                                        if (isSpatialSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                                    }
+                                                    color = if (isSpatialSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             },
                                             colors = navItemColors,
                                             modifier = Modifier.testTag("nav_tab_spatial_3d")
                                         )
 
-                                        // Tab 4: Settings
+                                        // Tab 5: Settings
                                         val isSettingsSelected = uiState.selectedTab == AppTab.SETTINGS
                                         NavigationBarItem(
                                             selected = isSettingsSelected,
                                             onClick = { viewModel.selectTab(AppTab.SETTINGS) },
                                             icon = {
-                                                Box(
-                                                    contentAlignment = Alignment.Center,
-                                                    modifier = if (isSettingsSelected && isCosmicOrbit) {
-                                                        Modifier
-                                                            .background(
-                                                                Brush.radialGradient(
-                                                                    colors = listOf(
-                                                                        Color(0xFF9D4EDD).copy(alpha = 0.35f),
-                                                                        Color(0xFF9D4EDD).copy(alpha = 0.10f),
-                                                                        Color.Transparent
-                                                                    )
-                                                                ),
-                                                                CircleShape
-                                                            )
-                                                            .padding(3.dp)
-                                                    } else Modifier
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Settings,
-                                                        contentDescription = "Settings",
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
+                                                Icon(
+                                                    imageVector = Icons.Default.Settings,
+                                                    contentDescription = "Settings",
+                                                    modifier = Modifier.size(24.dp)
+                                                )
                                             },
                                             label = {
                                                 Text(
@@ -649,11 +536,7 @@ fun MainScreen(
                                                         fontWeight = if (isSettingsSelected) FontWeight.Bold else FontWeight.Medium,
                                                         letterSpacing = (-0.2).sp
                                                     ),
-                                                    color = if (isCosmicOrbit) {
-                                                        if (isSettingsSelected) cosmicActiveColor else cosmicInactiveColor
-                                                    } else {
-                                                        if (isSettingsSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                                    }
+                                                    color = if (isSettingsSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             },
                                             colors = navItemColors,

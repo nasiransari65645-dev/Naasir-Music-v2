@@ -264,47 +264,31 @@ data class AppThemePalette(
         )
 }
 
-val CuratedThemePalettes: List<AppThemePalette> = AppNaturalTheme.entries.map { getPaletteForPreset(it) }
+val CuratedThemePalettes: List<AppThemePalette> = listOf(getPaletteForPreset(AppNaturalTheme.BLUE))
 
 val DEFAULT_PALETTE: AppThemePalette get() = getPaletteForPreset(AppNaturalTheme.BLUE)
-val LIGHT_THEME_PALETTE: AppThemePalette get() = getPaletteForPreset(AppNaturalTheme.WHITE)
+val LIGHT_THEME_PALETTE: AppThemePalette get() = getPaletteForPreset(AppNaturalTheme.BLUE)
 
 val LocalAppThemePalette = staticCompositionLocalOf { DEFAULT_PALETTE }
 val LocalThemePalette = LocalAppThemePalette
 
 fun getPaletteById(id: String): AppThemePalette {
-    return CuratedThemePalettes.firstOrNull { it.id.equals(id, ignoreCase = true) }
-        ?: getPaletteForPreset(AppNaturalTheme.fromNameSafe(id))
+    return DEFAULT_PALETTE
 }
 
 fun getPaletteForPreset(preset: AppNaturalTheme): AppThemePalette {
-    if (preset == AppNaturalTheme.COSMIC_ORBIT) {
-        return AppThemePalette(
-            id = "cosmic_orbit",
-            name = "Cosmic Orbit",
-            subtitle = preset.description,
-            c1Primary = Color(0xFF9D4EDD),
-            c2Secondary = Color(0xFF00F5FF),
-            c3Tertiary = Color(0xFFC084FC),
-            c4Accent = Color(0xFF00F5FF),
-            c5VinylRing = Color(0xFF9D4EDD),
-            c6SurfaceGlow = Color(0xFFE2E7F0),
-            surface = Color(0xFFE2E7F0),
-            background = Color(0xFFE8ECF2)
-        )
-    }
     return AppThemePalette(
-        id = preset.name.lowercase(),
-        name = preset.title,
-        subtitle = preset.description,
-        c1Primary = preset.primaryColor,
-        c2Secondary = preset.secondaryColor,
-        c3Tertiary = if (preset.palette.size > 2) preset.palette[2] else preset.primaryColor,
-        c4Accent = preset.primaryColor,
-        c5VinylRing = preset.outlineColor,
-        c6SurfaceGlow = preset.surfaceColor,
-        surface = preset.surfaceColor,
-        background = preset.backgroundColor
+        id = "blue",
+        name = "Blue",
+        subtitle = "Deep Midnight Slate with Electric Neon Cyan accents",
+        c1Primary = Color(0xFF06B6D4),
+        c2Secondary = Color(0xFF38BDF8),
+        c3Tertiary = Color(0xFF0284C7),
+        c4Accent = Color(0xFF06B6D4),
+        c5VinylRing = Color(0xFF0E7490),
+        c6SurfaceGlow = Color(0xFF0E192E),
+        surface = Color(0xFF0E192E),
+        background = Color(0xFF070F1E)
     )
 }
 

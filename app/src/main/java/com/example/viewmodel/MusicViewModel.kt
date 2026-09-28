@@ -701,22 +701,23 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setTheme(theme: AppThemePreset) {
-        _selectedTheme.value = theme
-        prefsManager.saveTheme(theme)
-        val mode = if (theme.isDark) com.example.model.AppThemeMode.DARK_OLED else com.example.model.AppThemeMode.LIGHT_WHITE
+        val fixedTheme = com.example.model.AppNaturalTheme.BLUE
+        _selectedTheme.value = fixedTheme
+        prefsManager.saveTheme(fixedTheme)
+        val mode = com.example.model.AppThemeMode.DARK_OLED
         _appThemeMode.value = mode
         prefsManager.saveAppThemeMode(mode)
-        val newColorMap = com.example.model.MultiElementColorMap.fromThemePreset(theme, shuffle = false)
-        _customThemeSettings.update { it.copy(themePreset = theme, colorMap = newColorMap) }
+        val newColorMap = com.example.model.MultiElementColorMap.fromThemePreset(fixedTheme, shuffle = false)
+        _customThemeSettings.update { it.copy(themePreset = fixedTheme, colorMap = newColorMap) }
         prefsManager.saveCustomThemeSettings(_customThemeSettings.value)
-        val matchingPalette = getPaletteForPreset(theme)
+        val matchingPalette = getPaletteForPreset(fixedTheme)
         selectThemePalette(matchingPalette)
 
         // Ensure notification player stays 100% color-synchronized with active theme
         if (com.example.audio.MediaPlaybackService.isServiceRunning) {
             com.example.audio.MediaPlaybackService.updateNotificationTheme(
                 context = getApplication(),
-                accentColor = theme.primaryColorInt
+                accentColor = fixedTheme.primaryColorInt
             )
         }
     }
@@ -1128,9 +1129,6 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     fun setAlbumArtStyle(style: String) {
         _albumArtStyle.value = style
         prefsManager.saveAlbumArtStyle(style)
-        if (style == "Cosmic Orbit") {
-            setTheme(com.example.model.AppNaturalTheme.COSMIC_ORBIT)
-        }
     }
 
     fun setSpinningVinyl(enabled: Boolean) {

@@ -276,20 +276,7 @@ fun NowPlayingScreen(
 
     val isCosmicOrbit = albumArtStyle == "Cosmic Orbit"
 
-    val backdropModifier = if (isCosmicOrbit) {
-        modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFF3F5F9), // Frosted ceramic silver theme background
-                        Color(0xFFE5E9F1),
-                        Color(0xFFDCE2EC),
-                        Color(0xFFE6EBF3)
-                    )
-                )
-            )
-    } else if (!customThemeSettings.isEnabled) {
+    val backdropModifier = if (!customThemeSettings.isEnabled) {
         modifier
             .fillMaxSize()
             .background(activePalette.ambientBackdropBrush)
@@ -2409,12 +2396,12 @@ private fun CosmicOrbitNowPlayingLayout(
                     text = "Playlist: Starlight Selections",
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFF64748B)
+                    color = Color(0xFF38BDF8)
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 AutoScrollText(
                     text = currentSong.title,
-                    color = Color(0xFF0F172A),
+                    color = Color.White,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     modifier = Modifier.fillMaxWidth()
@@ -2423,7 +2410,7 @@ private fun CosmicOrbitNowPlayingLayout(
                 Text(
                     text = "${currentSong.artist} • ${currentSong.album}",
                     fontSize = 13.sp,
-                    color = Color(0xFF64748B),
+                    color = Color(0xFFCBD5E1),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -2750,13 +2737,13 @@ private fun CosmicOrbitNowPlayingLayout(
                     text = formatMs(currentPositionMs),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1E222B)
+                    color = Color.White
                 )
                 Text(
                     text = formatMs(durationMs),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1E222B)
+                    color = Color.White
                 )
             }
         }
@@ -2801,9 +2788,9 @@ private fun CosmicOrbitNowPlayingLayout(
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFE2E7F0),
-                                    Color(0xFFD4DAE6)
+                                    Color(0xFF223048),
+                                    Color(0xFF162544),
+                                    Color(0xFF0E192E)
                                 ),
                                 start = Offset.Zero,
                                 end = Offset(80f, 80f)
@@ -2813,7 +2800,7 @@ private fun CosmicOrbitNowPlayingLayout(
                         .border(
                             BorderStroke(
                                 1.5.dp,
-                                if (shuffleEnabled) Color(0xFF9D4EDD) else Color.White.copy(alpha = 0.9f)
+                                if (shuffleEnabled) Color(0xFF00F5FF) else Color(0xFF334155)
                             ),
                             CircleShape
                         )
@@ -2823,7 +2810,7 @@ private fun CosmicOrbitNowPlayingLayout(
                     Icon(
                         imageVector = Icons.Default.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (shuffleEnabled) Color(0xFF9D4EDD) else Color(0xFF1E222B),
+                        tint = if (shuffleEnabled) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -2845,8 +2832,8 @@ private fun CosmicOrbitNowPlayingLayout(
                         if (isRepActive) {
                             Brush.radialGradient(
                                 listOf(
-                                    Color(0xFF9D4EDD).copy(alpha = 0.35f),
-                                    Color(0xFF9D4EDD).copy(alpha = 0.10f),
+                                    Color(0xFF00F5FF).copy(alpha = 0.35f),
+                                    Color(0xFF00F5FF).copy(alpha = 0.10f),
                                     Color.Transparent
                                 )
                             )
@@ -2868,9 +2855,9 @@ private fun CosmicOrbitNowPlayingLayout(
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFE2E7F0),
-                                    Color(0xFFD4DAE6)
+                                    Color(0xFF223048),
+                                    Color(0xFF162544),
+                                    Color(0xFF0E192E)
                                 ),
                                 start = Offset.Zero,
                                 end = Offset(80f, 80f)
@@ -2880,7 +2867,7 @@ private fun CosmicOrbitNowPlayingLayout(
                         .border(
                             BorderStroke(
                                 1.5.dp,
-                                if (isRepActive) Color(0xFF9D4EDD) else Color.White.copy(alpha = 0.9f)
+                                if (isRepActive) Color(0xFF00F5FF) else Color(0xFF334155)
                             ),
                             CircleShape
                         )
@@ -2890,7 +2877,7 @@ private fun CosmicOrbitNowPlayingLayout(
                     Icon(
                         imageVector = repIcon,
                         contentDescription = "Repeat",
-                        tint = if (isRepActive) Color(0xFF9D4EDD) else Color(0xFF1E222B),
+                        tint = if (isRepActive) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -2899,7 +2886,7 @@ private fun CosmicOrbitNowPlayingLayout(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 6. Playback Controls Row: Prev (3D extruded), Play/Pause (3D ceramic dual-shadow with cyan/purple halo), Next (3D extruded)
+        // 6. Playback Controls Row: Prev (3D extruded), Play/Pause (3D ceramic dual-shadow with cyan halo), Next (3D extruded)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
@@ -2942,9 +2929,9 @@ private fun CosmicOrbitNowPlayingLayout(
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFE2E7F0),
-                                    Color(0xFFD4DAE6)
+                                    Color(0xFF223048),
+                                    Color(0xFF162544),
+                                    Color(0xFF0E192E)
                                 ),
                                 start = Offset.Zero,
                                 end = Offset(80f, 80f)
@@ -2953,14 +2940,14 @@ private fun CosmicOrbitNowPlayingLayout(
                         )
                         .border(
                             1.5.dp,
-                            if (isRewinding) Color(0xFF00F5FF) else Color.White.copy(alpha = 0.9f),
+                            if (isRewinding) Color(0xFF00F5FF) else Color(0xFF334155),
                             CircleShape
                         )
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Previous Track",
-                        tint = if (isRewinding) Color(0xFF00F5FF) else Color(0xFF1E222B),
+                        tint = if (isRewinding) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -2968,7 +2955,7 @@ private fun CosmicOrbitNowPlayingLayout(
 
             Spacer(modifier = Modifier.width(26.dp))
 
-            // Play / Pause Massive 3D Cosmic Center Button (Extruded Ceramic body with Dual Shadow & Glowing Cyan Icon)
+            // Play / Pause Massive 3D Cosmic Center Button
             Box(
                 modifier = Modifier
                     .size(92.dp)
@@ -2976,8 +2963,8 @@ private fun CosmicOrbitNowPlayingLayout(
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                Color(0xFF9D4EDD).copy(alpha = 0.40f),
-                                Color(0xFF00F5FF).copy(alpha = 0.25f),
+                                Color(0xFF00F5FF).copy(alpha = 0.35f),
+                                Color(0xFF38BDF8).copy(alpha = 0.15f),
                                 Color.Transparent
                             )
                         )
@@ -2996,9 +2983,9 @@ private fun CosmicOrbitNowPlayingLayout(
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFE2E7F0),
-                                    Color(0xFFD2D8E4)
+                                    Color(0xFF2A3D5C),
+                                    Color(0xFF162544),
+                                    Color(0xFF0E192E)
                                 ),
                                 start = Offset.Zero,
                                 end = Offset(120f, 120f)
@@ -3010,10 +2997,10 @@ private fun CosmicOrbitNowPlayingLayout(
                                 2.2.dp,
                                 Brush.sweepGradient(
                                     listOf(
-                                        Color(0xFF9D4EDD),
+                                        Color(0xFF06B6D4),
                                         Color(0xFF00F5FF),
-                                        Color(0xFFC084FC),
-                                        Color(0xFF9D4EDD)
+                                        Color(0xFF38BDF8),
+                                        Color(0xFF06B6D4)
                                     )
                                 )
                             ),
@@ -3070,9 +3057,9 @@ private fun CosmicOrbitNowPlayingLayout(
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFE2E7F0),
-                                    Color(0xFFD4DAE6)
+                                    Color(0xFF223048),
+                                    Color(0xFF162544),
+                                    Color(0xFF0E192E)
                                 ),
                                 start = Offset.Zero,
                                 end = Offset(80f, 80f)
@@ -3081,14 +3068,14 @@ private fun CosmicOrbitNowPlayingLayout(
                         )
                         .border(
                             1.5.dp,
-                            if (isFastForwarding) Color(0xFF00F5FF) else Color.White.copy(alpha = 0.9f),
+                            if (isFastForwarding) Color(0xFF00F5FF) else Color(0xFF334155),
                             CircleShape
                         )
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next Track",
-                        tint = if (isFastForwarding) Color(0xFF00F5FF) else Color(0xFF1E222B),
+                        tint = if (isFastForwarding) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
                         modifier = Modifier.size(28.dp)
                     )
                 }

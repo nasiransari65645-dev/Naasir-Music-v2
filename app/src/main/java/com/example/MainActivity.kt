@@ -38,16 +38,8 @@ class MainActivity : ComponentActivity() {
     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     enableEdgeToEdge()
     setContent {
-      val appThemeMode by musicViewModel.appThemeMode.collectAsStateWithLifecycle()
-      val uiState by musicViewModel.uiState.collectAsStateWithLifecycle()
-      val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
-      val isCosmicOrbit = uiState.albumArtStyle == "Cosmic Orbit" || uiState.selectedTheme == com.example.model.AppNaturalTheme.COSMIC_ORBIT
-      val activeTheme = if (isCosmicOrbit) com.example.model.AppNaturalTheme.COSMIC_ORBIT else uiState.selectedTheme
-      val isDarkTheme = if (isCosmicOrbit) false else when (appThemeMode) {
-        com.example.model.AppThemeMode.DARK_OLED -> true
-        com.example.model.AppThemeMode.LIGHT_WHITE -> false
-        com.example.model.AppThemeMode.SYSTEM_DEFAULT -> isSystemDark
-      }
+      val activeTheme = com.example.model.AppNaturalTheme.BLUE
+      val isDarkTheme = true
 
       MyApplicationTheme(
         naturalTheme = activeTheme,
