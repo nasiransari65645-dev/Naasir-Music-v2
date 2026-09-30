@@ -250,7 +250,7 @@ class SettingsPreferencesManager(context: Context) {
     }
 
     fun loadUseSystemMediaNotification(): Boolean {
-        return prefs.getBoolean(KEY_USE_SYSTEM_MEDIA_NOTIFICATION, false)
+        return prefs.getBoolean(KEY_USE_SYSTEM_MEDIA_NOTIFICATION, true)
     }
 
     fun saveKeepScreenOn(enabled: Boolean) {

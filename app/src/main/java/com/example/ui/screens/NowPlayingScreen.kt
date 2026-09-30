@@ -436,32 +436,15 @@ fun NowPlayingScreen(
                 tag = "track_progress_slider"
             )
 
-            // Request 3: Reposition Shuffle and Repeat buttons directly in line with progress bar timestamps
-            // Far Left: Shuffle | Next: Current Timestamp | Spacer | Duration | Far Right: Repeat
+            // 1. Dedicated Seekbar Timestamps Row (Directly Below Seekbar Slider)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 2.dp),
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Far Left: Shuffle button (compact & subtle, cyan accent only when active)
-                IconButton(
-                    onClick = onToggleShuffle,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("shuffle_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Shuffle,
-                        contentDescription = "Shuffle",
-                        tint = if (shuffleEnabled) activeShuffleRepeatActiveColor else Color(0xFF808080),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                // Current playback timestamp (Request 2: Blinking/flashing animation when paused)
+                // Left: Current elapsed time text (aligned to start)
                 Text(
                     text = formatMs(currentPositionMs),
                     style = MaterialTheme.typography.labelSmall,
@@ -471,41 +454,85 @@ fun NowPlayingScreen(
                         .testTag("current_playback_timestamp")
                 )
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Center Track Position Counter ("05 / 120")
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                    modifier = Modifier.testTag("standard_track_counter_badge")
-                ) {
-                    Text(
-                        text = "%02d / %02d".format(currentIndex + 1, totalTracks),
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Total duration timestamp
+                // Right: Total duration text (aligned to end)
                 Text(
                     text = formatMs(safeDuration),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag("total_duration_timestamp")
                 )
+            }
 
-                Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                // Far Right: Repeat button (compact & subtle, active accent only when active)
+            // 2. Secondary Controls Row: [ Shuffle Button ] --- [ Track Counter Badge ("52 / 250") ] --- [ Repeat Button ]
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left: Shuffle button (ic_shuffle)
+                IconButton(
+                    onClick = onToggleShuffle,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .testTag("shuffle_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = "Shuffle",
+                        tint = if (shuffleEnabled) activeShuffleRepeatActiveColor else Color(0xFF808080),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Center: Track Counter pill badge ("52 / 250"), perfectly centered with Modifier.weight(1f)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                        ),
+                        shadowElevation = 2.dp,
+                        modifier = Modifier.testTag("standard_track_counter_badge")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "TRACK ",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                letterSpacing = 1.1.sp
+                            )
+                            Text(
+                                text = "%02d / %02d".format(currentIndex + 1, totalTracks),
+                                fontSize = 13.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+                }
+
+                // Right: Repeat button (ic_repeat)
                 IconButton(
                     onClick = onCycleRepeat,
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(42.dp)
                         .testTag("repeat_button")
                 ) {
                     val (icon, tint) = when (repeatMode) {
@@ -517,7 +544,7 @@ fun NowPlayingScreen(
                         imageVector = icon,
                         contentDescription = "Repeat: ${repeatMode.name}",
                         tint = tint,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

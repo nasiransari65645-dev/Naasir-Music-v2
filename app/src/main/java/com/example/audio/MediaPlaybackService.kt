@@ -601,32 +601,14 @@ class MediaPlaybackService : Service() {
                 shuffleEnabled = effectiveShuffle,
                 repeatMode = effectiveRepeat,
                 themeAccentColor = themePrimaryArgb,
-                isEdgeLightingEnabled = edgeSettings.isEnabled,
-                isNotificationEdgeLightingEnabled = edgeSettings.isNotificationBorderEnabled,
-                mediaSession = session,
-                useSystemMediaNotification = prefs.loadUseSystemMediaNotification()
-            )
-        } catch (t: Throwable) {
-            Log.e(TAG, "Error building custom notification, falling back to system style: ${t.message}", t)
-            MediaNotificationManager.buildNotification(
-                context = this,
-                title = title,
-                artist = artist,
-                album = album,
-                uriString = uriString,
-                albumArtUriString = albumArtUriString,
-                songPath = songPath,
-                isPlaying = isPlaying,
-                positionMs = positionMs,
-                durationMs = durationMs,
-                shuffleEnabled = effectiveShuffle,
-                repeatMode = effectiveRepeat,
-                themeAccentColor = themePrimaryArgb,
                 isEdgeLightingEnabled = false,
                 isNotificationEdgeLightingEnabled = false,
                 mediaSession = session,
                 useSystemMediaNotification = true
             )
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error building notification: ${t.message}", t)
+            return
         }
 
         try {
