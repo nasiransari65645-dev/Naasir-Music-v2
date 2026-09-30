@@ -45,7 +45,7 @@ object MediaNotificationManager {
     const val ACTION_SEEK_TO = "com.example.audio.ACTION_SEEK_TO"
     const val EXTRA_SEEK_POSITION = "extra_seek_position"
 
-    private const val COLOR_GREY_INACTIVE = 0xFF7E8B9B.toInt()
+    private const val COLOR_GREY_INACTIVE = 0xFF757575.toInt()
     private const val COLOR_WHITE = 0xFFFFFFFF.toInt()
     private const val COLOR_CARD_BACKGROUND = 0xFF101726.toInt()
 
@@ -169,10 +169,13 @@ object MediaNotificationManager {
             38
         )
         val iconNextBitmap = getTintedVectorBitmap(context, R.drawable.ic_skip_next, COLOR_WHITE, 34)
+        val shuffleColor = if (shuffleEnabled) themeAccentColor else COLOR_GREY_INACTIVE
+        val repeatColor = if (repeatMode != RepeatMode.OFF) themeAccentColor else COLOR_GREY_INACTIVE
+
         val iconShuffleBitmap = getTintedVectorBitmap(
             context,
             if (shuffleEnabled) R.drawable.ic_shuffle else R.drawable.ic_shuffle_off,
-            if (shuffleEnabled) themeAccentColor else COLOR_GREY_INACTIVE,
+            shuffleColor,
             30
         )
         val iconRepeatBitmap = getTintedVectorBitmap(
@@ -182,7 +185,7 @@ object MediaNotificationManager {
                 repeatMode == RepeatMode.ALL -> R.drawable.ic_repeat
                 else -> R.drawable.ic_repeat_off
             },
-            if (repeatMode != RepeatMode.OFF) themeAccentColor else COLOR_GREY_INACTIVE,
+            repeatColor,
             30
         )
 
@@ -197,6 +200,7 @@ object MediaNotificationManager {
             // Compact controls: Shuffle, Previous, Play/Pause, Next, Repeat
             setOnClickPendingIntent(R.id.btn_shuffle, shufflePendingIntent)
             setImageViewBitmap(R.id.btn_shuffle, iconShuffleBitmap)
+            setInt(R.id.btn_shuffle, "setColorFilter", shuffleColor)
 
             setOnClickPendingIntent(R.id.btn_prev, prevPendingIntent)
             setImageViewBitmap(R.id.btn_prev, iconPrevBitmap)
@@ -209,6 +213,7 @@ object MediaNotificationManager {
 
             setOnClickPendingIntent(R.id.btn_repeat, repeatPendingIntent)
             setImageViewBitmap(R.id.btn_repeat, iconRepeatBitmap)
+            setInt(R.id.btn_repeat, "setColorFilter", repeatColor)
         }
 
         // 4. Big (Expanded) RemoteViews
@@ -224,6 +229,7 @@ object MediaNotificationManager {
             // Control Row: [ Shuffle ]  [ Previous ]  [ Play / Pause ]  [ Next ]  [ Repeat ]
             setOnClickPendingIntent(R.id.btn_shuffle, shufflePendingIntent)
             setImageViewBitmap(R.id.btn_shuffle, iconShuffleBitmap)
+            setInt(R.id.btn_shuffle, "setColorFilter", shuffleColor)
 
             setOnClickPendingIntent(R.id.btn_prev, prevPendingIntent)
             setImageViewBitmap(R.id.btn_prev, iconPrevBitmap)
@@ -236,6 +242,7 @@ object MediaNotificationManager {
 
             setOnClickPendingIntent(R.id.btn_repeat, repeatPendingIntent)
             setImageViewBitmap(R.id.btn_repeat, iconRepeatBitmap)
+            setInt(R.id.btn_repeat, "setColorFilter", repeatColor)
 
             // Real-Time Progress Bar
             val progressVal = if (durationMs > 0) ((positionMs * 1000) / durationMs).toInt().coerceIn(0, 1000) else 0

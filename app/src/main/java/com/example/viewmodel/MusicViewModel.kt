@@ -38,6 +38,7 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -571,36 +572,61 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // 2. Play count tracking:
-        // Track a song in "Most Played" ONLY after it has played for at least 1 minute (60 seconds)
-        var activeTrackSessionId: Long? = null
+        // 2. Real Elapsed Listening Time Tracker for 'Most Played' (Requirement 1):
+        // Does NOT rely on track position (currentPositionMs) or seekbar timestamps.
+        // Scrubbing/seeking forward or backward does NOT affect realPlaytimeSeconds.
+        var activeListeningSongId: Long? = null
+        var realPlaytimeSeconds: Int = 0
         var isCurrentTrackSessionCounted: Boolean = false
+        var listeningTimerJob: Job? = null
 
         viewModelScope.launch {
             playerManager.state.collect { state ->
                 val song = state.currentSong
-                if (song != null) {
-                    if (song.id != activeTrackSessionId) {
-                        activeTrackSessionId = song.id
+                if (song == null) {
+                    listeningTimerJob?.cancel()
+                    listeningTimerJob = null
+                    activeListeningSongId = null
+                    realPlaytimeSeconds = 0
+                    isCurrentTrackSessionCounted = false
+                } else {
+                    // Reset accumulator and trigger flag when song changes
+                    if (song.id != activeListeningSongId) {
+                        listeningTimerJob?.cancel()
+                        listeningTimerJob = null
+                        activeListeningSongId = song.id
+                        realPlaytimeSeconds = 0
                         isCurrentTrackSessionCounted = false
                     }
 
-                    if (state.isPlaying && !isCurrentTrackSessionCounted) {
-                        val pos = state.currentPositionMs
-                        val dur = state.durationMs
-                        val oneMinuteMs = 60_000L
-                        // If track duration is shorter than 1 minute, count at 90% of song; otherwise strictly require >= 60 seconds
-                        val thresholdMs = if (dur in 1L..<oneMinuteMs) (dur * 0.9f).toLong() else oneMinuteMs
-                        if (pos >= thresholdMs) {
-                            isCurrentTrackSessionCounted = true
-                            viewModelScope.launch(Dispatchers.IO) {
-                                songRepository.recordSongPlayed(song.id)
+                    if (state.isPlaying) {
+                        // Start 1000ms ticking loop only while actively playing
+                        if (listeningTimerJob?.isActive != true) {
+                            listeningTimerJob = launch {
+                                while (isActive) {
+                                    delay(1000L)
+                                    val currentState = playerManager.state.value
+                                    if (currentState.isPlaying && currentState.currentSong?.id == activeListeningSongId) {
+                                        realPlaytimeSeconds++
+                                        if (realPlaytimeSeconds >= 60 && !isCurrentTrackSessionCounted) {
+                                            isCurrentTrackSessionCounted = true
+                                            val qualifiedSongId = song.id
+                                            launch(Dispatchers.IO) {
+                                                songRepository.recordSongPlayed(qualifiedSongId)
+                                            }
+                                        }
+                                    } else {
+                                        // Paused, buffering, or stopped -> halt ticking
+                                        break
+                                    }
+                                }
                             }
                         }
+                    } else {
+                        // If player is PAUSED or STOPPED -> halt ticking (do not count)
+                        listeningTimerJob?.cancel()
+                        listeningTimerJob = null
                     }
-                } else {
-                    activeTrackSessionId = null
-                    isCurrentTrackSessionCounted = false
                 }
             }
         }

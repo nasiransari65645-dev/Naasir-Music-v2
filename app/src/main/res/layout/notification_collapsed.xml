@@ -74,7 +74,6 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:background="@android:color/transparent"
-                android:src="@drawable/ic_shuffle_off"
                 android:scaleType="centerInside"
                 android:contentDescription="Shuffle" />
 
@@ -107,7 +106,6 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:background="@android:color/transparent"
-                android:src="@drawable/ic_repeat_off"
                 android:scaleType="centerInside"
                 android:contentDescription="Repeat" />
         </LinearLayout>

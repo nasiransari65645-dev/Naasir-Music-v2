@@ -296,27 +296,71 @@ class MediaPlaybackService : Service() {
 
                 override fun onSetShuffleMode(shuffleMode: Int) {
                     AudioPlayerManager.instance?.toggleShuffle()
-                    lastShuffleEnabled = AudioPlayerManager.instance?.state?.value?.shuffleEnabled ?: !lastShuffleEnabled
-                    updateNotificationThemeInternal(null)
+                    val currentShuffle = AudioPlayerManager.instance?.state?.value?.shuffleEnabled ?: !lastShuffleEnabled
+                    lastShuffleEnabled = currentShuffle
+                    updateNotificationAndSession(
+                        title = lastTitle,
+                        artist = lastArtist,
+                        album = lastAlbum,
+                        uriString = lastUriString,
+                        albumArtUriString = lastAlbumArtUriString,
+                        songPath = lastSongPath,
+                        isPlaying = lastIsPlaying,
+                        positionMs = lastPositionMs,
+                        durationMs = lastDurationMs
+                    )
                 }
 
                 override fun onSetRepeatMode(repeatMode: Int) {
                     AudioPlayerManager.instance?.cycleRepeatMode()
-                    lastRepeatMode = AudioPlayerManager.instance?.state?.value?.repeatMode ?: lastRepeatMode.next()
-                    updateNotificationThemeInternal(null)
+                    val currentRepeat = AudioPlayerManager.instance?.state?.value?.repeatMode ?: lastRepeatMode.next()
+                    lastRepeatMode = currentRepeat
+                    updateNotificationAndSession(
+                        title = lastTitle,
+                        artist = lastArtist,
+                        album = lastAlbum,
+                        uriString = lastUriString,
+                        albumArtUriString = lastAlbumArtUriString,
+                        songPath = lastSongPath,
+                        isPlaying = lastIsPlaying,
+                        positionMs = lastPositionMs,
+                        durationMs = lastDurationMs
+                    )
                 }
 
                 override fun onCustomAction(action: String?, extras: Bundle?) {
                     when (action) {
                         ACTION_TOGGLE_SHUFFLE -> {
                             AudioPlayerManager.instance?.toggleShuffle()
-                            lastShuffleEnabled = AudioPlayerManager.instance?.state?.value?.shuffleEnabled ?: !lastShuffleEnabled
-                            updateNotificationThemeInternal(null)
+                            val currentShuffle = AudioPlayerManager.instance?.state?.value?.shuffleEnabled ?: !lastShuffleEnabled
+                            lastShuffleEnabled = currentShuffle
+                            updateNotificationAndSession(
+                                title = lastTitle,
+                                artist = lastArtist,
+                                album = lastAlbum,
+                                uriString = lastUriString,
+                                albumArtUriString = lastAlbumArtUriString,
+                                songPath = lastSongPath,
+                                isPlaying = lastIsPlaying,
+                                positionMs = lastPositionMs,
+                                durationMs = lastDurationMs
+                            )
                         }
                         ACTION_TOGGLE_REPEAT -> {
                             AudioPlayerManager.instance?.cycleRepeatMode()
-                            lastRepeatMode = AudioPlayerManager.instance?.state?.value?.repeatMode ?: lastRepeatMode.next()
-                            updateNotificationThemeInternal(null)
+                            val currentRepeat = AudioPlayerManager.instance?.state?.value?.repeatMode ?: lastRepeatMode.next()
+                            lastRepeatMode = currentRepeat
+                            updateNotificationAndSession(
+                                title = lastTitle,
+                                artist = lastArtist,
+                                album = lastAlbum,
+                                uriString = lastUriString,
+                                albumArtUriString = lastAlbumArtUriString,
+                                songPath = lastSongPath,
+                                isPlaying = lastIsPlaying,
+                                positionMs = lastPositionMs,
+                                durationMs = lastDurationMs
+                            )
                         }
                     }
                 }
@@ -357,13 +401,33 @@ class MediaPlaybackService : Service() {
                 AudioPlayerManager.instance?.toggleShuffle()
                 val currentShuffle = AudioPlayerManager.instance?.state?.value?.shuffleEnabled ?: !lastShuffleEnabled
                 lastShuffleEnabled = currentShuffle
-                updateNotificationThemeInternal(null)
+                updateNotificationAndSession(
+                    title = lastTitle,
+                    artist = lastArtist,
+                    album = lastAlbum,
+                    uriString = lastUriString,
+                    albumArtUriString = lastAlbumArtUriString,
+                    songPath = lastSongPath,
+                    isPlaying = lastIsPlaying,
+                    positionMs = lastPositionMs,
+                    durationMs = lastDurationMs
+                )
             }
             ACTION_TOGGLE_REPEAT -> {
                 AudioPlayerManager.instance?.cycleRepeatMode()
                 val currentRepeat = AudioPlayerManager.instance?.state?.value?.repeatMode ?: lastRepeatMode.next()
                 lastRepeatMode = currentRepeat
-                updateNotificationThemeInternal(null)
+                updateNotificationAndSession(
+                    title = lastTitle,
+                    artist = lastArtist,
+                    album = lastAlbum,
+                    uriString = lastUriString,
+                    albumArtUriString = lastAlbumArtUriString,
+                    songPath = lastSongPath,
+                    isPlaying = lastIsPlaying,
+                    positionMs = lastPositionMs,
+                    durationMs = lastDurationMs
+                )
             }
             ACTION_SEEK_TO -> {
                 val pos = intent.getLongExtra(EXTRA_SEEK_POSITION, 0L)
