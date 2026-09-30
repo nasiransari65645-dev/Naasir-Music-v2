@@ -92,6 +92,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -284,6 +285,17 @@ fun NowPlayingScreen(
         modifier.fillMaxSize()
     }
 
+    val currentIndex = remember(currentSong, allSongs) {
+        if (currentSong == null || allSongs.isEmpty()) 0
+        else {
+            val idx = allSongs.indexOfFirst { it.id == currentSong.id }
+            if (idx >= 0) idx else 0
+        }
+    }
+    val totalTracks = remember(allSongs) {
+        allSongs.size.coerceAtLeast(1)
+    }
+
     Box(
         modifier = backdropModifier
             .clickable(
@@ -318,7 +330,9 @@ fun NowPlayingScreen(
                 onStartFastForward = onStartFastForward,
                 onStopFastForward = onStopFastForward,
                 onStartRewind = onStartRewind,
-                onStopRewind = onStopRewind
+                onStopRewind = onStopRewind,
+                currentIndex = currentIndex,
+                totalTracks = totalTracks
             )
         } else {
             // Base Content Layer (Fixed, stable, never pushed by search results)
@@ -456,6 +470,24 @@ fun NowPlayingScreen(
                         .graphicsLayer { alpha = blinkAlpha }
                         .testTag("current_playback_timestamp")
                 )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Center Track Position Counter ("05 / 120")
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                    modifier = Modifier.testTag("standard_track_counter_badge")
+                ) {
+                    Text(
+                        text = "%02d / %02d".format(currentIndex + 1, totalTracks),
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -2336,7 +2368,9 @@ private fun CosmicOrbitNowPlayingLayout(
     onStartFastForward: () -> Unit,
     onStopFastForward: () -> Unit,
     onStartRewind: () -> Unit,
-    onStopRewind: () -> Unit
+    onStopRewind: () -> Unit,
+    currentIndex: Int = 0,
+    totalTracks: Int = 1
 ) {
     val rotationAnim = remember { Animatable(0f) }
     LaunchedEffect(isPlaying) {
@@ -2750,16 +2784,17 @@ private fun CosmicOrbitNowPlayingLayout(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // 5. Shuffle and Repeat Row with 3D Extruded Neumorphic Buttons
+        // 5. Shuffle, Track Counter & Repeat Row (Cosmic Orbit Theme)
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Shuffle Button with Neumorphic Dual Shadow (Bottom-Right: dark shadow, Top-Left: white highlight)
+            // Left: Shuffle Button with Neumorphic Dual Shadow (Bottom-Right: dark shadow, Top-Left: white highlight)
             Box(
                 modifier = Modifier
-                    .size(54.dp)
+                    .size(52.dp)
                     .clip(CircleShape)
                     .background(
                         if (shuffleEnabled) {
@@ -2804,7 +2839,8 @@ private fun CosmicOrbitNowPlayingLayout(
                             ),
                             CircleShape
                         )
-                        .clickable(onClick = onToggleShuffle),
+                        .clickable(onClick = onToggleShuffle)
+                        .testTag("shuffle_button"),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -2816,9 +2852,54 @@ private fun CosmicOrbitNowPlayingLayout(
                 }
             }
 
-            Spacer(modifier = Modifier.width(36.dp))
+            // Center: Track Position Counter ("05 / 120" / "TRACK 05 / 120") in frosted glass container
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFF10192A).copy(alpha = 0.88f),
+                    border = BorderStroke(
+                        1.dp,
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF334155).copy(alpha = 0.6f),
+                                Color(0xFF00E5FF).copy(alpha = 0.4f),
+                                Color(0xFF334155).copy(alpha = 0.6f)
+                            )
+                        )
+                    ),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.testTag("track_counter_pill")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "TRACK ",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFA0AEC0),
+                            letterSpacing = 1.2.sp
+                        )
+                        Text(
+                            text = "%02d / %02d".format(currentIndex + 1, totalTracks),
+                            fontSize = 13.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF00E5FF),
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                }
+            }
 
-            // Repeat Button with Neumorphic Dual Shadow
+            // Right: Repeat Button with Neumorphic Dual Shadow
             val (repIcon, isRepActive) = when (repeatMode) {
                 RepeatMode.OFF -> Icons.Default.Repeat to false
                 RepeatMode.ALL -> Icons.Default.Repeat to true
@@ -2826,7 +2907,7 @@ private fun CosmicOrbitNowPlayingLayout(
             }
             Box(
                 modifier = Modifier
-                    .size(54.dp)
+                    .size(52.dp)
                     .clip(CircleShape)
                     .background(
                         if (isRepActive) {
@@ -2871,7 +2952,8 @@ private fun CosmicOrbitNowPlayingLayout(
                             ),
                             CircleShape
                         )
-                        .clickable(onClick = onCycleRepeat),
+                        .clickable(onClick = onCycleRepeat)
+                        .testTag("repeat_button"),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
