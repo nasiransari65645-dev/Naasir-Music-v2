@@ -41,6 +41,20 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Check
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -113,6 +127,10 @@ fun LibraryScreen(
     onRescanClick: () -> Unit,
     onRequestPermissionClick: () -> Unit,
     onToggleFavorite: (Long) -> Unit = {},
+    onRenameSong: (Long, String, String) -> Unit = { _, _, _ -> },
+    onDeleteSong: (Long) -> Unit = {},
+    onSetCustomAlbumArt: (Long, android.net.Uri) -> Unit = { _, _ -> },
+    onDownloadAlbumArt: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf<LibraryCategory?>(activeCategory) }
@@ -120,6 +138,26 @@ fun LibraryScreen(
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var hasScrolledToActiveTrack by rememberSaveable { mutableStateOf(false) }
     val palette = LocalAppThemePalette.current
+
+    // Album art photo picker launcher
+    var songForAlbumArt by remember { mutableStateOf<Song?>(null) }
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        val song = songForAlbumArt
+        if (uri != null && song != null) {
+            onSetCustomAlbumArt(song.id, uri)
+        }
+        songForAlbumArt = null
+    }
+
+    // Rename dialog state
+    var songToRename by remember { mutableStateOf<Song?>(null) }
+    var renameTitleInput by remember { mutableStateOf("") }
+    var renameArtistInput by remember { mutableStateOf("") }
+
+    // Delete dialog state
+    var songToDelete by remember { mutableStateOf<Song?>(null) }
 
     // Reset scroll flag on navigation exit (e.g. leaving Library to Now Playing)
     DisposableEffect(Unit) {
@@ -218,12 +256,22 @@ fun LibraryScreen(
 
     // Displayed songs based on category and sub-filters (memoized to avoid re-filtering on scroll frames)
     val effectiveSongs = if (filteredSongs.isNotEmpty() || searchQuery.isNotBlank()) filteredSongs else sortedSongs
-    val displaySongs = remember(selectedCategory, effectiveSongs, favoriteIds, selectedGroupFilter, searchQuery) {
+
+    val mostPlayedList = remember(effectiveSongs) {
+        effectiveSongs.sortedWith(
+            compareByDescending<Song> { it.playCount }
+                .thenByDescending { it.dateAdded }
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+        )
+    }
+
+    val displaySongs = remember(selectedCategory, effectiveSongs, mostPlayedList, favoriteIds, selectedGroupFilter, searchQuery) {
         if (searchQuery.isNotBlank() && selectedCategory == null) {
             effectiveSongs
         } else {
             when (selectedCategory) {
                 LibraryCategory.SONGS -> effectiveSongs
+                LibraryCategory.MOST_PLAYED -> mostPlayedList
                 LibraryCategory.PLAYLISTS -> effectiveSongs.filter { favoriteIds.contains(it.id) }
                 LibraryCategory.ARTISTS -> if (selectedGroupFilter != null) effectiveSongs.filter { it.artist.ifBlank { "Unknown Artist" } == selectedGroupFilter } else emptyList()
                 LibraryCategory.ALBUMS -> if (selectedGroupFilter != null) effectiveSongs.filter { it.album.ifBlank { "Unknown Album" } == selectedGroupFilter } else emptyList()
@@ -388,6 +436,7 @@ fun LibraryScreen(
             ) {
                 val categoryItems = listOf(
                     LibraryCategory.SONGS to ("${filteredSongs.size} tracks • All audio files" to (Icons.Default.Audiotrack to CyanNeon)),
+                    LibraryCategory.MOST_PLAYED to ("${mostPlayedList.size} tracks • Top played tracks" to (Icons.Default.LocalFireDepartment to Color(0xFFFF9100))),
                     LibraryCategory.PLAYLISTS to ("${favoriteIds.size} tracks • Liked & favorites" to (Icons.Default.Favorite to Color(0xFFEF4444))),
                     LibraryCategory.ARTISTS to ("${artistsList.size} artists • Grouped by performers" to (Icons.Default.Person to PurpleNeon)),
                     LibraryCategory.ALBUMS to ("${albumsList.size} albums • Grouped by releases" to (Icons.Default.Album to Color(0xFF38BDF8))),
@@ -588,6 +637,7 @@ fun LibraryScreen(
 
             val isGroupedCategory = selectedCategory != null &&
                 selectedCategory != LibraryCategory.SONGS &&
+                selectedCategory != LibraryCategory.MOST_PLAYED &&
                 selectedCategory != LibraryCategory.PLAYLISTS
             val activeGroupList: List<Pair<String, List<Song>>> = when (selectedCategory) {
                 LibraryCategory.ARTISTS -> artistsList
@@ -727,11 +777,13 @@ fun LibraryScreen(
             if (displaySongs.isEmpty()) {
                 EmptyPlaceholder(
                     message = when {
+                        currentCat == LibraryCategory.MOST_PLAYED -> "No tracks played yet"
                         currentCat == LibraryCategory.PLAYLISTS -> "No favorite songs yet"
                         searchQuery.isNotEmpty() -> "No results found for '$searchQuery'"
                         else -> "No songs found"
                     },
                     subMessage = when {
+                        currentCat == LibraryCategory.MOST_PLAYED -> "Play any song to track your most played music"
                         currentCat == LibraryCategory.PLAYLISTS -> "Tap the heart icon on any song to save it here"
                         !hasStoragePermission -> "Grant permission to index music from your device"
                         else -> "Check audio files on your device"
@@ -748,6 +800,73 @@ fun LibraryScreen(
                     contentPadding = PaddingValues(bottom = 120.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    if (currentCat == LibraryCategory.MOST_PLAYED) {
+                        item(key = "most_played_header") {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFF9100).copy(alpha = 0.12f)),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFFFF9100).copy(alpha = 0.35f))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.LocalFireDepartment,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFF9100),
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = "Most Played Tracks",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFFF9100)
+                                            )
+                                            Text(
+                                                text = "${displaySongs.size} tracks ranked by play count",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    if (displaySongs.isNotEmpty()) {
+                                        Button(
+                                            onClick = { onSongClick(displaySongs.first()) },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9100)),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = null,
+                                                tint = Color.Black,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Play #1",
+                                                color = Color.Black,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     items(
                         items = displaySongs,
                         key = { it.id },
@@ -762,13 +881,139 @@ fun LibraryScreen(
                             isCurrentSong = isCurrent,
                             isPlaying = isPlayingCurrent,
                             isFavorite = isFav,
+                            showPlayCount = currentCat == LibraryCategory.MOST_PLAYED || song.playCount > 0,
                             onSongClick = { onSongClick(song) },
-                            onToggleFavorite = { onToggleFavorite(song.id) }
+                            onToggleFavorite = { onToggleFavorite(song.id) },
+                            onRenameClick = {
+                                songToRename = song
+                                renameTitleInput = song.title
+                                renameArtistInput = song.artist
+                            },
+                            onPickArtClick = {
+                                songForAlbumArt = song
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            onDownloadArtClick = {
+                                onDownloadAlbumArt(song.id)
+                            },
+                            onDeleteClick = {
+                                songToDelete = song
+                            }
                         )
                     }
                 }
             }
         }
+    }
+
+    // Rename Song Dialog
+    if (songToRename != null) {
+        AlertDialog(
+            onDismissRequest = { songToRename = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Rename Song", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Edit track title and artist details for your library:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = renameTitleInput,
+                        onValueChange = { renameTitleInput = it },
+                        label = { Text("Title") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("rename_song_title_input")
+                    )
+                    OutlinedTextField(
+                        value = renameArtistInput,
+                        onValueChange = { renameArtistInput = it },
+                        label = { Text("Artist") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("rename_song_artist_input")
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val target = songToRename
+                        if (target != null && renameTitleInput.isNotBlank()) {
+                            onRenameSong(target.id, renameTitleInput, renameArtistInput)
+                        }
+                        songToRename = null
+                    },
+                    modifier = Modifier.testTag("save_rename_button")
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { songToRename = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Delete Song Confirmation Dialog
+    if (songToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { songToDelete = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Delete Song", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete \"${songToDelete?.title}\" from your library? It will be removed from your music lists.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val target = songToDelete
+                        if (target != null) {
+                            onDeleteSong(target.id)
+                        }
+                        songToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag("confirm_delete_button")
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.onError)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { songToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 }
@@ -876,9 +1121,16 @@ private fun SongItemRow(
     isCurrentSong: Boolean,
     isPlaying: Boolean,
     isFavorite: Boolean,
+    showPlayCount: Boolean = false,
     onSongClick: () -> Unit,
-    onToggleFavorite: () -> Unit
+    onToggleFavorite: () -> Unit,
+    onRenameClick: () -> Unit,
+    onPickArtClick: () -> Unit,
+    onDownloadArtClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -910,19 +1162,35 @@ private fun SongItemRow(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Track Art Icon or Equalizer animation
+            // Track Art Thumbnail or Equalizer animation
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(8.dp))
                     .background(
                         if (isCurrentSong) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
                     ),
                 contentAlignment = Alignment.Center
             ) {
+                if (song.albumArtUri != null) {
+                    AsyncImage(
+                        model = song.albumArtUri,
+                        contentDescription = song.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
                 if (isPlaying) {
-                    EqualizerBars(isPlaying = true, barColor = MaterialTheme.colorScheme.primary, maxHeight = 18.dp)
-                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.35f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EqualizerBars(isPlaying = true, barColor = Color.White, maxHeight = 18.dp)
+                    }
+                } else if (song.albumArtUri == null) {
                     Icon(
                         imageVector = Icons.Default.MusicNote,
                         contentDescription = "Track",
@@ -934,7 +1202,7 @@ private fun SongItemRow(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Song Title & Artist (Direct content column without any inner background box)
+            // Song Title & Artist + Play Count info
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -949,13 +1217,28 @@ private fun SongItemRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "${song.artist} • ${song.album}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (showPlayCount || song.playCount > 0) {
+                        Text(
+                            text = "🔥 ${song.playCount} ${if (song.playCount == 1) "play" else "plays"}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF9100)
+                        )
+                        Text(
+                            text = " • ",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = "${song.artist} • ${song.album}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
             // Duration
@@ -963,22 +1246,133 @@ private fun SongItemRow(
                 text = song.formattedDuration,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 6.dp)
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
 
             // Heart Favorite Icon Button
             IconButton(
                 onClick = onToggleFavorite,
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(34.dp)
                     .testTag("fav_btn_${song.id}")
             ) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (isFavorite) "Unlike" else "Like",
                     tint = if (isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
+            }
+
+            // 3-Dots More Options Menu
+            Box {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier
+                        .size(34.dp)
+                        .testTag("song_more_btn_${song.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Play Song") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onSongClick()
+                        },
+                        modifier = Modifier.testTag("menu_play_${song.id}")
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Rename Song") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                tint = CyanNeon,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onRenameClick()
+                        },
+                        modifier = Modifier.testTag("menu_rename_${song.id}")
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Add / Change Album Art") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Image,
+                                contentDescription = null,
+                                tint = PurpleNeon,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onPickArtClick()
+                        },
+                        modifier = Modifier.testTag("menu_art_${song.id}")
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Download Album Art (Online)") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.CloudDownload,
+                                contentDescription = null,
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onDownloadArtClick()
+                        },
+                        modifier = Modifier.testTag("menu_download_art_${song.id}")
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "Delete Song",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onDeleteClick()
+                        },
+                        modifier = Modifier.testTag("menu_delete_${song.id}")
+                    )
+                }
             }
         }
     }

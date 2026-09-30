@@ -29,6 +29,9 @@ import com.example.model.VolumeGaugeSettings
 import com.example.model.getPaletteById
 import com.example.model.getPaletteForPreset
 import com.example.storage.SettingsPreferencesManager
+import com.example.data.SongRepository
+import com.example.database.AppDatabase
+import com.example.network.AlbumArtDownloader
 import android.media.AudioManager
 import android.content.Context
 import android.util.Log
@@ -91,7 +94,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefsManager = SettingsPreferencesManager(application)
     private val playerManager = AudioPlayerManager(application, viewModelScope)
+    private val songRepository = SongRepository(AppDatabase.getDatabase(application).songMetadataDao())
 
+    private val _rawScannedSongs = MutableStateFlow<List<Song>>(emptyList())
     private val _allSongs = MutableStateFlow<List<Song>>(emptyList())
     private val _simpleSongs = MutableStateFlow<List<Song>>(emptyList())
     private val _searchQuery = MutableStateFlow("")
@@ -286,6 +291,11 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private fun sortSongList(list: List<Song>, option: SongSortOption): List<Song> {
         return when (option) {
             SongSortOption.DATE_ADDED_DESC -> list.sortedByDescending { it.dateAdded.takeIf { d -> d > 0L } ?: it.id }
+            SongSortOption.MOST_PLAYED -> list.sortedWith(
+                compareByDescending<Song> { it.playCount }
+                    .thenByDescending { it.dateAdded }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+            )
             SongSortOption.TITLE_A_TO_Z -> list.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
             SongSortOption.TITLE_Z_TO_A -> list.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.title })
             SongSortOption.DURATION_LONGEST_FIRST -> list.sortedByDescending { it.durationMs }
@@ -527,8 +537,68 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        // Combine raw scanned songs with Room metadata (custom titles, artists, custom/auto album art, play counts)
+        viewModelScope.launch {
+            combine(_rawScannedSongs, songRepository.allMetadata) { scanned, metaMap ->
+                scanned.mapNotNull { song ->
+                    val meta = metaMap[song.id]
+                    if (meta?.isDeleted == true) {
+                        null
+                    } else {
+                        song.copy(
+                            title = meta?.customTitle?.ifBlank { song.title } ?: song.title,
+                            artist = meta?.customArtist?.ifBlank { song.artist } ?: song.artist,
+                            customAlbumArtUri = meta?.customAlbumArtUri ?: song.customAlbumArtUri,
+                            playCount = meta?.playCount ?: 0
+                        )
+                    }
+                }
+            }.collect { merged ->
+                _allSongs.value = merged
+                playerManager.setPlaylist(merged)
+            }
+        }
+
+        // Track played songs and auto-download album art on Wi-Fi or Mobile Data
+        var lastCountedSongId: Long? = null
+        viewModelScope.launch {
+            playerManager.state.collect { state ->
+                val song = state.currentSong
+                if (song != null && state.isPlaying && song.id != lastCountedSongId) {
+                    lastCountedSongId = song.id
+                    handleSongPlaybackStarted(song)
+                }
+            }
+        }
+
         // Scan audio library on start
         scanDeviceAudio()
+    }
+
+    private fun handleSongPlaybackStarted(song: Song) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Increment play count in Room DB
+                songRepository.recordSongPlayed(song.id)
+
+                // 2. Auto-download album art if on Wi-Fi or Mobile Data and song doesn't have custom art
+                val meta = songRepository.getMetadata(song.id)
+                val alreadyHasArt = !song.customAlbumArtUri.isNullOrBlank() || meta?.autoArtDownloaded == true
+                if (!alreadyHasArt && AlbumArtDownloader.isWifiOrMobileDataConnected(getApplication())) {
+                    val downloadedUri = AlbumArtDownloader.downloadAlbumArt(
+                        context = getApplication(),
+                        songId = song.id,
+                        title = song.title,
+                        artist = song.artist
+                    )
+                    if (downloadedUri != null) {
+                        songRepository.setCustomAlbumArt(song.id, downloadedUri)
+                    }
+                }
+            } catch (t: Throwable) {
+                Log.e("MusicViewModel", "Error in handleSongPlaybackStarted: ${t.message}")
+            }
+        }
     }
 
     fun onPermissionResult(granted: Boolean) {
@@ -546,15 +616,77 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 // Scan user's device audio strictly on Dispatchers.IO (never block Dispatchers.Main)
                 val scanned = AudioScanner.scanDeviceAudio(getApplication())
                 withContext(Dispatchers.Main.immediate) {
-                    _allSongs.value = scanned
+                    _rawScannedSongs.value = scanned
                     _simpleSongs.value = emptyList()
-                    playerManager.setPlaylist(scanned)
                     ensureTrackLoaded(autoPlay = false)
                 }
             } catch (e: Exception) {
                 // Keep existing songs on error
             } finally {
                 _isScanning.value = false
+            }
+        }
+    }
+
+    fun renameSong(songId: Long, newTitle: String, newArtist: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            songRepository.renameSong(songId, newTitle, newArtist)
+        }
+    }
+
+    fun deleteSong(songId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val current = playerManager.state.value.currentSong
+            if (current?.id == songId) {
+                withContext(Dispatchers.Main) {
+                    playerManager.skipToNext()
+                }
+            }
+            songRepository.deleteSong(songId)
+            try {
+                val song = _allSongs.value.find { it.id == songId }
+                if (song != null) {
+                    if (song.path.isNotBlank()) {
+                        val file = java.io.File(song.path)
+                        if (file.exists()) file.delete()
+                    }
+                    getApplication<Application>().contentResolver.delete(song.uri, null, null)
+                }
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    fun setCustomAlbumArt(songId: Long, imageUri: android.net.Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val context = getApplication<Application>()
+                val artDir = java.io.File(context.filesDir, "album_art").apply { mkdirs() }
+                val targetFile = java.io.File(artDir, "custom_${songId}_${System.currentTimeMillis()}.jpg")
+                context.contentResolver.openInputStream(imageUri)?.use { input ->
+                    java.io.FileOutputStream(targetFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                val localUriString = android.net.Uri.fromFile(targetFile).toString()
+                songRepository.setCustomAlbumArt(songId, localUriString)
+            } catch (t: Throwable) {
+                Log.e("MusicViewModel", "Failed to save custom album art: ${t.message}")
+            }
+        }
+    }
+
+    fun downloadAlbumArtForSong(songId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val song = _allSongs.value.find { it.id == songId } ?: return@launch
+            val downloadedUri = AlbumArtDownloader.downloadAlbumArt(
+                context = getApplication(),
+                songId = song.id,
+                title = song.title,
+                artist = song.artist
+            )
+            if (downloadedUri != null) {
+                songRepository.setCustomAlbumArt(song.id, downloadedUri)
             }
         }
     }

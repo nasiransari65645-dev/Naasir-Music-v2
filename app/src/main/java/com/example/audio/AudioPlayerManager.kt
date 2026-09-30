@@ -229,6 +229,22 @@ class AudioPlayerManager(
     fun setPlaylist(songs: List<Song>) {
         playlist = songs
         updateShuffleList()
+        val cur = _state.value.currentSong
+        if (cur != null) {
+            val updated = songs.find { it.id == cur.id }
+            if (updated != null && updated != cur) {
+                _state.update { it.copy(currentSong = updated) }
+                if (MediaPlaybackService.isServiceRunning) {
+                    MediaPlaybackService.startOrUpdate(
+                        context = context,
+                        song = updated,
+                        isPlaying = _state.value.isPlaying,
+                        positionMs = _state.value.currentPositionMs,
+                        durationMs = _state.value.durationMs
+                    )
+                }
+            }
+        }
     }
 
     private fun updateShuffleList() {

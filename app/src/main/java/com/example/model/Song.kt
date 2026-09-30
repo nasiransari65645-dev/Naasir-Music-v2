@@ -17,22 +17,32 @@ data class Song(
     val albumArtist: String = "Unknown Artist",
     val folder: String = "Music",
     val albumId: Long = 0L,
-    val dateAdded: Long = 0L
+    val dateAdded: Long = 0L,
+    val customAlbumArtUri: String? = null,
+    val playCount: Int = 0
 ) {
     val contentUri: Uri
         get() = uri
 
     val albumArtUri: Uri?
-        get() = if (albumId > 0) {
-            try {
-                ContentUris.withAppendedId(
-                    Uri.parse("content://media/external/audio/albumart"),
-                    albumId
-                )
-            } catch (t: Throwable) {
-                null
+        get() {
+            if (!customAlbumArtUri.isNullOrBlank()) {
+                try {
+                    return Uri.parse(customAlbumArtUri)
+                } catch (_: Throwable) {
+                }
             }
-        } else null
+            return if (albumId > 0) {
+                try {
+                    ContentUris.withAppendedId(
+                        Uri.parse("content://media/external/audio/albumart"),
+                        albumId
+                    )
+                } catch (t: Throwable) {
+                    null
+                }
+            } else null
+        }
 
     val formattedDuration: String
         get() {

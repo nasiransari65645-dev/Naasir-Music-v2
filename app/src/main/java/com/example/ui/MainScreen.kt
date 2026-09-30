@@ -576,7 +576,11 @@ fun MainScreen(
                                     onShuffleAllClick = { viewModel.playAllShuffled() },
                                     onRescanClick = { viewModel.scanDeviceAudio() },
                                     onRequestPermissionClick = { permissionLauncher.launch(permissionsToRequest) },
-                                    onToggleFavorite = { viewModel.toggleFavorite(it) }
+                                    onToggleFavorite = { viewModel.toggleFavorite(it) },
+                                    onRenameSong = { id, title, artist -> viewModel.renameSong(id, title, artist) },
+                                    onDeleteSong = { id -> viewModel.deleteSong(id) },
+                                    onSetCustomAlbumArt = { id, uri -> viewModel.setCustomAlbumArt(id, uri) },
+                                    onDownloadAlbumArt = { id -> viewModel.downloadAlbumArtForSong(id) }
                                 )
                             }
 

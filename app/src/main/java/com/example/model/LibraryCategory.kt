@@ -4,6 +4,7 @@ enum class LibraryCategory(val title: String) {
     ARTISTS("Artists"),
     ALBUMS("Albums"),
     SONGS("Songs"),
+    MOST_PLAYED("Most Played"),
     FOLDERS("Folder"),
     PLAYLISTS("Playlists"),
     GENRE("Genre"),

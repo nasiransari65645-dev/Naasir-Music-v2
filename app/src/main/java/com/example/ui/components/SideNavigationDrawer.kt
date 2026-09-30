@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
@@ -91,6 +92,7 @@ fun SideNavigationDrawerContent(
         DrawerMenuItem("Artists", "Grouped by performers", Icons.Default.Person, LibraryCategory.ARTISTS, "drawer_item_artists"),
         DrawerMenuItem("Albums", "Releases & compilations", Icons.Default.Album, LibraryCategory.ALBUMS, "drawer_item_albums"),
         DrawerMenuItem("Songs", "All audio files", Icons.Default.MusicNote, LibraryCategory.SONGS, "drawer_item_songs"),
+        DrawerMenuItem("Most Played", "Top played tracks", Icons.Default.LocalFireDepartment, LibraryCategory.MOST_PLAYED, "drawer_item_most_played"),
         DrawerMenuItem("Folder", "Browse directories", Icons.Default.Folder, LibraryCategory.FOLDERS, "drawer_item_folders"),
         DrawerMenuItem("Playlists", "Favorites & playlists", Icons.Default.QueueMusic, LibraryCategory.PLAYLISTS, "drawer_item_playlists"),
         DrawerMenuItem("Genre", "Musical genres", Icons.Default.Category, LibraryCategory.GENRE, "drawer_item_genre"),
