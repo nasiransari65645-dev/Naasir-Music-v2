@@ -31,6 +31,13 @@ import com.example.MainActivity
 import com.example.model.RepeatMode
 import com.example.model.Song
 import com.example.storage.SettingsPreferencesManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.io.InputStream
 
 /**
@@ -38,6 +45,8 @@ import java.io.InputStream
  * notification controls with full lock-screen and system media widget support.
  */
 class MediaPlaybackService : Service() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private var mediaSession: MediaSessionCompat? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -189,6 +198,42 @@ class MediaPlaybackService : Service() {
         } catch (t: Throwable) {
             Log.w(TAG, "Error registering prefChangeListener: ${t.message}")
         }
+
+        // Collect player state (shuffle, repeat, playing) to instantly refresh notification
+        serviceScope.launch {
+            try {
+                AudioPlayerManager.instance?.state
+                    ?.map { Triple(it.shuffleEnabled, it.repeatMode, it.isPlaying) }
+                    ?.distinctUntilChanged()
+                    ?.collect { (shuffle, repeat, isPlaying) ->
+                        lastShuffleEnabled = shuffle
+                        lastRepeatMode = repeat
+                        lastIsPlaying = isPlaying
+                        updateNotification()
+                    }
+            } catch (t: Throwable) {
+                Log.w(TAG, "Error in state collector: ${t.message}")
+            }
+        }
+    }
+
+    /**
+     * Immediately re-issues notification with latest toggle states (shuffle & repeat)
+     */
+    fun updateNotification() {
+        val playerState = AudioPlayerManager.instance?.state?.value
+        val curSong = playerState?.currentSong
+        updateNotificationAndSession(
+            title = curSong?.title ?: lastTitle,
+            artist = curSong?.artist ?: lastArtist,
+            album = curSong?.album ?: lastAlbum,
+            uriString = curSong?.uri?.toString() ?: lastUriString,
+            albumArtUriString = curSong?.albumArtUri?.toString() ?: lastAlbumArtUriString,
+            songPath = curSong?.path ?: lastSongPath,
+            isPlaying = playerState?.isPlaying ?: lastIsPlaying,
+            positionMs = playerState?.currentPositionMs ?: lastPositionMs,
+            durationMs = playerState?.durationMs ?: lastDurationMs
+        )
     }
 
     private fun registerNoisyReceiver() {
@@ -611,6 +656,7 @@ class MediaPlaybackService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        serviceScope.cancel()
         VolumeOverlayManager.getInstance(applicationContext).onPlaybackStateChanged(false)
         isServiceRunning = false
         isForeground = false

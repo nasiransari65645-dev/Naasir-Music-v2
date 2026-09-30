@@ -36,14 +36,27 @@ object AlbumArtDownloader {
         return try {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val activeNetwork = cm.activeNetwork ?: return false
-                val caps = cm.getNetworkCapabilities(activeNetwork) ?: return false
-                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                val activeNetwork = cm.activeNetwork
+                if (activeNetwork != null) {
+                    val caps = cm.getNetworkCapabilities(activeNetwork)
+                    if (caps != null && (
+                        caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+                    )) {
+                        return true
+                    }
+                }
+                @Suppress("DEPRECATION")
+                val ni = cm.activeNetworkInfo
+                ni != null && (ni.isConnected || ni.isConnectedOrConnecting)
             } else {
                 @Suppress("DEPRECATION")
                 val ni = cm.activeNetworkInfo
                 @Suppress("DEPRECATION")
-                ni != null && ni.isConnected
+                ni != null && (ni.isConnected || ni.isConnectedOrConnecting)
             }
         } catch (t: Throwable) {
             Log.e(TAG, "Network check exception, defaulting to true: ${t.message}")
@@ -81,9 +94,9 @@ object AlbumArtDownloader {
      * Returns the local file Uri string if successful, or null if failed/not found.
      */
     suspend fun downloadAlbumArt(context: Context, songId: Long, title: String, artist: String): String? = withContext(Dispatchers.IO) {
-        if (!isWifiOrMobileDataConnected(context)) {
-            Log.d(TAG, "Skipping album art download: No Wi-Fi or Mobile data connected")
-            return@withContext null
+        val isConnected = isWifiOrMobileDataConnected(context)
+        if (!isConnected) {
+            Log.d(TAG, "Transient network check indicated offline, attempting download with fast timeout anyway")
         }
 
         val (cleanTitle, cleanArtist) = cleanSearchQuery(title, artist)

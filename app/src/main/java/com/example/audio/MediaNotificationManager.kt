@@ -169,23 +169,21 @@ object MediaNotificationManager {
             38
         )
         val iconNextBitmap = getTintedVectorBitmap(context, R.drawable.ic_skip_next, COLOR_WHITE, 34)
-        val shuffleColor = if (shuffleEnabled) themeAccentColor else COLOR_GREY_INACTIVE
-        val repeatColor = if (repeatMode != RepeatMode.OFF) themeAccentColor else COLOR_GREY_INACTIVE
+
+        // 1. Explicit Vector Drawables for 100% reliable ON/OFF display on all Android versions
+        val shuffleDrawableRes = if (shuffleEnabled) R.drawable.ic_shuffle_on else R.drawable.ic_shuffle_off
+        val repeatDrawableRes = if (repeatMode != RepeatMode.OFF) R.drawable.ic_repeat_on else R.drawable.ic_repeat_off
 
         val iconShuffleBitmap = getTintedVectorBitmap(
             context,
-            if (shuffleEnabled) R.drawable.ic_shuffle else R.drawable.ic_shuffle_off,
-            shuffleColor,
+            shuffleDrawableRes,
+            if (shuffleEnabled) 0xFF00F5FF.toInt() else COLOR_GREY_INACTIVE,
             30
         )
         val iconRepeatBitmap = getTintedVectorBitmap(
             context,
-            when {
-                repeatMode == RepeatMode.ONE -> R.drawable.ic_repeat_one
-                repeatMode == RepeatMode.ALL -> R.drawable.ic_repeat
-                else -> R.drawable.ic_repeat_off
-            },
-            repeatColor,
+            repeatDrawableRes,
+            if (repeatMode != RepeatMode.OFF) 0xFF9D4EDD.toInt() else COLOR_GREY_INACTIVE,
             30
         )
 
@@ -200,7 +198,6 @@ object MediaNotificationManager {
             // Compact controls: Shuffle, Previous, Play/Pause, Next, Repeat
             setOnClickPendingIntent(R.id.btn_shuffle, shufflePendingIntent)
             setImageViewBitmap(R.id.btn_shuffle, iconShuffleBitmap)
-            setInt(R.id.btn_shuffle, "setColorFilter", shuffleColor)
 
             setOnClickPendingIntent(R.id.btn_prev, prevPendingIntent)
             setImageViewBitmap(R.id.btn_prev, iconPrevBitmap)
@@ -213,7 +210,6 @@ object MediaNotificationManager {
 
             setOnClickPendingIntent(R.id.btn_repeat, repeatPendingIntent)
             setImageViewBitmap(R.id.btn_repeat, iconRepeatBitmap)
-            setInt(R.id.btn_repeat, "setColorFilter", repeatColor)
         }
 
         // 4. Big (Expanded) RemoteViews
@@ -229,7 +225,6 @@ object MediaNotificationManager {
             // Control Row: [ Shuffle ]  [ Previous ]  [ Play / Pause ]  [ Next ]  [ Repeat ]
             setOnClickPendingIntent(R.id.btn_shuffle, shufflePendingIntent)
             setImageViewBitmap(R.id.btn_shuffle, iconShuffleBitmap)
-            setInt(R.id.btn_shuffle, "setColorFilter", shuffleColor)
 
             setOnClickPendingIntent(R.id.btn_prev, prevPendingIntent)
             setImageViewBitmap(R.id.btn_prev, iconPrevBitmap)
@@ -242,7 +237,6 @@ object MediaNotificationManager {
 
             setOnClickPendingIntent(R.id.btn_repeat, repeatPendingIntent)
             setImageViewBitmap(R.id.btn_repeat, iconRepeatBitmap)
-            setInt(R.id.btn_repeat, "setColorFilter", repeatColor)
 
             // Real-Time Progress Bar
             val progressVal = if (durationMs > 0) ((positionMs * 1000) / durationMs).toInt().coerceIn(0, 1000) else 0
@@ -288,7 +282,7 @@ object MediaNotificationManager {
             val customShuffle = PlaybackStateCompat.CustomAction.Builder(
                 ACTION_TOGGLE_SHUFFLE,
                 if (shuffleEnabled) "Shuffle On" else "Shuffle Off",
-                if (shuffleEnabled) R.drawable.ic_shuffle else R.drawable.ic_shuffle_off
+                shuffleDrawableRes
             ).build()
             val customRepeat = PlaybackStateCompat.CustomAction.Builder(
                 ACTION_TOGGLE_REPEAT,
@@ -297,11 +291,7 @@ object MediaNotificationManager {
                     RepeatMode.ALL -> "Repeat All"
                     RepeatMode.OFF -> "Repeat Off"
                 },
-                when (repeatMode) {
-                    RepeatMode.ONE -> R.drawable.ic_repeat_one
-                    RepeatMode.ALL -> R.drawable.ic_repeat
-                    RepeatMode.OFF -> R.drawable.ic_repeat_off
-                }
+                repeatDrawableRes
             ).build()
 
             val playbackState = PlaybackStateCompat.Builder()
@@ -340,9 +330,9 @@ object MediaNotificationManager {
             mediaSession.setMetadata(metadataBuilder.build())
         }
 
-        // Pre-build standard NotificationCompat.Action instances with tinted IconCompat
+        // Pre-build standard NotificationCompat.Action instances with explicit vector drawables
         val shuffleActionTitle = if (shuffleEnabled) "Shuffle On" else "Shuffle Off"
-        val shuffleIconCompat = IconCompat.createWithBitmap(iconShuffleBitmap)
+        val shuffleIconCompat = IconCompat.createWithResource(context, shuffleDrawableRes)
         val shuffleAction = NotificationCompat.Action.Builder(
             shuffleIconCompat,
             shuffleActionTitle,
@@ -372,7 +362,7 @@ object MediaNotificationManager {
             RepeatMode.ALL -> "Repeat All"
             RepeatMode.OFF -> "Repeat Off"
         }
-        val repeatIconCompat = IconCompat.createWithBitmap(iconRepeatBitmap)
+        val repeatIconCompat = IconCompat.createWithResource(context, repeatDrawableRes)
         val repeatAction = NotificationCompat.Action.Builder(
             repeatIconCompat,
             repeatActionTitle,
