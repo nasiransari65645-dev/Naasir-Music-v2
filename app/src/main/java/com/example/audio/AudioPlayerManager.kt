@@ -31,6 +31,8 @@ import com.example.storage.SettingsPreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -100,9 +102,10 @@ data class PlayerState(
 
 class AudioPlayerManager(
     private val context: Context,
-    private val scope: CoroutineScope
+    externalScope: CoroutineScope? = null
 ) {
     private val TAG = "AudioPlayerManager"
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private var mediaPlayer: MediaPlayer? = null
     private var virtualizer: Virtualizer? = null
@@ -227,8 +230,11 @@ class AudioPlayerManager(
     }
 
     fun setPlaylist(songs: List<Song>) {
+        val idsChanged = playlist.map { it.id } != songs.map { it.id }
         playlist = songs
-        updateShuffleList()
+        if (idsChanged) {
+            updateShuffleList()
+        }
         val cur = _state.value.currentSong
         if (cur != null) {
             val updated = songs.find { it.id == cur.id }
@@ -244,6 +250,22 @@ class AudioPlayerManager(
                     )
                 }
             }
+        }
+    }
+
+    fun updateCurrentSongAlbumArt(artUriString: String) {
+        val cur = _state.value.currentSong ?: return
+        val updated = cur.copy(customAlbumArtUri = artUriString)
+        _state.update { it.copy(currentSong = updated) }
+        playlist = playlist.map { if (it.id == cur.id) updated else it }
+        if (MediaPlaybackService.isServiceRunning) {
+            MediaPlaybackService.startOrUpdate(
+                context = context,
+                song = updated,
+                isPlaying = _state.value.isPlaying,
+                positionMs = _state.value.currentPositionMs,
+                durationMs = _state.value.durationMs
+            )
         }
     }
 
@@ -2025,5 +2047,8 @@ class AudioPlayerManager(
             mediaPlayer?.release()
         } catch (t: Throwable) {}
         mediaPlayer = null
+        try {
+            scope.cancel()
+        } catch (_: Throwable) {}
     }
 }

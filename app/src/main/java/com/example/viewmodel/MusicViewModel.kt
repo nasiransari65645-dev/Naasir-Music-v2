@@ -93,7 +93,7 @@ data class MusicUiState(
 class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefsManager = SettingsPreferencesManager(application)
-    private val playerManager = AudioPlayerManager(application, viewModelScope)
+    private val playerManager = AudioPlayerManager.instance ?: AudioPlayerManager(application, viewModelScope)
     private val songRepository = SongRepository(AppDatabase.getDatabase(application).songMetadataDao())
 
     private val _rawScannedSongs = MutableStateFlow<List<Song>>(emptyList())
@@ -559,14 +559,48 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Track played songs and auto-download album art on Wi-Fi or Mobile Data
-        var lastCountedSongId: Long? = null
+        // 1. Auto-download album art on Wi-Fi or Mobile Data as soon as a song begins playing
+        var lastArtCheckedSongId: Long? = null
         viewModelScope.launch {
             playerManager.state.collect { state ->
                 val song = state.currentSong
-                if (song != null && state.isPlaying && song.id != lastCountedSongId) {
-                    lastCountedSongId = song.id
-                    handleSongPlaybackStarted(song)
+                if (song != null && state.isPlaying && song.id != lastArtCheckedSongId) {
+                    lastArtCheckedSongId = song.id
+                    checkAndDownloadAlbumArt(song)
+                }
+            }
+        }
+
+        // 2. Play count tracking:
+        // Track a song in "Most Played" ONLY after it has played for at least 1 minute (60 seconds)
+        var activeTrackSessionId: Long? = null
+        var isCurrentTrackSessionCounted: Boolean = false
+
+        viewModelScope.launch {
+            playerManager.state.collect { state ->
+                val song = state.currentSong
+                if (song != null) {
+                    if (song.id != activeTrackSessionId) {
+                        activeTrackSessionId = song.id
+                        isCurrentTrackSessionCounted = false
+                    }
+
+                    if (state.isPlaying && !isCurrentTrackSessionCounted) {
+                        val pos = state.currentPositionMs
+                        val dur = state.durationMs
+                        val oneMinuteMs = 60_000L
+                        // If track duration is shorter than 1 minute, count at 90% of song; otherwise strictly require >= 60 seconds
+                        val thresholdMs = if (dur in 1L..<oneMinuteMs) (dur * 0.9f).toLong() else oneMinuteMs
+                        if (pos >= thresholdMs) {
+                            isCurrentTrackSessionCounted = true
+                            viewModelScope.launch(Dispatchers.IO) {
+                                songRepository.recordSongPlayed(song.id)
+                            }
+                        }
+                    }
+                } else {
+                    activeTrackSessionId = null
+                    isCurrentTrackSessionCounted = false
                 }
             }
         }
@@ -575,16 +609,20 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         scanDeviceAudio()
     }
 
-    private fun handleSongPlaybackStarted(song: Song) {
+    private fun checkAndDownloadAlbumArt(song: Song) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // 1. Increment play count in Room DB
-                songRepository.recordSongPlayed(song.id)
+                val hasCustomArt = if (!song.customAlbumArtUri.isNullOrBlank()) {
+                    try {
+                        val uri = android.net.Uri.parse(song.customAlbumArtUri)
+                        if (uri.scheme == "file") {
+                            val f = java.io.File(uri.path ?: "")
+                            f.exists() && f.length() > 500
+                        } else true
+                    } catch (_: Throwable) { false }
+                } else false
 
-                // 2. Auto-download album art if on Wi-Fi or Mobile Data and song doesn't have custom art
-                val meta = songRepository.getMetadata(song.id)
-                val alreadyHasArt = !song.customAlbumArtUri.isNullOrBlank() || meta?.autoArtDownloaded == true
-                if (!alreadyHasArt && AlbumArtDownloader.isWifiOrMobileDataConnected(getApplication())) {
+                if (!hasCustomArt && AlbumArtDownloader.isWifiOrMobileDataConnected(getApplication())) {
                     val downloadedUri = AlbumArtDownloader.downloadAlbumArt(
                         context = getApplication(),
                         songId = song.id,
@@ -593,10 +631,15 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     )
                     if (downloadedUri != null) {
                         songRepository.setCustomAlbumArt(song.id, downloadedUri)
+                        withContext(Dispatchers.Main) {
+                            if (playerManager.state.value.currentSong?.id == song.id) {
+                                playerManager.updateCurrentSongAlbumArt(downloadedUri)
+                            }
+                        }
                     }
                 }
             } catch (t: Throwable) {
-                Log.e("MusicViewModel", "Error in handleSongPlaybackStarted: ${t.message}")
+                Log.e("MusicViewModel", "Error in checkAndDownloadAlbumArt: ${t.message}")
             }
         }
     }
@@ -687,6 +730,11 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             )
             if (downloadedUri != null) {
                 songRepository.setCustomAlbumArt(song.id, downloadedUri)
+                withContext(Dispatchers.Main) {
+                    if (playerManager.state.value.currentSong?.id == song.id) {
+                        playerManager.updateCurrentSongAlbumArt(downloadedUri)
+                    }
+                }
             }
         }
     }
@@ -1316,6 +1364,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         saveAllSettingsNow()
-        playerManager.release()
+        if (!playerManager.state.value.isPlaying) {
+            playerManager.release()
+        }
     }
 }

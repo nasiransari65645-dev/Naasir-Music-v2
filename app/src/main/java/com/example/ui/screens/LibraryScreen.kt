@@ -258,11 +258,13 @@ fun LibraryScreen(
     val effectiveSongs = if (filteredSongs.isNotEmpty() || searchQuery.isNotBlank()) filteredSongs else sortedSongs
 
     val mostPlayedList = remember(effectiveSongs) {
-        effectiveSongs.sortedWith(
-            compareByDescending<Song> { it.playCount }
-                .thenByDescending { it.dateAdded }
-                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
-        )
+        effectiveSongs
+            .filter { it.playCount > 0 }
+            .sortedWith(
+                compareByDescending<Song> { it.playCount }
+                    .thenByDescending { it.dateAdded }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+            )
     }
 
     val displaySongs = remember(selectedCategory, effectiveSongs, mostPlayedList, favoriteIds, selectedGroupFilter, searchQuery) {
@@ -783,7 +785,7 @@ fun LibraryScreen(
                         else -> "No songs found"
                     },
                     subMessage = when {
-                        currentCat == LibraryCategory.MOST_PLAYED -> "Play any song to track your most played music"
+                        currentCat == LibraryCategory.MOST_PLAYED -> "Songs will appear here after being played for at least 1 minute"
                         currentCat == LibraryCategory.PLAYLISTS -> "Tap the heart icon on any song to save it here"
                         !hasStoragePermission -> "Grant permission to index music from your device"
                         else -> "Check audio files on your device"

@@ -411,6 +411,20 @@ class MediaPlaybackService : Service() {
         return START_STICKY
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        val isPlaying = AudioPlayerManager.instance?.state?.value?.isPlaying ?: lastIsPlaying
+        Log.d(TAG, "onTaskRemoved: Recents task removed. isPlaying=$isPlaying")
+        if (isPlaying) {
+            // Keep playback and foreground service alive! Do NOT stop service when song is playing.
+            Log.d(TAG, "onTaskRemoved: Music is playing, maintaining foreground playback.")
+        } else {
+            // Only stop if music is stopped or paused
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
+    }
+
     private fun updateNotificationThemeInternal(forcedAccentColor: Int?) {
         updateNotificationAndSession(
             title = lastTitle,
