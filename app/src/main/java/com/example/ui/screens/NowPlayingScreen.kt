@@ -343,32 +343,37 @@ fun NowPlayingScreen(
                     .padding(horizontal = 20.dp)
                     .padding(top = 54.dp, bottom = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Dynamic Interactive Album Art Presentation (Restricted to max 240.dp)
+                // 1. Fixed Album Art Container (Hard-locked to exactly 200.dp, centered horizontally)
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.68f)
-                        .widthIn(max = 240.dp)
-                        .heightIn(max = 240.dp)
-                        .aspectRatio(1f),
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    AlbumArtPresentation(
-                        style = albumArtStyle,
-                        isPlaying = isPlaying,
-                        spinningVinyl = spinningVinyl,
-                        autoRotateActive = autoRotateActive,
-                        isFastForwarding = isFastForwarding,
-                        isRewinding = isRewinding,
-                        activeAccentColor = activeVinylCenterRing,
-                        activeSkipColor = activeSkipColor,
-                        outerBorderColor = activeVinylOuterSheen,
-                        visualizerPeakColor = activeVisualizerPeak,
-                        songTitle = currentSong.title,
-                        songArtist = currentSong.artist,
-                        albumArtUri = currentSong.albumArtUri
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(200.dp)
+                            .testTag("now_playing_album_art_card"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AlbumArtPresentation(
+                            style = albumArtStyle,
+                            isPlaying = isPlaying,
+                            spinningVinyl = spinningVinyl,
+                            autoRotateActive = autoRotateActive,
+                            isFastForwarding = isFastForwarding,
+                            isRewinding = isRewinding,
+                            activeAccentColor = activeVinylCenterRing,
+                            activeSkipColor = activeSkipColor,
+                            outerBorderColor = activeVinylOuterSheen,
+                            visualizerPeakColor = activeVisualizerPeak,
+                            songTitle = currentSong.title,
+                            songArtist = currentSong.artist,
+                            albumArtUri = currentSong.albumArtUri
+                        )
+                    }
                 }
 
                 // 2. Song Title with Auto-Scroll & Favorite Heart Button Row
@@ -422,8 +427,12 @@ fun NowPlayingScreen(
                     }
                 }
 
-                // 3. Touchable Progress Bar with dedicated timestamps directly below
-                Column(modifier = Modifier.fillMaxWidth()) {
+                // 3. Dedicated Playback Controls Column (Grouped together without expanding spacers)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Seekbar Slider
                     TouchableProgressBar(
                         currentPositionMs = currentPositionMs,
                         durationMs = safeDuration,
@@ -464,7 +473,8 @@ fun NowPlayingScreen(
                             modifier = Modifier.testTag("total_duration_timestamp")
                         )
                     }
-                }
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                 // 4. Secondary Controls Row: [ Shuffle Button ] --- [ Track Counter Badge ("52 / 250") ] --- [ Repeat Button ]
                 Row(
@@ -511,18 +521,11 @@ fun NowPlayingScreen(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = "TRACK ",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                                    letterSpacing = 1.1.sp
-                                )
-                                Text(
-                                    text = "%02d / %02d".format(currentIndex + 1, totalTracks),
+                                    text = "${currentIndex + 1} / ${totalTracks}",
                                     fontSize = 13.sp,
                                     fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = Color(0xFF00E5FF),
                                     letterSpacing = 0.5.sp
                                 )
                             }
@@ -583,11 +586,14 @@ fun NowPlayingScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(20.dp))
+
                 // 5. Main Playback Controls: 10s Rev, Prev, Play/Pause, Next, 10s Fwd
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 8.dp)
+                        .padding(bottom = 32.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -686,6 +692,7 @@ fun NowPlayingScreen(
                     }
                 }
             }
+        }
     }
 
     // Top Floating Overlay Layer: Search Bar & Floating Search Results (Never pushes base content)
@@ -951,7 +958,7 @@ private fun AlbumArtPresentation(
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .size(200.dp)
             .clip(RoundedCornerShape(20.dp))
             .testTag("now_playing_album_art_card"),
         contentAlignment = Alignment.Center
@@ -1190,7 +1197,7 @@ private fun AlbumArtPresentation(
                 // 1. VINYL RECORD
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .size(200.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF0C0E14))
                         .border(3.dp, if (outerBorderColor != Color.Unspecified) outerBorderColor else Color(0xFF1E2230), CircleShape)
@@ -2424,22 +2431,24 @@ private fun CosmicOrbitNowPlayingLayout(
             .padding(horizontal = 20.dp)
             .padding(top = 54.dp, bottom = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. Center Cosmic Orbit Disc + Attached Satellite Gauge (Restricted to max 240.dp)
+        // 1. Center Cosmic Orbit Disc (Hard-locked to exactly 200.dp, centered horizontally)
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.68f)
-                .widthIn(max = 240.dp)
-                .heightIn(max = 240.dp)
-                .aspectRatio(1f),
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier.size(200.dp),
+                contentAlignment = Alignment.Center
             ) {
+                Row(
+                    modifier = Modifier.size(200.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                 // Main Planetary Orbit Disc with Nebula Glow
                 Box(
                     modifier = Modifier.size(164.dp),
@@ -2667,6 +2676,7 @@ private fun CosmicOrbitNowPlayingLayout(
                 }
             }
         }
+    }
 
         // 2. Playlist Tag & Track Title & Heart Row (Exactly matching image!)
         Row(
@@ -2723,8 +2733,11 @@ private fun CosmicOrbitNowPlayingLayout(
             }
         }
 
-        // 3. Seekbar Section (Directly Below Seekbar Slider)
-        Column(modifier = Modifier.fillMaxWidth()) {
+        // 3. Dedicated Playback Controls Column (Grouped together without expanding spacers)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             TouchableProgressBar(
                 currentPositionMs = currentPositionMs,
                 durationMs = durationMs.coerceAtLeast(1L),
@@ -2763,7 +2776,8 @@ private fun CosmicOrbitNowPlayingLayout(
                     modifier = Modifier.testTag("total_duration_timestamp")
                 )
             }
-        }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
         // 4. Shuffle, Track Counter & Repeat Row (Cosmic Orbit Theme)
         Row(
@@ -2862,14 +2876,7 @@ private fun CosmicOrbitNowPlayingLayout(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "TRACK ",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFA0AEC0),
-                            letterSpacing = 1.2.sp
-                        )
-                        Text(
-                            text = "%02d / %02d".format(currentIndex + 1, totalTracks),
+                            text = "${currentIndex + 1} / ${totalTracks}",
                             fontSize = 13.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.ExtraBold,
@@ -2947,9 +2954,13 @@ private fun CosmicOrbitNowPlayingLayout(
             }
         }
 
+        Spacer(modifier = Modifier.height(20.dp))
+
         // 6. Playback Controls Row: Prev (3D extruded), Play/Pause (3D ceramic dual-shadow with cyan halo), Next (3D extruded)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -3143,6 +3154,7 @@ private fun CosmicOrbitNowPlayingLayout(
             }
         }
     }
+}
 }
 
 
