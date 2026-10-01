@@ -97,7 +97,8 @@ data class PlayerState(
     val isFastForwarding: Boolean = false,
     val isRewinding: Boolean = false,
     val playbackSpeed: Float = 1.0f,
-    val playbackPitch: Float = 1.0f
+    val playbackPitch: Float = 1.0f,
+    val playSessionId: Long = 0L
 )
 
 class AudioPlayerManager(
@@ -420,7 +421,8 @@ class AudioPlayerManager(
                     currentSong = song,
                     isPlaying = true,
                     durationMs = dur,
-                    currentPositionMs = 0L
+                    currentPositionMs = 0L,
+                    playSessionId = it.playSessionId + 1
                 )
             }
             startProgressTracker()
@@ -839,7 +841,7 @@ class AudioPlayerManager(
                 seekTo(0L)
                 try {
                     mediaPlayer?.start()
-                    _state.update { it.copy(isPlaying = true) }
+                    _state.update { it.copy(isPlaying = true, playSessionId = it.playSessionId + 1) }
                     notifyServiceState(isPlaying = true)
                 } catch (t: Throwable) {}
             }

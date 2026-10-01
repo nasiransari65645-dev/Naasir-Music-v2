@@ -31,6 +31,8 @@ class SongRepository(private val dao: SongMetadataDao) {
         }
     }
 
+    suspend fun incrementPlayCount(songId: Long) = recordSongPlayed(songId)
+
     suspend fun renameSong(songId: Long, newTitle: String, newArtist: String) = withContext(Dispatchers.IO) {
         val rows = dao.updateTitleAndArtist(songId, newTitle.trim(), newArtist.trim())
         if (rows == 0) {

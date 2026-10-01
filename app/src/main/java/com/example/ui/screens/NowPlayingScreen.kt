@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -339,366 +340,352 @@ fun NowPlayingScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 54.dp, bottom = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
+                verticalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Reserved space matching Search Bar height at top
-                Spacer(modifier = Modifier.height(56.dp))
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Dynamic Interactive Album Art Presentation supporting distinct styles
-                AlbumArtPresentation(
-                    style = albumArtStyle,
-            isPlaying = isPlaying,
-            spinningVinyl = spinningVinyl,
-            autoRotateActive = autoRotateActive,
-            isFastForwarding = isFastForwarding,
-            isRewinding = isRewinding,
-            activeAccentColor = activeVinylCenterRing,
-            activeSkipColor = activeSkipColor,
-            outerBorderColor = activeVinylOuterSheen,
-            visualizerPeakColor = activeVisualizerPeak,
-            songTitle = currentSong.title,
-            songArtist = currentSong.artist,
-            albumArtUri = currentSong.albumArtUri
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Song Title with Auto-Scroll & Favorite Heart Button Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start
-            ) {
-                // Auto-scrolling song title with 3-second hold cycle
-                AutoScrollText(
-                    text = currentSong.title,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${currentSong.artist} • ${currentSong.album}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Prominent Heart Favorite Button
-            IconButton(
-                onClick = { onToggleFavorite(currentSong.id) },
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isFavorite) Color(0xFFEF4444).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    .testTag("now_playing_heart_button")
-            ) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
-                    tint = if (isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Request 8: Touchable Progress Bar with instant skip on direct tap
-        Column(modifier = Modifier.fillMaxWidth()) {
-            TouchableProgressBar(
-                currentPositionMs = currentPositionMs,
-                durationMs = safeDuration,
-                onSeekTo = onSeekTo,
-                barHeight = 6.dp,
-                touchTargetHeight = 40.dp,
-                activeGradient = seekbarFillGradient,
-                inactiveColor = seekbarInactiveColor,
-                thumbColor = seekbarThumbColor,
-                thumbGlowColor = seekbarThumbGlowColor,
-                showThumb = true,
-                tag = "track_progress_slider"
-            )
-
-            // 1. Dedicated Seekbar Timestamps Row (Directly Below Seekbar Slider)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left: Current elapsed time text (aligned to start)
-                Text(
-                    text = formatMs(currentPositionMs),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // 1. Dynamic Interactive Album Art Presentation (Restricted to max 240.dp)
+                Box(
                     modifier = Modifier
-                        .graphicsLayer { alpha = blinkAlpha }
-                        .testTag("current_playback_timestamp")
-                )
-
-                // Right: Total duration text (aligned to end)
-                Text(
-                    text = formatMs(safeDuration),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("total_duration_timestamp")
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 2. Secondary Controls Row: [ Shuffle Button ] --- [ Track Counter Badge ("52 / 250") ] --- [ Repeat Button ]
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left: Shuffle button (ic_shuffle)
-                IconButton(
-                    onClick = onToggleShuffle,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .testTag("shuffle_button")
+                        .fillMaxWidth(0.68f)
+                        .widthIn(max = 240.dp)
+                        .heightIn(max = 240.dp)
+                        .aspectRatio(1f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Shuffle,
-                        contentDescription = "Shuffle",
-                        tint = if (shuffleEnabled) activeShuffleRepeatActiveColor else Color(0xFF808080),
-                        modifier = Modifier.size(20.dp)
+                    AlbumArtPresentation(
+                        style = albumArtStyle,
+                        isPlaying = isPlaying,
+                        spinningVinyl = spinningVinyl,
+                        autoRotateActive = autoRotateActive,
+                        isFastForwarding = isFastForwarding,
+                        isRewinding = isRewinding,
+                        activeAccentColor = activeVinylCenterRing,
+                        activeSkipColor = activeSkipColor,
+                        outerBorderColor = activeVinylOuterSheen,
+                        visualizerPeakColor = activeVisualizerPeak,
+                        songTitle = currentSong.title,
+                        songArtist = currentSong.artist,
+                        albumArtUri = currentSong.albumArtUri
                     )
                 }
 
-                // Center: Track Counter pill badge ("52 / 250"), perfectly centered with Modifier.weight(1f)
-                Box(
+                // 2. Song Title with Auto-Scroll & Favorite Heart Button Row
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        // Auto-scrolling song title with 3-second hold cycle
+                        AutoScrollText(
+                            text = currentSong.title,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${currentSong.artist} • ${currentSong.album}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Prominent Heart Favorite Button
+                    IconButton(
+                        onClick = { onToggleFavorite(currentSong.id) },
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isFavorite) Color(0xFFEF4444).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            .testTag("now_playing_heart_button")
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
+                            tint = if (isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                // 3. Touchable Progress Bar with dedicated timestamps directly below
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    TouchableProgressBar(
+                        currentPositionMs = currentPositionMs,
+                        durationMs = safeDuration,
+                        onSeekTo = onSeekTo,
+                        barHeight = 6.dp,
+                        touchTargetHeight = 36.dp,
+                        activeGradient = seekbarFillGradient,
+                        inactiveColor = seekbarInactiveColor,
+                        thumbColor = seekbarThumbColor,
+                        thumbGlowColor = seekbarThumbGlowColor,
+                        showThumb = true,
+                        tag = "track_progress_slider"
+                    )
+
+                    // Dedicated Seekbar Timestamps Row (Directly Below Seekbar Slider)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Left: Current elapsed time text (aligned to start)
+                        Text(
+                            text = formatMs(currentPositionMs),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .graphicsLayer { alpha = blinkAlpha }
+                                .testTag("current_playback_timestamp")
+                        )
+
+                        // Right: Total duration text (aligned to end)
+                        Text(
+                            text = formatMs(safeDuration),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.testTag("total_duration_timestamp")
+                        )
+                    }
+                }
+
+                // 4. Secondary Controls Row: [ Shuffle Button ] --- [ Track Counter Badge ("52 / 250") ] --- [ Repeat Button ]
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Left: Shuffle button (ic_shuffle)
+                    IconButton(
+                        onClick = onToggleShuffle,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("shuffle_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Shuffle,
+                            contentDescription = "Shuffle",
+                            tint = if (shuffleEnabled) activeShuffleRepeatActiveColor else Color(0xFF808080),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Center: Track Counter pill badge ("52 / 250"), perfectly centered with Modifier.weight(1f)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                            ),
+                            shadowElevation = 2.dp,
+                            modifier = Modifier.testTag("standard_track_counter_badge")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "TRACK ",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                    letterSpacing = 1.1.sp
+                                )
+                                Text(
+                                    text = "%02d / %02d".format(currentIndex + 1, totalTracks),
+                                    fontSize = 13.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Right: Repeat button (ic_repeat)
+                    IconButton(
+                        onClick = onCycleRepeat,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("repeat_button")
+                    ) {
+                        val (icon, tint) = when (repeatMode) {
+                            RepeatMode.OFF -> Icons.Default.Repeat to Color(0xFF808080)
+                            RepeatMode.ALL -> Icons.Default.Repeat to activeShuffleRepeatActiveColor
+                            RepeatMode.ONE -> Icons.Default.RepeatOne to activeShuffleRepeatActiveColor
+                        }
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Repeat: ${repeatMode.name}",
+                            tint = tint,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                // Gesture UI Feedback Badge (Active while holding Next for 2x Fast-Forward or Previous for Continuous Rewind)
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isFastForwarding || isRewinding,
+                    enter = fadeIn() + scaleIn(initialScale = 0.88f),
+                    exit = fadeOut() + scaleOut(targetScale = 0.88f)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-                        ),
-                        shadowElevation = 2.dp,
-                        modifier = Modifier.testTag("standard_track_counter_badge")
+                        shape = RoundedCornerShape(18.dp),
+                        color = if (isFastForwarding) Color(0xFF06283D).copy(alpha = 0.95f) else Color(0xFF28103A).copy(alpha = 0.95f),
+                        border = BorderStroke(1.dp, if (isFastForwarding) activeAccentColor else activeSkipColor),
+                        modifier = Modifier.testTag("playback_gesture_badge")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "TRACK ",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                                letterSpacing = 1.1.sp
+                            Icon(
+                                imageVector = if (isFastForwarding) Icons.Default.FastForward else Icons.Default.FastRewind,
+                                contentDescription = null,
+                                tint = if (isFastForwarding) activeAccentColor else activeSkipColor,
+                                modifier = Modifier.size(18.dp)
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "%02d / %02d".format(currentIndex + 1, totalTracks),
-                                fontSize = 13.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                letterSpacing = 0.5.sp
+                                text = if (isFastForwarding) ">> 2x Speed" else "<< Rewind",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
                             )
                         }
                     }
                 }
 
-                // Right: Repeat button (ic_repeat)
-                IconButton(
-                    onClick = onCycleRepeat,
+                // 5. Main Playback Controls: 10s Rev, Prev, Play/Pause, Next, 10s Fwd
+                Row(
                     modifier = Modifier
-                        .size(42.dp)
-                        .testTag("repeat_button")
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val (icon, tint) = when (repeatMode) {
-                        RepeatMode.OFF -> Icons.Default.Repeat to Color(0xFF808080)
-                        RepeatMode.ALL -> Icons.Default.Repeat to activeShuffleRepeatActiveColor
-                        RepeatMode.ONE -> Icons.Default.RepeatOne to activeShuffleRepeatActiveColor
-                    }
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = "Repeat: ${repeatMode.name}",
-                        tint = tint,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-        }
-
-        // Gesture UI Feedback Badge (Active while holding Next for 2x Fast-Forward or Previous for Continuous Rewind)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(34.dp)
-                .padding(bottom = 2.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isFastForwarding || isRewinding,
-                enter = fadeIn() + scaleIn(initialScale = 0.88f),
-                exit = fadeOut() + scaleOut(targetScale = 0.88f)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = if (isFastForwarding) Color(0xFF06283D).copy(alpha = 0.95f) else Color(0xFF28103A).copy(alpha = 0.95f),
-                    border = BorderStroke(1.dp, if (isFastForwarding) activeAccentColor else activeSkipColor),
-                    modifier = Modifier.testTag("playback_gesture_badge")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // 10s Rewind
+                    IconButton(
+                        onClick = onSkipBackward10,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .testTag("skip_backward_10_button")
                     ) {
                         Icon(
-                            imageVector = if (isFastForwarding) Icons.Default.FastForward else Icons.Default.FastRewind,
-                            contentDescription = null,
-                            tint = if (isFastForwarding) activeAccentColor else activeSkipColor,
-                            modifier = Modifier.size(18.dp)
+                            imageVector = Icons.Default.Replay10,
+                            contentDescription = "Rewind 10 Seconds",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(32.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (isFastForwarding) ">> 2x Speed" else "<< Rewind",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                    }
+
+                    // Center Playback Group with comfortable spacing between Prev, Play, Next
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Previous
+                        HoldableIconButton(
+                            onClick = onPrevious,
+                            onHoldStart = onStartRewind,
+                            onHoldEnd = onStopRewind,
+                            isHolding = isRewinding,
+                            size = 52.dp,
+                            activeGlowColor = activeSkipGlowColor,
+                            modifier = Modifier
+                                .size(52.dp)
+                                .testTag("previous_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SkipPrevious,
+                                contentDescription = "Previous Track",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+
+                        // Play / Pause Center Button (80.dp container, 44.dp bold icon)
+                        IconButton(
+                            onClick = onTogglePlayPause,
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(activePlayBrush)
+                                .border(2.5.dp, activePlayGlowColor, CircleShape)
+                                .testTag("play_pause_button")
+                        ) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isPlaying) "Pause" else "Play",
+                                tint = Color(0xFF080B14),
+                                modifier = Modifier.size(44.dp)
+                            )
+                        }
+
+                        // Next
+                        HoldableIconButton(
+                            onClick = onNext,
+                            onHoldStart = onStartFastForward,
+                            onHoldEnd = onStopFastForward,
+                            isHolding = isFastForwarding,
+                            size = 52.dp,
+                            activeGlowColor = activeSkipGlowColor,
+                            modifier = Modifier
+                                .size(52.dp)
+                                .testTag("next_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SkipNext,
+                                contentDescription = "Next Track",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                    }
+
+                    // 10s Fast-Forward
+                    IconButton(
+                        onClick = onSkipForward10,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .testTag("skip_forward_10_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Forward10,
+                            contentDescription = "Forward 10 Seconds",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Main Playback Controls: 10s Rev, Prev, Play/Pause, Next, 10s Fwd (Ergonomically Lifted & High Contrast)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 10s Rewind / Skip Reverse (Shifted to outermost end to prevent accidental taps)
-            IconButton(
-                onClick = onSkipBackward10,
-                modifier = Modifier
-                    .size(48.dp)
-                    .testTag("skip_backward_10_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Replay10,
-                    contentDescription = "Rewind 10 Seconds",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            // Center Playback Group with comfortable spacing between Prev, Play, Next
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Previous (Single tap = Previous track; Long press = Continuous rewind)
-                HoldableIconButton(
-                    onClick = onPrevious,
-                    onHoldStart = onStartRewind,
-                    onHoldEnd = onStopRewind,
-                    isHolding = isRewinding,
-                    size = 52.dp,
-                    activeGlowColor = activeSkipGlowColor,
-                    modifier = Modifier
-                        .size(52.dp)
-                        .testTag("previous_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous Track",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-
-                // Play / Pause Massive 2X Center Button (88.dp container, 46.dp bold icon)
-                IconButton(
-                    onClick = onTogglePlayPause,
-                    modifier = Modifier
-                        .size(88.dp)
-                        .clip(CircleShape)
-                        .background(activePlayBrush)
-                        .border(2.5.dp, activePlayGlowColor, CircleShape)
-                        .testTag("play_pause_button")
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = Color(0xFF080B14),
-                        modifier = Modifier.size(46.dp)
-                    )
-                }
-
-                // Next (Single tap = Next track; Long press = Fast-forward 2x)
-                HoldableIconButton(
-                    onClick = onNext,
-                    onHoldStart = onStartFastForward,
-                    onHoldEnd = onStopFastForward,
-                    isHolding = isFastForwarding,
-                    size = 52.dp,
-                    activeGlowColor = activeSkipGlowColor,
-                    modifier = Modifier
-                        .size(52.dp)
-                        .testTag("next_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next Track",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-            }
-
-            // 10s Fast-Forward / Skip Forward (Shifted to outermost end to prevent accidental taps)
-            IconButton(
-                onClick = onSkipForward10,
-                modifier = Modifier
-                    .size(48.dp)
-                    .testTag("skip_forward_10_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Forward10,
-                    contentDescription = "Forward 10 Seconds",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-        }
-
-            Spacer(modifier = Modifier.height(28.dp))
-        }
     }
 
     // Top Floating Overlay Layer: Search Bar & Floating Search Results (Never pushes base content)
@@ -964,8 +951,7 @@ private fun AlbumArtPresentation(
 
     Box(
         modifier = Modifier
-            .fillMaxWidth(if (style == "Cosmic Orbit") 0.95f else 0.70f)
-            .aspectRatio(if (style == "Cosmic Orbit") 1.15f else 1f)
+            .fillMaxSize()
             .clip(RoundedCornerShape(20.dp))
             .testTag("now_playing_album_art_card"),
         contentAlignment = Alignment.Center
@@ -982,7 +968,7 @@ private fun AlbumArtPresentation(
                 ) {
                     // Main Planetary Orbit Disc with Nebula Glow
                     Box(
-                        modifier = Modifier.size(200.dp),
+                        modifier = Modifier.size(160.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1018,7 +1004,7 @@ private fun AlbumArtPresentation(
                                 ),
                                 radius = maxR * 0.90f,
                                 center = centerPt,
-                                style = Stroke(width = 5.dp.toPx())
+                                style = Stroke(width = 4.dp.toPx())
                             )
 
                             // Subtle starlight dust particles
@@ -1029,7 +1015,7 @@ private fun AlbumArtPresentation(
                                 val starY = (centerPt.y + starR * Math.sin(angle)).toFloat()
                                 drawCircle(
                                     color = if (i % 2 == 0) Color(0xFF00E5FF) else Color(0xFFF472B6),
-                                    radius = 1.8.dp.toPx(),
+                                    radius = 1.6.dp.toPx(),
                                     center = Offset(starX, starY)
                                 )
                             }
@@ -1038,7 +1024,7 @@ private fun AlbumArtPresentation(
                         // Dark Planetary Disc
                         Box(
                             modifier = Modifier
-                                .size(172.dp)
+                                .size(138.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFF111420))
                                 .border(2.dp, Color(0xFF232A3E), CircleShape),
@@ -1075,7 +1061,7 @@ private fun AlbumArtPresentation(
 
                             // Glowing Cyan Audio Waveform Visualizer in center
                             Box(
-                                modifier = Modifier.size(96.dp),
+                                modifier = Modifier.size(76.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1095,10 +1081,10 @@ private fun AlbumArtPresentation(
 
                                 // 9 Vertical Cyan Waveform Bars
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    val baseHeights = listOf(14.dp, 22.dp, 36.dp, 52.dp, 64.dp, 52.dp, 36.dp, 22.dp, 14.dp)
+                                    val baseHeights = listOf(10.dp, 16.dp, 26.dp, 38.dp, 48.dp, 38.dp, 26.dp, 16.dp, 10.dp)
                                     baseHeights.forEachIndexed { index, baseH ->
                                         val animatedFactor = if (isPlaying) {
                                             val phase = (index % 3) * 0.25f
@@ -1110,7 +1096,7 @@ private fun AlbumArtPresentation(
 
                                         Box(
                                             modifier = Modifier
-                                                .width(4.dp)
+                                                .width(3.dp)
                                                 .height(barH)
                                                 .background(
                                                     Brush.verticalGradient(
@@ -1120,7 +1106,7 @@ private fun AlbumArtPresentation(
                                                             Color(0xFF0891B2)
                                                         )
                                                     ),
-                                                    RoundedCornerShape(3.dp)
+                                                    RoundedCornerShape(2.dp)
                                                 )
                                         )
                                     }
@@ -1129,20 +1115,20 @@ private fun AlbumArtPresentation(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width((-10).dp))
+                    Spacer(modifier = Modifier.width((-8).dp))
 
                     // Attached Satellite Orbit Node (HUD Gauge + 96 KHz FLAC Badge)
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = 6.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(64.dp)
+                                .size(52.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFF0C101D))
-                                .border(2.dp, Color(0xFF00E5FF).copy(alpha = 0.7f), CircleShape),
+                                .border(1.5.dp, Color(0xFF00E5FF).copy(alpha = 0.7f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1165,35 +1151,35 @@ private fun AlbumArtPresentation(
                                             (c.x + outerR * Math.cos(angleRad)).toFloat(),
                                             (c.y + outerR * Math.sin(angleRad)).toFloat()
                                         ),
-                                        strokeWidth = 1.5.dp.toPx()
+                                        strokeWidth = 1.2.dp.toPx()
                                     )
                                 }
                             }
 
                             Text(
                                 text = "$progressPercent%",
-                                fontSize = 10.5.sp,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color.White
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(3.dp))
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = "96 KHz",
-                                fontSize = 8.5.sp,
+                                fontSize = 7.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFCBD5E1),
-                                letterSpacing = 0.5.sp
+                                letterSpacing = 0.4.sp
                             )
                             Text(
                                 text = "FLAC",
-                                fontSize = 8.sp,
+                                fontSize = 7.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFF00E5FF),
-                                letterSpacing = 1.sp
+                                letterSpacing = 0.8.sp
                             )
                         }
                     }
@@ -2435,14 +2421,254 @@ private fun CosmicOrbitNowPlayingLayout(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
+            .padding(horizontal = 20.dp)
+            .padding(top = 54.dp, bottom = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+        verticalArrangement = Arrangement.SpaceEvenly
     ) {
-        // Space matching Search Bar height at top
-        Spacer(modifier = Modifier.height(58.dp))
+        // 1. Center Cosmic Orbit Disc + Attached Satellite Gauge (Restricted to max 240.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.68f)
+                .widthIn(max = 240.dp)
+                .heightIn(max = 240.dp)
+                .aspectRatio(1f),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Main Planetary Orbit Disc with Nebula Glow
+                Box(
+                    modifier = Modifier.size(164.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Outer Cosmic Nebula Ring Canvas
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val maxR = size.minDimension / 2f
+                        val centerPt = center
 
-        // 1. Playlist Tag & Track Title & Heart Row (Exactly matching image!)
+                        // Deep Space Nebula Glow
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF6B21A8).copy(alpha = 0.55f),
+                                    Color(0xFF9333EA).copy(alpha = 0.35f),
+                                    Color(0xFF06B6D4).copy(alpha = 0.2f),
+                                    Color.Transparent
+                                ),
+                                center = centerPt,
+                                radius = maxR
+                            ),
+                            radius = maxR,
+                            center = centerPt
+                        )
+
+                        // Nebula Cosmic Dust Ring
+                        drawCircle(
+                            brush = Brush.sweepGradient(
+                                colors = listOf(
+                                    Color(0xFF00E5FF),
+                                    Color(0xFF8B5CF6),
+                                    Color(0xFFD946EF),
+                                    Color(0xFF3B82F6),
+                                    Color(0xFF00E5FF)
+                                )
+                            ),
+                            radius = maxR * 0.90f,
+                            center = centerPt,
+                            style = Stroke(width = 4.dp.toPx())
+                        )
+
+                        // Subtle starlight dust particles
+                        for (i in 0..12) {
+                            val angle = Math.toRadians((i * 30.0 + rotationAnim.value * 0.4).toDouble())
+                            val starR = maxR * (0.86f + (i % 3) * 0.03f)
+                            val starX = (centerPt.x + starR * Math.cos(angle)).toFloat()
+                            val starY = (centerPt.y + starR * Math.sin(angle)).toFloat()
+                            drawCircle(
+                                color = if (i % 2 == 0) Color(0xFF00E5FF) else Color(0xFFF472B6),
+                                radius = 1.6.dp.toPx(),
+                                center = Offset(starX, starY)
+                            )
+                        }
+                    }
+
+                    // Dark Planetary Disc
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF111420))
+                            .border(2.dp, Color(0xFF232A3E), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Etched Planetary / Atomic Orbit Trajectories
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val centerPt = center
+                            val discR = size.minDimension / 2f
+
+                            // Orbit Ellipse 1 (Horizontal tilt)
+                            drawOval(
+                                color = Color(0xFF475569).copy(alpha = 0.45f),
+                                topLeft = Offset(centerPt.x - discR * 0.72f, centerPt.y - discR * 0.42f),
+                                size = androidx.compose.ui.geometry.Size(discR * 1.44f, discR * 0.84f),
+                                style = Stroke(width = 1.dp.toPx())
+                            )
+
+                            // Orbit Ellipse 2 (Cross tilt)
+                            drawOval(
+                                color = Color(0xFF475569).copy(alpha = 0.35f),
+                                topLeft = Offset(centerPt.x - discR * 0.42f, centerPt.y - discR * 0.72f),
+                                size = androidx.compose.ui.geometry.Size(discR * 0.84f, discR * 1.44f),
+                                style = Stroke(width = 1.dp.toPx())
+                            )
+
+                            // Outer Disc Groove Ring
+                            drawCircle(
+                                color = Color(0xFF1E293B),
+                                radius = discR * 0.88f,
+                                center = centerPt,
+                                style = Stroke(width = 1.dp.toPx())
+                            )
+                        }
+
+                        // Glowing Cyan Audio Waveform Visualizer in center
+                        Box(
+                            modifier = Modifier.size(78.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Soft cyan ambient radial aura behind wave bars
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            Color(0xFF00E5FF).copy(alpha = 0.28f),
+                                            Color.Transparent
+                                        ),
+                                        center = center,
+                                        radius = size.minDimension * 0.45f
+                                    ),
+                                    radius = size.minDimension * 0.45f,
+                                    center = center
+                                )
+                            }
+
+                            // 9 Vertical Cyan Waveform Bars
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val baseHeights = listOf(10.dp, 16.dp, 26.dp, 38.dp, 48.dp, 38.dp, 26.dp, 16.dp, 10.dp)
+                                baseHeights.forEachIndexed { index, baseH ->
+                                    val animatedFactor = if (isPlaying) {
+                                        val phase = (index % 3) * 0.25f
+                                        (pulseAnim.value * (0.8f + phase)).coerceIn(0.5f, 1.45f)
+                                    } else {
+                                        0.5f
+                                    }
+                                    val barH = baseH * animatedFactor
+
+                                    Box(
+                                        modifier = Modifier
+                                            .width(3.dp)
+                                            .height(barH)
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(
+                                                        Color(0xFF67E8F9),
+                                                        Color(0xFF00E5FF),
+                                                        Color(0xFF0891B2)
+                                                    )
+                                                ),
+                                                RoundedCornerShape(2.dp)
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width((-8).dp))
+
+                // Attached Satellite Orbit Node (HUD Gauge + 96 KHz FLAC Badge)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(top = 6.dp)
+                ) {
+                    // Circular Satellite Gauge Pod
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0C101D))
+                            .border(1.5.dp, Color(0xFF00E5FF).copy(alpha = 0.7f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Radial ticks and progress arc
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val r = size.minDimension / 2f
+                            val c = center
+
+                            // Outer radial tick marks
+                            val ticks = 24
+                            for (i in 0 until ticks) {
+                                val angleRad = Math.toRadians((i * (360.0 / ticks) - 90.0).toDouble())
+                                val innerR = r * 0.74f
+                                val outerR = r * 0.88f
+                                val isFilled = (i.toFloat() / ticks) <= (progressPercent / 100f)
+                                drawLine(
+                                    color = if (isFilled) Color(0xFF00E5FF) else Color(0xFF334155),
+                                    start = Offset(
+                                        (c.x + innerR * Math.cos(angleRad)).toFloat(),
+                                        (c.y + innerR * Math.sin(angleRad)).toFloat()
+                                    ),
+                                    end = Offset(
+                                        (c.x + outerR * Math.cos(angleRad)).toFloat(),
+                                        (c.y + outerR * Math.sin(angleRad)).toFloat()
+                                    ),
+                                    strokeWidth = 1.2.dp.toPx()
+                                )
+                            }
+                        }
+
+                        // Center Percentage Display
+                        Text(
+                            text = "$progressPercent%",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    // 96 KHz / FLAC Audio Badge
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "96 KHz",
+                            fontSize = 7.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFCBD5E1),
+                            letterSpacing = 0.4.sp
+                        )
+                        Text(
+                            text = "FLAC",
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF00E5FF),
+                            letterSpacing = 0.8.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // 2. Playlist Tag & Track Title & Heart Row (Exactly matching image!)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2482,7 +2708,7 @@ private fun CosmicOrbitNowPlayingLayout(
             // Glowing Purple Heart Favorite Button (matching user's image)
             Box(
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .background(Color(0xFF9D4EDD).copy(alpha = 0.18f))
                     .clickable { onToggleFavorite(currentSong.id) },
@@ -2497,321 +2723,49 @@ private fun CosmicOrbitNowPlayingLayout(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 2. Center Cosmic Orbit Disc + Attached Satellite Gauge
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Main Planetary Orbit Disc with Nebula Glow
-                Box(
-                    modifier = Modifier.size(220.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Outer Cosmic Nebula Ring Canvas
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val maxR = size.minDimension / 2f
-                        val centerPt = center
-
-                        // Deep Space Nebula Glow
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF6B21A8).copy(alpha = 0.55f),
-                                    Color(0xFF9333EA).copy(alpha = 0.35f),
-                                    Color(0xFF06B6D4).copy(alpha = 0.2f),
-                                    Color.Transparent
-                                ),
-                                center = centerPt,
-                                radius = maxR
-                            ),
-                            radius = maxR,
-                            center = centerPt
-                        )
-
-                        // Nebula Cosmic Dust Ring
-                        drawCircle(
-                            brush = Brush.sweepGradient(
-                                colors = listOf(
-                                    Color(0xFF00E5FF),
-                                    Color(0xFF8B5CF6),
-                                    Color(0xFFD946EF),
-                                    Color(0xFF3B82F6),
-                                    Color(0xFF00E5FF)
-                                )
-                            ),
-                            radius = maxR * 0.90f,
-                            center = centerPt,
-                            style = Stroke(width = 6.dp.toPx())
-                        )
-
-                        // Subtle starlight dust particles
-                        for (i in 0..12) {
-                            val angle = Math.toRadians((i * 30.0 + rotationAnim.value * 0.4).toDouble())
-                            val starR = maxR * (0.86f + (i % 3) * 0.03f)
-                            val starX = (centerPt.x + starR * Math.cos(angle)).toFloat()
-                            val starY = (centerPt.y + starR * Math.sin(angle)).toFloat()
-                            drawCircle(
-                                color = if (i % 2 == 0) Color(0xFF00E5FF) else Color(0xFFF472B6),
-                                radius = 1.8.dp.toPx(),
-                                center = Offset(starX, starY)
-                            )
-                        }
-                    }
-
-                    // Dark Planetary Disc
-                    Box(
-                        modifier = Modifier
-                            .size(190.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF111420))
-                            .border(2.dp, Color(0xFF232A3E), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Etched Planetary / Atomic Orbit Trajectories
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val centerPt = center
-                            val discR = size.minDimension / 2f
-
-                            // Orbit Ellipse 1 (Horizontal tilt)
-                            drawOval(
-                                color = Color(0xFF475569).copy(alpha = 0.45f),
-                                topLeft = Offset(centerPt.x - discR * 0.72f, centerPt.y - discR * 0.42f),
-                                size = androidx.compose.ui.geometry.Size(discR * 1.44f, discR * 0.84f),
-                                style = Stroke(width = 1.dp.toPx())
-                            )
-
-                            // Orbit Ellipse 2 (Cross tilt)
-                            drawOval(
-                                color = Color(0xFF475569).copy(alpha = 0.35f),
-                                topLeft = Offset(centerPt.x - discR * 0.42f, centerPt.y - discR * 0.72f),
-                                size = androidx.compose.ui.geometry.Size(discR * 0.84f, discR * 1.44f),
-                                style = Stroke(width = 1.dp.toPx())
-                            )
-
-                            // Outer Disc Groove Ring
-                            drawCircle(
-                                color = Color(0xFF1E293B),
-                                radius = discR * 0.88f,
-                                center = centerPt,
-                                style = Stroke(width = 1.dp.toPx())
-                            )
-                        }
-
-                        // Glowing Cyan Audio Waveform Visualizer in center
-                        Box(
-                            modifier = Modifier.size(110.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            // Soft cyan ambient radial aura behind wave bars
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(
-                                            Color(0xFF00E5FF).copy(alpha = 0.28f),
-                                            Color.Transparent
-                                        ),
-                                        center = center,
-                                        radius = size.minDimension * 0.45f
-                                    ),
-                                    radius = size.minDimension * 0.45f,
-                                    center = center
-                                )
-                            }
-
-                            // 9 Vertical Cyan Waveform Bars
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.5.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val baseHeights = listOf(14.dp, 22.dp, 36.dp, 52.dp, 64.dp, 52.dp, 36.dp, 22.dp, 14.dp)
-                                baseHeights.forEachIndexed { index, baseH ->
-                                    val animatedFactor = if (isPlaying) {
-                                        val phase = (index % 3) * 0.25f
-                                        (pulseAnim.value * (0.8f + phase)).coerceIn(0.5f, 1.45f)
-                                    } else {
-                                        0.5f
-                                    }
-                                    val barH = baseH * animatedFactor
-
-                                    Box(
-                                        modifier = Modifier
-                                            .width(4.5.dp)
-                                            .height(barH)
-                                            .background(
-                                                Brush.verticalGradient(
-                                                    listOf(
-                                                        Color(0xFF67E8F9),
-                                                        Color(0xFF00E5FF),
-                                                        Color(0xFF0891B2)
-                                                    )
-                                                ),
-                                                RoundedCornerShape(3.dp)
-                                            )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width((-12).dp))
-
-                // Attached Satellite Orbit Node (HUD Gauge + 96 KHz FLAC Badge)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(top = 10.dp)
-                ) {
-                    // Circular Satellite Gauge Pod
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF0C101D))
-                            .border(2.dp, Color(0xFF00E5FF).copy(alpha = 0.7f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Radial ticks and progress arc
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val r = size.minDimension / 2f
-                            val c = center
-
-                            // Outer radial tick marks
-                            val ticks = 24
-                            for (i in 0 until ticks) {
-                                val angleRad = Math.toRadians((i * (360.0 / ticks) - 90.0).toDouble())
-                                val innerR = r * 0.74f
-                                val outerR = r * 0.88f
-                                val isFilled = (i.toFloat() / ticks) <= (progressPercent / 100f)
-                                drawLine(
-                                    color = if (isFilled) Color(0xFF00E5FF) else Color(0xFF334155),
-                                    start = Offset(
-                                        (c.x + innerR * Math.cos(angleRad)).toFloat(),
-                                        (c.y + innerR * Math.sin(angleRad)).toFloat()
-                                    ),
-                                    end = Offset(
-                                        (c.x + outerR * Math.cos(angleRad)).toFloat(),
-                                        (c.y + outerR * Math.sin(angleRad)).toFloat()
-                                    ),
-                                    strokeWidth = 1.5.dp.toPx()
-                                )
-                            }
-                        }
-
-                        // Center Percentage Display
-                        Text(
-                            text = "$progressPercent%",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // 96 KHz / FLAC Audio Badge
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "96 KHz",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFCBD5E1),
-                            letterSpacing = 0.5.sp
-                        )
-                        Text(
-                            text = "FLAC",
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF00E5FF),
-                            letterSpacing = 1.sp
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // 3. Subtle Analog Tick Ruler
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 6.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            for (i in 0..24) {
-                val isCenter = i == 12
-                val isMajor = i % 6 == 0
-                val tickH = if (isCenter) 12.dp else if (isMajor) 8.dp else 4.dp
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 2.5.dp)
-                        .width(1.dp)
-                        .height(tickH)
-                        .background(
-                            if (isCenter) Color(0xFF00E5FF) else Color(0xFF64748B).copy(alpha = 0.45f)
-                        )
-                )
-            }
-        }
-
-        // 4. Progress Bar with Timestamps Inside / Aligned
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            contentAlignment = Alignment.Center
-        ) {
+        // 3. Seekbar Section (Directly Below Seekbar Slider)
+        Column(modifier = Modifier.fillMaxWidth()) {
             TouchableProgressBar(
                 currentPositionMs = currentPositionMs,
                 durationMs = durationMs.coerceAtLeast(1L),
                 onSeekTo = onSeekTo,
-                barHeight = 22.dp,
-                touchTargetHeight = 44.dp,
+                barHeight = 6.dp,
+                touchTargetHeight = 36.dp,
                 activeGradient = listOf(Color(0xFF00F5FF), Color(0xFF9D4EDD)),
-                inactiveColor = Color(0xFFD5DCE7),
+                inactiveColor = Color(0xFF334155).copy(alpha = 0.5f),
                 thumbColor = Color(0xFF00F5FF),
                 thumbGlowColor = Color(0xFF00F5FF).copy(alpha = 0.6f),
                 showThumb = true,
                 tag = "cosmic_progress_slider"
             )
 
-            // Timestamps placed inside pill progress bar with clean high-contrast dark slate font
+            // Dedicated Seekbar Timestamps Row (Directly Below Seekbar Slider)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp),
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Left: Current elapsed time text (aligned to start)
                 Text(
                     text = formatMs(currentPositionMs),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFA0AEC0),
+                    modifier = Modifier.testTag("current_playback_timestamp")
                 )
+
+                // Right: Total duration text (aligned to end)
                 Text(
                     text = formatMs(durationMs),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFA0AEC0),
+                    modifier = Modifier.testTag("total_duration_timestamp")
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
-
-        // 5. Shuffle, Track Counter & Repeat Row (Cosmic Orbit Theme)
+        // 4. Shuffle, Track Counter & Repeat Row (Cosmic Orbit Theme)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2992,8 +2946,6 @@ private fun CosmicOrbitNowPlayingLayout(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
 
         // 6. Playback Controls Row: Prev (3D extruded), Play/Pause (3D ceramic dual-shadow with cyan halo), Next (3D extruded)
         Row(

@@ -37,6 +37,7 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -572,13 +573,46 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // 2. Real Elapsed Listening Time Tracker for 'Most Played' (Requirement 1):
-        // Does NOT rely on track position (currentPositionMs) or seekbar timestamps.
-        // Scrubbing/seeking forward or backward does NOT affect realPlaytimeSeconds.
+        // 2. Real Elapsed Listening Time Tracker for 'Most Played':
+        // - Immediate Trigger at 60 Seconds:
+        //   While player.isPlaying is true, increment realPlaytimeSeconds every 1000ms.
+        //   The EXACT moment realPlaytimeSeconds >= 60 AND hasCountedCurrentSession == false:
+        //   Set hasCountedCurrentSession = true, immediately execute songRepository.incrementPlayCount(currentTrackId)
+        //   in a NonCancellable coroutine so seeking/pausing/skipping cannot cancel the database commit.
+        // - Support Repeat Mode & Replay:
+        //   Detect track repetition / loop (via playSessionId change or track position rewind back to start in repeat mode).
+        //   When track restarts for a fresh play, reset realPlaytimeSeconds = 0 and hasCountedCurrentSession = false.
+        // - Track Change Cleanup:
+        //   When switching to a different song, reset both realPlaytimeSeconds = 0 and hasCountedCurrentSession = false.
         var activeListeningSongId: Long? = null
+        var activePlaySessionId: Long = 0L
         var realPlaytimeSeconds: Int = 0
-        var isCurrentTrackSessionCounted: Boolean = false
+        var hasCountedCurrentSession: Boolean = false
+        var lastObservedPositionMs: Long = 0L
         var listeningTimerJob: Job? = null
+
+        fun startListeningTimer(targetSongId: Long) {
+            if (listeningTimerJob?.isActive == true) return
+            listeningTimerJob = viewModelScope.launch {
+                while (isActive) {
+                    delay(1000L)
+                    val currentState = playerManager.state.value
+                    if (currentState.isPlaying && currentState.currentSong?.id == activeListeningSongId) {
+                        realPlaytimeSeconds++
+                        if (realPlaytimeSeconds >= 60 && !hasCountedCurrentSession) {
+                            hasCountedCurrentSession = true
+                            val qualifiedSongId = targetSongId
+                            // Immediate trigger: commit to Room DB on NonCancellable IO coroutine
+                            viewModelScope.launch(Dispatchers.IO + NonCancellable) {
+                                songRepository.incrementPlayCount(qualifiedSongId)
+                            }
+                        }
+                    } else if (!currentState.isPlaying) {
+                        break
+                    }
+                }
+            }
+        }
 
         viewModelScope.launch {
             playerManager.state.collect { state ->
@@ -587,43 +621,29 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     listeningTimerJob?.cancel()
                     listeningTimerJob = null
                     activeListeningSongId = null
+                    activePlaySessionId = 0L
                     realPlaytimeSeconds = 0
-                    isCurrentTrackSessionCounted = false
+                    hasCountedCurrentSession = false
+                    lastObservedPositionMs = 0L
                 } else {
-                    // Reset accumulator and trigger flag when song changes
-                    if (song.id != activeListeningSongId) {
+                    val isDifferentSong = song.id != activeListeningSongId
+                    val isSessionRestarted = state.playSessionId != activePlaySessionId
+                    // Detect track repetition / loop: position dropped back to start while repeating
+                    val isTrackLooped = lastObservedPositionMs > 8000L && state.currentPositionMs in 0L..1500L
+
+                    if (isDifferentSong || isSessionRestarted || isTrackLooped) {
                         listeningTimerJob?.cancel()
                         listeningTimerJob = null
                         activeListeningSongId = song.id
+                        activePlaySessionId = state.playSessionId
                         realPlaytimeSeconds = 0
-                        isCurrentTrackSessionCounted = false
+                        hasCountedCurrentSession = false
                     }
+                    lastObservedPositionMs = state.currentPositionMs
 
                     if (state.isPlaying) {
-                        // Start 1000ms ticking loop only while actively playing
-                        if (listeningTimerJob?.isActive != true) {
-                            listeningTimerJob = launch {
-                                while (isActive) {
-                                    delay(1000L)
-                                    val currentState = playerManager.state.value
-                                    if (currentState.isPlaying && currentState.currentSong?.id == activeListeningSongId) {
-                                        realPlaytimeSeconds++
-                                        if (realPlaytimeSeconds >= 60 && !isCurrentTrackSessionCounted) {
-                                            isCurrentTrackSessionCounted = true
-                                            val qualifiedSongId = song.id
-                                            launch(Dispatchers.IO) {
-                                                songRepository.recordSongPlayed(qualifiedSongId)
-                                            }
-                                        }
-                                    } else {
-                                        // Paused, buffering, or stopped -> halt ticking
-                                        break
-                                    }
-                                }
-                            }
-                        }
+                        startListeningTimer(song.id)
                     } else {
-                        // If player is PAUSED or STOPPED -> halt ticking (do not count)
                         listeningTimerJob?.cancel()
                         listeningTimerJob = null
                     }
