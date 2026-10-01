@@ -580,73 +580,56 @@ fun NowPlayingScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 5. MAIN PLAYBACK CONTROLS ROW (HARD-LOCKED SPACING & SIZES)
-                // - Row with Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically:
-                //     * [Rewind 10s Button]: Modifier.size(36.dp)
-                //     * Spacer(modifier = Modifier.width(18.dp))
-                //     * [Previous Button]: Modifier.size(42.dp)
-                //     * Spacer(modifier = Modifier.width(16.dp))
-                //     * [BIG Circular Play/Pause Button]:
-                //         - Outer circle button size: strictly Modifier.size(76.dp) (or 80.dp)
-                //         - Inner Play/Pause icon size: Modifier.size(38.dp)
-                //         - Background: Vibrant Neon Cyan (#00F5FF) with smooth shadow/elevation
-                //     * Spacer(modifier = Modifier.width(16.dp))
-                //     * [Next Button]: Modifier.size(42.dp)
-                //     * Spacer(modifier = Modifier.width(18.dp))
-                //     * [Forward 10s Button]: Modifier.size(36.dp)
-                // - Bottom Padding: Add Modifier.padding(bottom = 28.dp) so this row stays elevated comfortably above the bottom navigation bar.
+                // 5. MAIN PLAYBACK CONTROLS ROW (ENLARGED & EDGE-ALIGNED)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
                         .padding(bottom = 28.dp),
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Rewind 10s Button: Modifier.size(36.dp)
+                    // 1. Rewind 10s (Near Left Edge)
                     IconButton(
                         onClick = onSkipBackward10,
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(46.dp)
                             .testTag("skip_backward_10_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Replay10,
                             contentDescription = "Rewind 10 Seconds",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(24.dp)
+                            tint = Color(0xFF00F5FF),
+                            modifier = Modifier.size(30.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(18.dp))
-
-                    // Previous Button: Modifier.size(42.dp)
+                    // 2. Previous Button
                     HoldableIconButton(
                         onClick = onPrevious,
                         onHoldStart = onStartRewind,
                         onHoldEnd = onStopRewind,
                         isHolding = isRewinding,
-                        size = 42.dp,
+                        size = 52.dp,
                         activeGlowColor = activeSkipGlowColor,
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(52.dp)
                             .testTag("previous_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.SkipPrevious,
                             contentDescription = "Previous Track",
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(36.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    // BIG Circular Play/Pause Button: strictly Modifier.size(76.dp), inner icon size 38.dp, background #00F5FF
+                    // 3. Central Big Play/Pause Button
                     IconButton(
                         onClick = onTogglePlayPause,
                         modifier = Modifier
-                            .size(76.dp)
-                            .shadow(8.dp, CircleShape, ambientColor = Color(0xFF00F5FF), spotColor = Color(0xFF00F5FF))
+                            .size(86.dp)
+                            .shadow(10.dp, CircleShape, ambientColor = Color(0xFF00F5FF), spotColor = Color(0xFF00F5FF))
                             .clip(CircleShape)
                             .background(Color(0xFF00F5FF))
                             .testTag("play_pause_button")
@@ -655,46 +638,42 @@ fun NowPlayingScreen(
                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (isPlaying) "Pause" else "Play",
                             tint = Color(0xFF080B14),
-                            modifier = Modifier.size(38.dp)
+                            modifier = Modifier.size(46.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    // Next Button: Modifier.size(42.dp)
+                    // 4. Next Button
                     HoldableIconButton(
                         onClick = onNext,
                         onHoldStart = onStartFastForward,
                         onHoldEnd = onStopFastForward,
                         isHolding = isFastForwarding,
-                        size = 42.dp,
+                        size = 52.dp,
                         activeGlowColor = activeSkipGlowColor,
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(52.dp)
                             .testTag("next_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.SkipNext,
                             contentDescription = "Next Track",
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(36.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(18.dp))
-
-                    // Forward 10s Button: Modifier.size(36.dp)
+                    // 5. Forward 10s (Near Right Edge)
                     IconButton(
                         onClick = onSkipForward10,
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(46.dp)
                             .testTag("skip_forward_10_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Forward10,
                             contentDescription = "Forward 10 Seconds",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(24.dp)
+                            tint = Color(0xFF00F5FF),
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 }
@@ -2929,234 +2908,146 @@ private fun CosmicOrbitNowPlayingLayout(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 5. MAIN PLAYBACK CONTROLS ROW (HARD-LOCKED SPACING & SIZES)
+        // 5. MAIN PLAYBACK CONTROLS ROW (ENLARGED & EDGE-ALIGNED)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
                 .padding(bottom = 28.dp),
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Rewind 10s Button: Modifier.size(36.dp)
+            // 1. Rewind 10s Button: Modifier.size(46.dp), icon 30.dp
             IconButton(
                 onClick = onSkipBackward10,
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(46.dp)
                     .testTag("skip_backward_10_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.Replay10,
                     contentDescription = "Rewind 10 Seconds",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
+                    tint = Color(0xFF00F5FF),
+                    modifier = Modifier.size(30.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(18.dp))
-
-            // Previous Button with 3D Neumorphic Extrusion
-            Box(
+            // 2. Previous Button with 3D Neumorphic Extrusion: Container 52.dp, icon 36.dp
+            HoldableIconButton(
+                onClick = onPrevious,
+                onHoldStart = onStartRewind,
+                onHoldEnd = onStopRewind,
+                isHolding = isRewinding,
+                size = 52.dp,
+                activeGlowColor = Color(0xFF00F5FF).copy(alpha = 0.5f),
                 modifier = Modifier
-                    .size(62.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isRewinding) {
-                            Brush.radialGradient(
-                                listOf(
-                                    Color(0xFF00F5FF).copy(alpha = 0.35f),
-                                    Color.Transparent
-                                )
-                            )
-                        } else {
-                            SolidColor(Color.Transparent)
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                HoldableIconButton(
-                    onClick = onPrevious,
-                    onHoldStart = onStartRewind,
-                    onHoldEnd = onStopRewind,
-                    isHolding = isRewinding,
-                    size = 52.dp,
-                    activeGlowColor = Color(0xFF00F5FF).copy(alpha = 0.5f),
-                    modifier = Modifier
-                        .size(52.dp)
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = CircleShape,
-                            ambientColor = Color(0x2B000000),
-                            spotColor = Color(0x2B000000)
-                        )
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF223048),
-                                    Color(0xFF162544),
-                                    Color(0xFF0E192E)
-                                ),
-                                start = Offset.Zero,
-                                end = Offset(80f, 80f)
-                            ),
-                            CircleShape
-                        )
-                        .border(
-                            1.5.dp,
-                            if (isRewinding) Color(0xFF00F5FF) else Color(0xFF334155),
-                            CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous Track",
-                        tint = if (isRewinding) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
-                        modifier = Modifier.size(28.dp)
+                    .size(52.dp)
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = CircleShape,
+                        ambientColor = Color(0x2B000000),
+                        spotColor = Color(0x2B000000)
                     )
-                }
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF223048),
+                                Color(0xFF162544),
+                                Color(0xFF0E192E)
+                            ),
+                            start = Offset.Zero,
+                            end = Offset(80f, 80f)
+                        ),
+                        CircleShape
+                    )
+                    .border(
+                        1.5.dp,
+                        if (isRewinding) Color(0xFF00F5FF) else Color(0xFF334155),
+                        CircleShape
+                    )
+                    .testTag("previous_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SkipPrevious,
+                    contentDescription = "Previous Track",
+                    tint = if (isRewinding) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
+                    modifier = Modifier.size(36.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.width(26.dp))
-
-            // Play / Pause Massive 3D Cosmic Center Button
-            Box(
+            // 3. Central Big Play/Pause Circular Button: strictly 86.dp, icon 46.dp, Vibrant Neon Cyan #00F5FF
+            IconButton(
+                onClick = onTogglePlayPause,
                 modifier = Modifier
-                    .size(92.dp)
+                    .size(86.dp)
+                    .shadow(10.dp, CircleShape, ambientColor = Color(0xFF00F5FF), spotColor = Color(0xFF00F5FF))
                     .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0xFF00F5FF).copy(alpha = 0.35f),
-                                Color(0xFF38BDF8).copy(alpha = 0.15f),
-                                Color.Transparent
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
+                    .background(Color(0xFF00F5FF))
+                    .testTag("play_pause_button")
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .shadow(
-                            elevation = 6.dp,
-                            shape = CircleShape,
-                            ambientColor = Color(0x2B000000),
-                            spotColor = Color(0x2B000000)
-                        )
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF2A3D5C),
-                                    Color(0xFF162544),
-                                    Color(0xFF0E192E)
-                                ),
-                                start = Offset.Zero,
-                                end = Offset(120f, 120f)
-                            ),
-                            CircleShape
-                        )
-                        .border(
-                            BorderStroke(
-                                2.2.dp,
-                                Brush.sweepGradient(
-                                    listOf(
-                                        Color(0xFF06B6D4),
-                                        Color(0xFF00F5FF),
-                                        Color(0xFF38BDF8),
-                                        Color(0xFF06B6D4)
-                                    )
-                                )
-                            ),
-                            CircleShape
-                        )
-                        .clickable(onClick = onTogglePlayPause),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = Color(0xFF00F5FF),
-                        modifier = Modifier.size(42.dp)
-                    )
-                }
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    tint = Color(0xFF080B14),
+                    modifier = Modifier.size(46.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.width(26.dp))
-
-            // Next Button with 3D Neumorphic Extrusion
-            Box(
+            // 4. Next Button with 3D Neumorphic Extrusion: Container 52.dp, icon 36.dp
+            HoldableIconButton(
+                onClick = onNext,
+                onHoldStart = onStartFastForward,
+                onHoldEnd = onStopFastForward,
+                isHolding = isFastForwarding,
+                size = 52.dp,
+                activeGlowColor = Color(0xFF00F5FF).copy(alpha = 0.5f),
                 modifier = Modifier
-                    .size(62.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isFastForwarding) {
-                            Brush.radialGradient(
-                                listOf(
-                                    Color(0xFF00F5FF).copy(alpha = 0.35f),
-                                    Color.Transparent
-                                )
-                            )
-                        } else {
-                            SolidColor(Color.Transparent)
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                HoldableIconButton(
-                    onClick = onNext,
-                    onHoldStart = onStartFastForward,
-                    onHoldEnd = onStopFastForward,
-                    isHolding = isFastForwarding,
-                    size = 52.dp,
-                    activeGlowColor = Color(0xFF00F5FF).copy(alpha = 0.5f),
-                    modifier = Modifier
-                        .size(52.dp)
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = CircleShape,
-                            ambientColor = Color(0x2B000000),
-                            spotColor = Color(0x2B000000)
-                        )
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF223048),
-                                    Color(0xFF162544),
-                                    Color(0xFF0E192E)
-                                ),
-                                start = Offset.Zero,
-                                end = Offset(80f, 80f)
-                            ),
-                            CircleShape
-                        )
-                        .border(
-                            1.5.dp,
-                            if (isFastForwarding) Color(0xFF00F5FF) else Color(0xFF334155),
-                            CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next Track",
-                        tint = if (isFastForwarding) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
-                        modifier = Modifier.size(28.dp)
+                    .size(52.dp)
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = CircleShape,
+                        ambientColor = Color(0x2B000000),
+                        spotColor = Color(0x2B000000)
                     )
-                }
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF223048),
+                                Color(0xFF162544),
+                                Color(0xFF0E192E)
+                            ),
+                            start = Offset.Zero,
+                            end = Offset(80f, 80f)
+                        ),
+                        CircleShape
+                    )
+                    .border(
+                        1.5.dp,
+                        if (isFastForwarding) Color(0xFF00F5FF) else Color(0xFF334155),
+                        CircleShape
+                    )
+                    .testTag("next_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SkipNext,
+                    contentDescription = "Next Track",
+                    tint = if (isFastForwarding) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
+                    modifier = Modifier.size(36.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.width(18.dp))
-
-            // Forward 10s Button: Modifier.size(36.dp)
+            // 5. Forward 10s Button: Modifier.size(46.dp), icon 30.dp
             IconButton(
                 onClick = onSkipForward10,
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(46.dp)
                     .testTag("skip_forward_10_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.Forward10,
                     contentDescription = "Forward 10 Seconds",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
+                    tint = Color(0xFF00F5FF),
+                    modifier = Modifier.size(30.dp)
                 )
             }
         }
