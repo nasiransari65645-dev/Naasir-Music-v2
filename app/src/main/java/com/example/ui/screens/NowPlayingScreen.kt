@@ -341,11 +341,15 @@ fun NowPlayingScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 20.dp)
-                    .padding(top = 54.dp, bottom = 28.dp),
+                    .padding(top = 54.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.Top
             ) {
-                // 1. Fixed Album Art Container (Hard-locked to exactly 200.dp, centered horizontally)
+                // 1. ALBUM ART CONTAINER (HARD-LOCKED)
+                // - Fixed dimensions: strictly Modifier.size(200.dp).
+                // - Remove all Modifier.fillMaxWidth(), Modifier.fillMaxSize(), and Modifier.weight().
+                // - Wrap in a Box with Modifier.fillMaxWidth() and contentAlignment = Alignment.Center to keep it centered horizontally.
+                // - Padding: Modifier.padding(vertical = 12.dp).
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -376,7 +380,10 @@ fun NowPlayingScreen(
                     }
                 }
 
-                // 2. Song Title with Auto-Scroll & Favorite Heart Button Row
+                // 2. TRACK METADATA
+                // - Song Title: Bold typography, horizontal scroll if long text, centered or aligned naturally with Favorite Heart Icon.
+                // - Subtitle: Artist and Album/Folder text in subtle slate grey (#7E8B9B).
+                // - Spacer below metadata: Modifier.height(16.dp).
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -399,7 +406,7 @@ fun NowPlayingScreen(
                         Text(
                             text = "${currentSong.artist} • ${currentSong.album}",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Color(0xFF7E8B9B),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -427,63 +434,81 @@ fun NowPlayingScreen(
                     }
                 }
 
-                // 3. Dedicated Playback Controls Column (Grouped together without expanding spacers)
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Seekbar Slider
-                    TouchableProgressBar(
-                        currentPositionMs = currentPositionMs,
-                        durationMs = safeDuration,
-                        onSeekTo = onSeekTo,
-                        barHeight = 6.dp,
-                        touchTargetHeight = 36.dp,
-                        activeGradient = seekbarFillGradient,
-                        inactiveColor = seekbarInactiveColor,
-                        thumbColor = seekbarThumbColor,
-                        thumbGlowColor = seekbarThumbGlowColor,
-                        showThumb = true,
-                        tag = "track_progress_slider"
-                    )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // Dedicated Seekbar Timestamps Row (Directly Below Seekbar Slider)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Left: Current elapsed time text (aligned to start)
-                        Text(
-                            text = formatMs(currentPositionMs),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .graphicsLayer { alpha = blinkAlpha }
-                                .testTag("current_playback_timestamp")
-                        )
+                // 3. SEEKBAR & TIMESTAMPS ROW (WITH CENTERED SONG COUNT)
+                // - Seekbar Slider: Full width with neon cyan active track color.
+                // - Directly below Seekbar, create a single Row: Modifier.fillMaxWidth().padding(horizontal = 4.dp):
+                //     * Left (Start): Elapsed Time (e.g. "00:36"), fontSize = 12.sp, color = #7E8B9B.
+                //     * Center: Song Count Badge, strictly formatted as "${currentIndex + 1} / ${totalTracks}" (e.g. "170 / 250").
+                //         - Typography: fontSize = 11.sp, fontWeight = Medium, color = #7E8B9B or soft cyan, monospace/tabular digits.
+                //         - Modifier: Modifier.weight(1f), textAlign = TextAlign.Center.
+                //     * Right (End): Total Duration (e.g. "03:31"), fontSize = 12.sp, color = #7E8B9B.
+                // - Spacer below this row: Modifier.height(16.dp).
+                TouchableProgressBar(
+                    currentPositionMs = currentPositionMs,
+                    durationMs = safeDuration,
+                    onSeekTo = onSeekTo,
+                    barHeight = 6.dp,
+                    touchTargetHeight = 36.dp,
+                    activeGradient = listOf(Color(0xFF00E5FF), Color(0xFF00F5FF)),
+                    inactiveColor = seekbarInactiveColor,
+                    thumbColor = Color(0xFF00F5FF),
+                    thumbGlowColor = Color(0xFF00F5FF).copy(alpha = 0.6f),
+                    showThumb = true,
+                    tag = "track_progress_slider"
+                )
 
-                        // Right: Total duration text (aligned to end)
-                        Text(
-                            text = formatMs(safeDuration),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.testTag("total_duration_timestamp")
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                // 4. Secondary Controls Row: [ Shuffle Button ] --- [ Track Counter Badge ("52 / 250") ] --- [ Repeat Button ]
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left: Shuffle button (ic_shuffle)
+                    Text(
+                        text = formatMs(currentPositionMs),
+                        fontSize = 12.sp,
+                        color = Color(0xFF7E8B9B),
+                        modifier = Modifier
+                            .graphicsLayer { alpha = blinkAlpha }
+                            .testTag("current_playback_timestamp")
+                    )
+
+                    Text(
+                        text = "${currentIndex + 1} / ${totalTracks}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF00E5FF),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("standard_track_counter_badge")
+                    )
+
+                    Text(
+                        text = formatMs(safeDuration),
+                        fontSize = 12.sp,
+                        color = Color(0xFF7E8B9B),
+                        modifier = Modifier.testTag("total_duration_timestamp")
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 4. SECONDARY CONTROLS ROW (SHUFFLE & REPEAT)
+                // - A clean Row with Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween:
+                //     * Left: Shuffle Button (ic_shuffle) with ON/OFF tint toggle.
+                //     * Right: Repeat Button (ic_repeat) with ON/OFF tint toggle.
+                //     * (Note: Song counter is completely removed from here and kept under seekbar).
+                // - Spacer below this row: Modifier.height(24.dp).
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(
                         onClick = onToggleShuffle,
                         modifier = Modifier
@@ -493,46 +518,11 @@ fun NowPlayingScreen(
                         Icon(
                             imageVector = Icons.Default.Shuffle,
                             contentDescription = "Shuffle",
-                            tint = if (shuffleEnabled) activeShuffleRepeatActiveColor else Color(0xFF808080),
-                            modifier = Modifier.size(20.dp)
+                            tint = if (shuffleEnabled) Color(0xFF00F5FF) else Color(0xFF7E8B9B),
+                            modifier = Modifier.size(24.dp)
                         )
                     }
 
-                    // Center: Track Counter pill badge ("52 / 250"), perfectly centered with Modifier.weight(1f)
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-                            ),
-                            shadowElevation = 2.dp,
-                            modifier = Modifier.testTag("standard_track_counter_badge")
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = "${currentIndex + 1} / ${totalTracks}",
-                                    fontSize = 13.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF00E5FF),
-                                    letterSpacing = 0.5.sp
-                                )
-                            }
-                        }
-                    }
-
-                    // Right: Repeat button (ic_repeat)
                     IconButton(
                         onClick = onCycleRepeat,
                         modifier = Modifier
@@ -540,15 +530,15 @@ fun NowPlayingScreen(
                             .testTag("repeat_button")
                     ) {
                         val (icon, tint) = when (repeatMode) {
-                            RepeatMode.OFF -> Icons.Default.Repeat to Color(0xFF808080)
-                            RepeatMode.ALL -> Icons.Default.Repeat to activeShuffleRepeatActiveColor
-                            RepeatMode.ONE -> Icons.Default.RepeatOne to activeShuffleRepeatActiveColor
+                            RepeatMode.OFF -> Icons.Default.Repeat to Color(0xFF7E8B9B)
+                            RepeatMode.ALL -> Icons.Default.Repeat to Color(0xFF00F5FF)
+                            RepeatMode.ONE -> Icons.Default.RepeatOne to Color(0xFF00F5FF)
                         }
                         Icon(
                             imageVector = icon,
                             contentDescription = "Repeat: ${repeatMode.name}",
                             tint = tint,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
@@ -563,7 +553,9 @@ fun NowPlayingScreen(
                         shape = RoundedCornerShape(18.dp),
                         color = if (isFastForwarding) Color(0xFF06283D).copy(alpha = 0.95f) else Color(0xFF28103A).copy(alpha = 0.95f),
                         border = BorderStroke(1.dp, if (isFastForwarding) activeAccentColor else activeSkipColor),
-                        modifier = Modifier.testTag("playback_gesture_badge")
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .testTag("playback_gesture_badge")
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -586,108 +578,123 @@ fun NowPlayingScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // 5. Main Playback Controls: 10s Rev, Prev, Play/Pause, Next, 10s Fwd
+                // 5. MAIN PLAYBACK CONTROLS ROW (HARD-LOCKED SPACING & SIZES)
+                // - Row with Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically:
+                //     * [Rewind 10s Button]: Modifier.size(36.dp)
+                //     * Spacer(modifier = Modifier.width(18.dp))
+                //     * [Previous Button]: Modifier.size(42.dp)
+                //     * Spacer(modifier = Modifier.width(16.dp))
+                //     * [BIG Circular Play/Pause Button]:
+                //         - Outer circle button size: strictly Modifier.size(76.dp) (or 80.dp)
+                //         - Inner Play/Pause icon size: Modifier.size(38.dp)
+                //         - Background: Vibrant Neon Cyan (#00F5FF) with smooth shadow/elevation
+                //     * Spacer(modifier = Modifier.width(16.dp))
+                //     * [Next Button]: Modifier.size(42.dp)
+                //     * Spacer(modifier = Modifier.width(18.dp))
+                //     * [Forward 10s Button]: Modifier.size(36.dp)
+                // - Bottom Padding: Add Modifier.padding(bottom = 28.dp) so this row stays elevated comfortably above the bottom navigation bar.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
-                        .padding(bottom = 32.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .padding(bottom = 28.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 10s Rewind
+                    // Rewind 10s Button: Modifier.size(36.dp)
                     IconButton(
                         onClick = onSkipBackward10,
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(36.dp)
                             .testTag("skip_backward_10_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Replay10,
                             contentDescription = "Rewind 10 Seconds",
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
 
-                    // Center Playback Group with comfortable spacing between Prev, Play, Next
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Spacer(modifier = Modifier.width(18.dp))
+
+                    // Previous Button: Modifier.size(42.dp)
+                    HoldableIconButton(
+                        onClick = onPrevious,
+                        onHoldStart = onStartRewind,
+                        onHoldEnd = onStopRewind,
+                        isHolding = isRewinding,
+                        size = 42.dp,
+                        activeGlowColor = activeSkipGlowColor,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("previous_button")
                     ) {
-                        // Previous
-                        HoldableIconButton(
-                            onClick = onPrevious,
-                            onHoldStart = onStartRewind,
-                            onHoldEnd = onStopRewind,
-                            isHolding = isRewinding,
-                            size = 52.dp,
-                            activeGlowColor = activeSkipGlowColor,
-                            modifier = Modifier
-                                .size(52.dp)
-                                .testTag("previous_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SkipPrevious,
-                                contentDescription = "Previous Track",
-                                tint = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-
-                        // Play / Pause Center Button (80.dp container, 44.dp bold icon)
-                        IconButton(
-                            onClick = onTogglePlayPause,
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(activePlayBrush)
-                                .border(2.5.dp, activePlayGlowColor, CircleShape)
-                                .testTag("play_pause_button")
-                        ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = Color(0xFF080B14),
-                                modifier = Modifier.size(44.dp)
-                            )
-                        }
-
-                        // Next
-                        HoldableIconButton(
-                            onClick = onNext,
-                            onHoldStart = onStartFastForward,
-                            onHoldEnd = onStopFastForward,
-                            isHolding = isFastForwarding,
-                            size = 52.dp,
-                            activeGlowColor = activeSkipGlowColor,
-                            modifier = Modifier
-                                .size(52.dp)
-                                .testTag("next_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SkipNext,
-                                contentDescription = "Next Track",
-                                tint = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.SkipPrevious,
+                            contentDescription = "Previous Track",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
 
-                    // 10s Fast-Forward
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // BIG Circular Play/Pause Button: strictly Modifier.size(76.dp), inner icon size 38.dp, background #00F5FF
+                    IconButton(
+                        onClick = onTogglePlayPause,
+                        modifier = Modifier
+                            .size(76.dp)
+                            .shadow(8.dp, CircleShape, ambientColor = Color(0xFF00F5FF), spotColor = Color(0xFF00F5FF))
+                            .clip(CircleShape)
+                            .background(Color(0xFF00F5FF))
+                            .testTag("play_pause_button")
+                    ) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Pause" else "Play",
+                            tint = Color(0xFF080B14),
+                            modifier = Modifier.size(38.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Next Button: Modifier.size(42.dp)
+                    HoldableIconButton(
+                        onClick = onNext,
+                        onHoldStart = onStartFastForward,
+                        onHoldEnd = onStopFastForward,
+                        isHolding = isFastForwarding,
+                        size = 42.dp,
+                        activeGlowColor = activeSkipGlowColor,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("next_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SkipNext,
+                            contentDescription = "Next Track",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(18.dp))
+
+                    // Forward 10s Button: Modifier.size(36.dp)
                     IconButton(
                         onClick = onSkipForward10,
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(36.dp)
                             .testTag("skip_forward_10_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Forward10,
                             contentDescription = "Forward 10 Seconds",
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
@@ -884,7 +891,6 @@ fun NowPlayingScreen(
             }
         }
     }
-}
 }
 
 private fun formatMs(ms: Long): String {
@@ -2429,9 +2435,9 @@ private fun CosmicOrbitNowPlayingLayout(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp)
-            .padding(top = 54.dp, bottom = 28.dp),
+            .padding(top = 54.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.Top
     ) {
         // 1. Center Cosmic Orbit Disc (Hard-locked to exactly 200.dp, centered horizontally)
         Box(
@@ -2733,57 +2739,64 @@ private fun CosmicOrbitNowPlayingLayout(
             }
         }
 
-        // 3. Dedicated Playback Controls Column (Grouped together without expanding spacers)
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 3. SEEKBAR & TIMESTAMPS ROW (WITH CENTERED SONG COUNT)
+        TouchableProgressBar(
+            currentPositionMs = currentPositionMs,
+            durationMs = durationMs.coerceAtLeast(1L),
+            onSeekTo = onSeekTo,
+            barHeight = 6.dp,
+            touchTargetHeight = 36.dp,
+            activeGradient = listOf(Color(0xFF00F5FF), Color(0xFF9D4EDD)),
+            inactiveColor = Color(0xFF334155).copy(alpha = 0.5f),
+            thumbColor = Color(0xFF00F5FF),
+            thumbGlowColor = Color(0xFF00F5FF).copy(alpha = 0.6f),
+            showThumb = true,
+            tag = "cosmic_progress_slider"
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            TouchableProgressBar(
-                currentPositionMs = currentPositionMs,
-                durationMs = durationMs.coerceAtLeast(1L),
-                onSeekTo = onSeekTo,
-                barHeight = 6.dp,
-                touchTargetHeight = 36.dp,
-                activeGradient = listOf(Color(0xFF00F5FF), Color(0xFF9D4EDD)),
-                inactiveColor = Color(0xFF334155).copy(alpha = 0.5f),
-                thumbColor = Color(0xFF00F5FF),
-                thumbGlowColor = Color(0xFF00F5FF).copy(alpha = 0.6f),
-                showThumb = true,
-                tag = "cosmic_progress_slider"
+            Text(
+                text = formatMs(currentPositionMs),
+                fontSize = 12.sp,
+                color = Color(0xFF7E8B9B),
+                modifier = Modifier.testTag("current_playback_timestamp")
             )
 
-            // Dedicated Seekbar Timestamps Row (Directly Below Seekbar Slider)
-            Row(
+            Text(
+                text = "${currentIndex + 1} / ${totalTracks}",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = FontFamily.Monospace,
+                color = Color(0xFF00E5FF),
+                textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left: Current elapsed time text (aligned to start)
-                Text(
-                    text = formatMs(currentPositionMs),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFA0AEC0),
-                    modifier = Modifier.testTag("current_playback_timestamp")
-                )
+                    .weight(1f)
+                    .testTag("track_counter_pill")
+            )
 
-                // Right: Total duration text (aligned to end)
-                Text(
-                    text = formatMs(durationMs),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFA0AEC0),
-                    modifier = Modifier.testTag("total_duration_timestamp")
-                )
-            }
+            Text(
+                text = formatMs(durationMs),
+                fontSize = 12.sp,
+                color = Color(0xFF7E8B9B),
+                modifier = Modifier.testTag("total_duration_timestamp")
+            )
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // 4. Shuffle, Track Counter & Repeat Row (Cosmic Orbit Theme)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Left: Shuffle Button with Neumorphic Dual Shadow (Bottom-Right: dark shadow, Top-Left: white highlight)
@@ -2844,46 +2857,6 @@ private fun CosmicOrbitNowPlayingLayout(
                         tint = if (shuffleEnabled) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
                         modifier = Modifier.size(22.dp)
                     )
-                }
-            }
-
-            // Center: Track Position Counter ("05 / 120" / "TRACK 05 / 120") in frosted glass container
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFF10192A).copy(alpha = 0.88f),
-                    border = BorderStroke(
-                        1.dp,
-                        Brush.horizontalGradient(
-                            listOf(
-                                Color(0xFF334155).copy(alpha = 0.6f),
-                                Color(0xFF00E5FF).copy(alpha = 0.4f),
-                                Color(0xFF334155).copy(alpha = 0.6f)
-                            )
-                        )
-                    ),
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.testTag("track_counter_pill")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "${currentIndex + 1} / ${totalTracks}",
-                            fontSize = 13.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF00E5FF),
-                            letterSpacing = 0.5.sp
-                        )
-                    }
                 }
             }
 
@@ -2954,16 +2927,33 @@ private fun CosmicOrbitNowPlayingLayout(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // 6. Playback Controls Row: Prev (3D extruded), Play/Pause (3D ceramic dual-shadow with cyan halo), Next (3D extruded)
+        // 5. MAIN PLAYBACK CONTROLS ROW (HARD-LOCKED SPACING & SIZES)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 32.dp),
+                .padding(bottom = 28.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Rewind 10s Button: Modifier.size(36.dp)
+            IconButton(
+                onClick = onSkipBackward10,
+                modifier = Modifier
+                    .size(36.dp)
+                    .testTag("skip_backward_10_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Replay10,
+                    contentDescription = "Rewind 10 Seconds",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(18.dp))
+
             // Previous Button with 3D Neumorphic Extrusion
             Box(
                 modifier = Modifier
@@ -3152,9 +3142,25 @@ private fun CosmicOrbitNowPlayingLayout(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.width(18.dp))
+
+            // Forward 10s Button: Modifier.size(36.dp)
+            IconButton(
+                onClick = onSkipForward10,
+                modifier = Modifier
+                    .size(36.dp)
+                    .testTag("skip_forward_10_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Forward10,
+                    contentDescription = "Forward 10 Seconds",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
-}
 }
 
 
