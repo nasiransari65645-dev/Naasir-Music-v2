@@ -188,6 +188,13 @@ enum class SettingsSubCategory(
     )
 }
 
+private enum class LookHierarchy {
+    PLAYER_UI_DESIGNS,
+    DIGITAL_VOLUME_SLIDER,
+    DYNAMIC_EDGE_LIGHTING,
+    AUDIO_VISUALIZER
+}
+
 /**
  * Premium Settings Screen with prominent cards, large rounded icons (36-40dp in 52-56dp containers),
  * and functional sub-screens for each of the 5 categories.
@@ -275,10 +282,15 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var currentCategory by remember { mutableStateOf<SettingsSubCategory?>(null) }
+    var activeLookHierarchy by remember { mutableStateOf<LookHierarchy?>(null) }
 
-    // Intercept back navigation when inside a sub-screen
-    BackHandler(enabled = currentCategory != null) {
-        currentCategory = null
+    // Intercept back navigation when inside a sub-screen or nested hierarchy (single unified back flow)
+    BackHandler(enabled = activeLookHierarchy != null || currentCategory != null) {
+        if (activeLookHierarchy != null) {
+            activeLookHierarchy = null
+        } else {
+            currentCategory = null
+        }
     }
 
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -302,12 +314,50 @@ fun SettingsScreen(
                     albumArtStyle = albumArtStyle,
                     onSetAlbumArtStyle = onSetAlbumArtStyle,
                     prefsManager = prefsManager,
-                    onSelectCategory = { currentCategory = it }
+                    onSelectCategory = {
+                        currentCategory = it
+                        activeLookHierarchy = null
+                    }
                 )
             } else {
+                val isLookSubHierarchy = category == SettingsSubCategory.LOOK_AND_FEEL && activeLookHierarchy != null
                 SubScreenContainer(
                     category = category,
-                    onBack = { currentCategory = null }
+                    onBack = {
+                        if (isLookSubHierarchy) {
+                            activeLookHierarchy = null
+                        } else {
+                            currentCategory = null
+                        }
+                    },
+                    titleOverride = when (activeLookHierarchy) {
+                        LookHierarchy.PLAYER_UI_DESIGNS -> "Player UI Designs"
+                        LookHierarchy.DIGITAL_VOLUME_SLIDER -> "Digital volume slider"
+                        LookHierarchy.DYNAMIC_EDGE_LIGHTING -> "Dynamic Edge Lighting"
+                        LookHierarchy.AUDIO_VISUALIZER -> "Audio Visualizer"
+                        null -> null
+                    },
+                    subtitleOverride = when (activeLookHierarchy) {
+                        LookHierarchy.PLAYER_UI_DESIGNS -> "Active: $albumArtStyle • 10 Designs available"
+                        LookHierarchy.DIGITAL_VOLUME_SLIDER -> "Segmented LED capsule HUD with touch drag & precision haptics"
+                        LookHierarchy.DYNAMIC_EDGE_LIGHTING -> "Luminous border effect wrapping around device screen edges"
+                        LookHierarchy.AUDIO_VISUALIZER -> "Real-time frequency waveform rendered behind controls"
+                        null -> null
+                    },
+                    iconOverride = when (activeLookHierarchy) {
+                        LookHierarchy.PLAYER_UI_DESIGNS -> Icons.Default.Palette
+                        LookHierarchy.DIGITAL_VOLUME_SLIDER -> Icons.Default.Tune
+                        LookHierarchy.DYNAMIC_EDGE_LIGHTING -> Icons.Default.FlashOn
+                        LookHierarchy.AUDIO_VISUALIZER -> Icons.Default.GraphicEq
+                        null -> null
+                    },
+                    iconColorOverride = when (activeLookHierarchy) {
+                        LookHierarchy.PLAYER_UI_DESIGNS -> MaterialTheme.colorScheme.primary
+                        LookHierarchy.DIGITAL_VOLUME_SLIDER -> Color(0xFF00E5FF)
+                        LookHierarchy.DYNAMIC_EDGE_LIGHTING -> Color(0xFFFFB300)
+                        LookHierarchy.AUDIO_VISUALIZER -> Color(0xFF00E676)
+                        null -> null
+                    }
                 ) {
                     when (category) {
                         SettingsSubCategory.PLAYER -> PlayerSubScreen(
@@ -341,6 +391,8 @@ fun SettingsScreen(
                             onSetPlaybackPitch = onSetPlaybackPitch
                         )
                         SettingsSubCategory.LOOK_AND_FEEL -> LookAndFeelSubScreen(
+                            activeLookHierarchy = activeLookHierarchy,
+                            onSetActiveLookHierarchy = { activeLookHierarchy = it },
                             albumArtStyle = albumArtStyle,
                             onSetAlbumArtStyle = onSetAlbumArtStyle,
                             prefsManager = prefsManager,
@@ -536,11 +588,16 @@ private fun SettingsCategoryCard(
 
 /**
  * Top App Bar & Scrollable Container for sub-screens.
+ * Features a single top-level back arrow button for the screen with dynamic hierarchical titles.
  */
 @Composable
 private fun SubScreenContainer(
     category: SettingsSubCategory,
     onBack: () -> Unit,
+    titleOverride: String? = null,
+    subtitleOverride: String? = null,
+    iconOverride: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    iconColorOverride: Color? = null,
     content: @Composable () -> Unit
 ) {
     Column(
@@ -549,7 +606,12 @@ private fun SubScreenContainer(
             .background(MaterialTheme.colorScheme.background)
             .testTag("settings_subscreen_${category.name.lowercase()}")
     ) {
-        // Sub-screen Top Bar
+        val displayIcon = iconOverride ?: category.icon
+        val displayColor = iconColorOverride ?: category.accentColor
+        val displayTitle = titleOverride ?: category.title
+        val displaySubtitle = subtitleOverride ?: "Preferences & Controls"
+
+        // Sub-screen Top Bar (Single back arrow button in the screen)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -573,32 +635,36 @@ private fun SubScreenContainer(
                 modifier = Modifier
                     .size(38.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(category.accentColor.copy(alpha = 0.15f)),
+                    .background(displayColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = category.icon,
+                    imageVector = displayIcon,
                     contentDescription = null,
-                    tint = category.accentColor,
+                    tint = displayColor,
                     modifier = Modifier.size(22.dp)
                 )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = category.title,
+                    text = displayTitle,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 19.sp
+                    fontSize = 18.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Preferences & Controls",
+                    text = displaySubtitle,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.5.sp
+                    fontSize = 11.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -969,18 +1035,13 @@ private fun AudioEngineSubScreen(
     }
 }
 
-private enum class LookHierarchy {
-    PLAYER_UI_DESIGNS,
-    DIGITAL_VOLUME_SLIDER,
-    DYNAMIC_EDGE_LIGHTING,
-    AUDIO_VISUALIZER
-}
-
 // -----------------------------------------------------------------------------
 // SUB-SCREEN 3: LOOK & FEEL
 // -----------------------------------------------------------------------------
 @Composable
 private fun LookAndFeelSubScreen(
+    activeLookHierarchy: LookHierarchy?,
+    onSetActiveLookHierarchy: (LookHierarchy?) -> Unit,
     selectedTheme: AppThemePreset,
     appThemeMode: com.example.model.AppThemeMode = com.example.model.AppThemeMode.DARK_OLED,
     onSetAppThemeMode: (com.example.model.AppThemeMode) -> Unit = {},
@@ -1018,11 +1079,6 @@ private fun LookAndFeelSubScreen(
 ) {
     val context = LocalContext.current
     var showOverlayPermissionDialog by remember { mutableStateOf(false) }
-    var activeLookHierarchy by remember { mutableStateOf<LookHierarchy?>(null) }
-
-    BackHandler(enabled = activeLookHierarchy != null) {
-        activeLookHierarchy = null
-    }
 
     if (showOverlayPermissionDialog) {
         AlertDialog(
@@ -1081,7 +1137,7 @@ private fun LookAndFeelSubScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { activeLookHierarchy = LookHierarchy.PLAYER_UI_DESIGNS }
+                    .clickable { onSetActiveLookHierarchy(LookHierarchy.PLAYER_UI_DESIGNS) }
                     .testTag("lookandfeel_player_ui_designs_tile"),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -1141,7 +1197,7 @@ private fun LookAndFeelSubScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { activeLookHierarchy = LookHierarchy.DIGITAL_VOLUME_SLIDER }
+                    .clickable { onSetActiveLookHierarchy(LookHierarchy.DIGITAL_VOLUME_SLIDER) }
                     .testTag("lookandfeel_digital_volume_slider_tile"),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -1201,7 +1257,7 @@ private fun LookAndFeelSubScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { activeLookHierarchy = LookHierarchy.DYNAMIC_EDGE_LIGHTING }
+                    .clickable { onSetActiveLookHierarchy(LookHierarchy.DYNAMIC_EDGE_LIGHTING) }
                     .testTag("lookandfeel_dynamic_edge_lighting_tile"),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -1261,7 +1317,7 @@ private fun LookAndFeelSubScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { activeLookHierarchy = LookHierarchy.AUDIO_VISUALIZER }
+                    .clickable { onSetActiveLookHierarchy(LookHierarchy.AUDIO_VISUALIZER) }
                     .testTag("lookandfeel_audio_visualizer_tile"),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -1319,42 +1375,6 @@ private fun LookAndFeelSubScreen(
         }
 
         LookHierarchy.PLAYER_UI_DESIGNS -> {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { activeLookHierarchy = null },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to Look & Feel",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = "Player Ui Designs",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                    Text(
-                        text = "Active: $albumArtStyle • 10 Designs available",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             val chunkedDesigns = ALL_UI_DESIGNS.chunked(3)
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1418,42 +1438,6 @@ private fun LookAndFeelSubScreen(
         }
 
         LookHierarchy.DIGITAL_VOLUME_SLIDER -> {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { activeLookHierarchy = null },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to Look & Feel",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = "Digital volume slider",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                    Text(
-                        text = "Segmented LED capsule HUD with touch drag & precision haptics",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1805,42 +1789,6 @@ private fun LookAndFeelSubScreen(
         }
 
         LookHierarchy.DYNAMIC_EDGE_LIGHTING -> {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { activeLookHierarchy = null },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to Look & Feel",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = "Dynamic Edge Lighting",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                    Text(
-                        text = "Luminous border effect wrapping around device screen edges",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2041,42 +1989,6 @@ private fun LookAndFeelSubScreen(
         }
 
         LookHierarchy.AUDIO_VISUALIZER -> {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { activeLookHierarchy = null },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to Look & Feel",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = "Audio Visualizer",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                    Text(
-                        text = "Real-time frequency waveform rendered behind controls",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
