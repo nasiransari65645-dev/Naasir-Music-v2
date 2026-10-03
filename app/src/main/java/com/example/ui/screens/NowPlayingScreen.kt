@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -234,11 +235,7 @@ fun NowPlayingScreen(
 
     val safeDuration = durationMs.coerceAtLeast(1L)
 
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val backgroundInteractionSource = remember { MutableInteractionSource() }
-
-    // Request 2: Blinking/flashing animation for current playback timestamp on pause (1.0 to 0.2 alpha oscillation)
+    // Blinking/flashing animation for current playback timestamp on pause (1.0 to 0.2 alpha oscillation)
     val blinkAlpha by if (!isPlaying) {
         val infiniteTransition = rememberInfiniteTransition(label = "pause_timestamp_blink")
         infiniteTransition.animateFloat(
@@ -252,26 +249,6 @@ fun NowPlayingScreen(
         )
     } else {
         remember { androidx.compose.runtime.mutableFloatStateOf(1.0f) }
-    }
-
-    // Search bar in Now Playing state (Request 9)
-    var searchQuery by remember { mutableStateOf("") }
-    val searchResults = remember(searchQuery, allSongs) {
-        if (searchQuery.isBlank()) {
-            emptyList()
-        } else {
-            allSongs.filter {
-                it.title.contains(searchQuery, ignoreCase = true) ||
-                it.artist.contains(searchQuery, ignoreCase = true) ||
-                it.album.contains(searchQuery, ignoreCase = true)
-            }
-        }
-    }
-
-    BackHandler(enabled = searchQuery.isNotEmpty()) {
-        searchQuery = ""
-        focusManager.clearFocus()
-        keyboardController?.hide()
     }
 
     val activeAccentColor = seekbarActiveColor
@@ -297,29 +274,20 @@ fun NowPlayingScreen(
         allSongs.size.coerceAtLeast(1)
     }
 
-    Box(
+    // Clean single Column root container
+    Column(
         modifier = backdropModifier
-            .clickable(
-                interactionSource = backgroundInteractionSource,
-                indication = null
-            ) {
-                // Dismiss keyboard and clear focus on tap outside
-                focusManager.clearFocus()
-                keyboardController?.hide()
-            }
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Base Content Layer (Single responsive auto-fit Column with Arrangement.SpaceEvenly)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceEvenly
-        ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
             // 1. ALBUM ART / VINYL DISC (Responsive Auto-Fit)
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.65f)
+                    .fillMaxWidth(0.68f)
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(24.dp))
                     .testTag("now_playing_album_art_card"),
@@ -630,199 +598,9 @@ fun NowPlayingScreen(
                     )
                 }
             }
-        }
-
-    // Top Floating Overlay Layer: Search Bar & Floating Search Results (Never pushes base content)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .zIndex(20f),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .height(44.dp)
-                .testTag("now_playing_search_bar"),
-            shape = RoundedCornerShape(22.dp),
-            color = if (albumArtStyle == "Cosmic Orbit") Color(0xFFFFFFFF).copy(alpha = 0.88f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-            border = BorderStroke(
-                1.5.dp,
-                if (albumArtStyle == "Cosmic Orbit") Color(0xFF9D4EDD).copy(alpha = 0.75f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = if (albumArtStyle == "Cosmic Orbit") Color(0xFF9D4EDD) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    singleLine = true,
-                    maxLines = 1,
-                    textStyle = TextStyle(
-                        color = if (albumArtStyle == "Cosmic Orbit") Color(0xFF0F172A) else MaterialTheme.colorScheme.onSurface,
-                        fontSize = 13.sp
-                    ),
-                    cursorBrush = SolidColor(if (albumArtStyle == "Cosmic Orbit") Color(0xFF9D4EDD) else MaterialTheme.colorScheme.primary),
-                    decorationBox = { innerTextField ->
-                        if (searchQuery.isEmpty()) {
-                            Text(
-                                text = if (albumArtStyle == "Cosmic Orbit") "Search tracks..." else "Search songs to play immediately...",
-                                color = if (albumArtStyle == "Cosmic Orbit") Color(0xFF7E8B9B) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                                fontSize = 13.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        innerTextField()
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(
-                        onClick = {
-                            searchQuery = ""
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
-                        },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Clear",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        // Floating / expanding scrollable dropdown overlay
-        AnimatedVisibility(
-            visible = searchQuery.isNotBlank(),
-            enter = fadeIn() + scaleIn(initialScale = 0.95f),
-            exit = fadeOut() + scaleOut(targetScale = 0.95f),
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp)
-                    .heightIn(max = 380.dp)
-                    .testTag("now_playing_search_results"),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text(
-                        text = "SEARCH RESULTS (${searchResults.size})",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                    )
-
-                    if (searchResults.isEmpty()) {
-                        Text(
-                            text = "No songs matching \"$searchQuery\"",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 330.dp)
-                        ) {
-                            items(searchResults, key = { it.id }) { song ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            focusManager.clearFocus()
-                                            keyboardController?.hide()
-                                            onSongSelect(song)
-                                            searchQuery = ""
-                                        }
-                                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.MusicNote,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = song.title,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Text(
-                                            text = song.artist,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = formatMs(song.durationMs),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = "Play",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
-}
-}
 
 private fun formatMs(ms: Long): String {
     val totalSeconds = (ms / 1000).coerceAtLeast(0L)
