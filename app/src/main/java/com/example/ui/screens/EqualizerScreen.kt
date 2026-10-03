@@ -73,7 +73,6 @@ import androidx.compose.ui.unit.sp
 import com.example.model.EqualizerFrequencies
 import com.example.model.EqualizerPresets
 import com.example.model.EqualizerState
-import com.example.ui.components.RackRotaryKnob
 
 /**
  * Production-ready 13-Band Pro Equalizer
@@ -273,7 +272,7 @@ private fun EqualizerSubScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 90.dp)
             .testTag("equalizer_sub_screen")
     ) {
         // Top Bar with Back Arrow and Title
@@ -522,78 +521,6 @@ private fun EqualizerSubScreen(
                     if (index < EqualizerFrequencies.BANDS_13.size - 1) {
                         Spacer(modifier = Modifier.height(6.dp))
                     }
-                }
-            }
-        }
-
-        // Sound Tuning Enhancements: Pre-Amp, Bass Punch, Treble Sparkle
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(18.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "SOUND TUNING ENHANCEMENTS",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-
-                // 3D Metallic Rotary Knob Dials for Pre-Amp, Bass Punch, and Treble Sparkle
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RackRotaryKnob(
-                        value = eq.preAmpGainDb,
-                        valueRange = -10f..10f,
-                        onValueChange = onSetPreAmp,
-                        title = "PRE-AMP",
-                        readoutText = "${if (eq.preAmpGainDb > 0) "+" else ""}${String.format("%.1f", eq.preAmpGainDb)}dB",
-                        minLabel = "-10dB",
-                        maxLabel = "+10dB",
-                        knobSize = 64.dp,
-                        activeColor = Color(0xFF00F5FF),
-                        isEnabled = eq.isEnabled,
-                        testTag = "rack_knob_preamp"
-                    )
-
-                    RackRotaryKnob(
-                        value = eq.bassPunch,
-                        valueRange = 0f..1f,
-                        onValueChange = onSetBassPunch,
-                        title = "BASS PUNCH",
-                        readoutText = "${(eq.bassPunch * 100).toInt()}%",
-                        minLabel = "0%",
-                        maxLabel = "100%",
-                        knobSize = 64.dp,
-                        activeColor = Color(0xFF9D4EDD),
-                        isEnabled = eq.isEnabled,
-                        testTag = "rack_knob_bass_punch"
-                    )
-
-                    RackRotaryKnob(
-                        value = eq.trebleSparkle,
-                        valueRange = 0f..1f,
-                        onValueChange = onSetTrebleSparkle,
-                        title = "TREBLE",
-                        readoutText = "${(eq.trebleSparkle * 100).toInt()}%",
-                        minLabel = "0%",
-                        maxLabel = "100%",
-                        knobSize = 64.dp,
-                        activeColor = Color(0xFF00F5FF),
-                        isEnabled = eq.isEnabled,
-                        testTag = "rack_knob_treble"
-                    )
                 }
             }
         }
