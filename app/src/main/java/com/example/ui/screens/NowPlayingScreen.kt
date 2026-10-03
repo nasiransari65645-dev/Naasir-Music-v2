@@ -308,143 +308,102 @@ fun NowPlayingScreen(
                 keyboardController?.hide()
             }
     ) {
-        if (albumArtStyle == "Cosmic Orbit") {
-            CosmicOrbitNowPlayingLayout(
-                currentSong = currentSong,
-                isPlaying = isPlaying,
-                currentPositionMs = currentPositionMs,
-                durationMs = safeDuration,
-                shuffleEnabled = shuffleEnabled,
-                repeatMode = repeatMode,
-                isFavorite = isFavorite,
-                isFastForwarding = isFastForwarding,
-                isRewinding = isRewinding,
-                onTogglePlayPause = onTogglePlayPause,
-                onSeekTo = onSeekTo,
-                onNext = onNext,
-                onPrevious = onPrevious,
-                onSkipBackward10 = onSkipBackward10,
-                onSkipForward10 = onSkipForward10,
-                onToggleShuffle = onToggleShuffle,
-                onCycleRepeat = onCycleRepeat,
-                onToggleFavorite = onToggleFavorite,
-                onStartFastForward = onStartFastForward,
-                onStopFastForward = onStopFastForward,
-                onStartRewind = onStartRewind,
-                onStopRewind = onStopRewind,
-                currentIndex = currentIndex,
-                totalTracks = totalTracks
-            )
-        } else {
-            // Base Content Layer (Fixed, stable, never pushed by search results)
-            Column(
+        // Base Content Layer (Single responsive auto-fit Column with Arrangement.SpaceEvenly)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            // 1. ALBUM ART / VINYL DISC (Responsive Auto-Fit)
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 54.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
+                    .fillMaxWidth(0.65f)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(24.dp))
+                    .testTag("now_playing_album_art_card"),
+                contentAlignment = Alignment.Center
             ) {
-                // 1. ALBUM ART CONTAINER (HARD-LOCKED)
-                // - Fixed dimensions: strictly Modifier.size(200.dp).
-                // - Remove all Modifier.fillMaxWidth(), Modifier.fillMaxSize(), and Modifier.weight().
-                // - Wrap in a Box with Modifier.fillMaxWidth() and contentAlignment = Alignment.Center to keep it centered horizontally.
-                // - Padding: Modifier.padding(vertical = 12.dp).
-                Box(
+                AlbumArtPresentation(
+                    style = albumArtStyle,
+                    isPlaying = isPlaying,
+                    spinningVinyl = spinningVinyl,
+                    autoRotateActive = autoRotateActive,
+                    isFastForwarding = isFastForwarding,
+                    isRewinding = isRewinding,
+                    activeAccentColor = activeVinylCenterRing,
+                    activeSkipColor = activeSkipColor,
+                    outerBorderColor = activeVinylOuterSheen,
+                    visualizerPeakColor = activeVisualizerPeak,
+                    songTitle = currentSong.title,
+                    songArtist = currentSong.artist,
+                    albumArtUri = currentSong.albumArtUri,
+                    currentPositionMs = currentPositionMs,
+                    durationMs = safeDuration,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // 2. TRACK INFORMATION
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = 48.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(200.dp)
-                            .testTag("now_playing_album_art_card"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AlbumArtPresentation(
-                            style = albumArtStyle,
-                            isPlaying = isPlaying,
-                            spinningVinyl = spinningVinyl,
-                            autoRotateActive = autoRotateActive,
-                            isFastForwarding = isFastForwarding,
-                            isRewinding = isRewinding,
-                            activeAccentColor = activeVinylCenterRing,
-                            activeSkipColor = activeSkipColor,
-                            outerBorderColor = activeVinylOuterSheen,
-                            visualizerPeakColor = activeVisualizerPeak,
-                            songTitle = currentSong.title,
-                            songArtist = currentSong.artist,
-                            albumArtUri = currentSong.albumArtUri
-                        )
-                    }
+                    AutoScrollText(
+                        text = currentSong.title,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${currentSong.artist} • ${currentSong.album}",
+                        fontSize = 14.sp,
+                        color = Color(0xFF7E8B9B),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
                 }
 
-                // 2. TRACK METADATA
-                // - Song Title: Bold typography, horizontal scroll if long text, centered or aligned naturally with Favorite Heart Icon.
-                // - Subtitle: Artist and Album/Folder text in subtle slate grey (#7E8B9B).
-                // - Spacer below metadata: Modifier.height(16.dp).
-                Row(
+                // Favorite Heart Button
+                IconButton(
+                    onClick = { onToggleFavorite(currentSong.id) },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .align(Alignment.CenterEnd)
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isFavorite) Color(0xFFEF4444).copy(alpha = 0.15f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                        .testTag("now_playing_heart_button")
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        // Auto-scrolling song title with 3-second hold cycle
-                        AutoScrollText(
-                            text = currentSong.title,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "${currentSong.artist} • ${currentSong.album}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF7E8B9B),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Prominent Heart Favorite Button
-                    IconButton(
-                        onClick = { onToggleFavorite(currentSong.id) },
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isFavorite) Color(0xFFEF4444).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
-                            )
-                            .testTag("now_playing_heart_button")
-                    ) {
-                        Icon(
-                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
-                            tint = if (isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
+                        tint = if (isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 3. SEEKBAR & TIMESTAMPS ROW (WITH CENTERED SONG COUNT)
-                // - Seekbar Slider: Full width with neon cyan active track color.
-                // - Directly below Seekbar, create a single Row: Modifier.fillMaxWidth().padding(horizontal = 4.dp):
-                //     * Left (Start): Elapsed Time (e.g. "00:36"), fontSize = 12.sp, color = #7E8B9B.
-                //     * Center: Song Count Badge, strictly formatted as "${currentIndex + 1} / ${totalTracks}" (e.g. "170 / 250").
-                //         - Typography: fontSize = 11.sp, fontWeight = Medium, color = #7E8B9B or soft cyan, monospace/tabular digits.
-                //         - Modifier: Modifier.weight(1f), textAlign = TextAlign.Center.
-                //     * Right (End): Total Duration (e.g. "03:31"), fontSize = 12.sp, color = #7E8B9B.
-                // - Spacer below this row: Modifier.height(16.dp).
+            // 3. SEEKBAR & INTEGRATED COUNTER ROW
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 TouchableProgressBar(
                     currentPositionMs = currentPositionMs,
                     durationMs = safeDuration,
@@ -493,19 +452,17 @@ fun NowPlayingScreen(
                         modifier = Modifier.testTag("total_duration_timestamp")
                     )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 4. SECONDARY CONTROLS ROW (SHUFFLE & REPEAT)
-                // - A clean Row with Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween:
-                //     * Left: Shuffle Button (ic_shuffle) with ON/OFF tint toggle.
-                //     * Right: Repeat Button (ic_repeat) with ON/OFF tint toggle.
-                //     * (Note: Song counter is completely removed from here and kept under seekbar).
-                // - Spacer below this row: Modifier.height(24.dp).
+            // 4. SECONDARY TOGGLES ROW (SHUFFLE & REPEAT)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -543,7 +500,7 @@ fun NowPlayingScreen(
                     }
                 }
 
-                // Gesture UI Feedback Badge (Active while holding Next for 2x Fast-Forward or Previous for Continuous Rewind)
+                // Gesture UI Feedback Badge (shown while fast-forwarding or rewinding)
                 androidx.compose.animation.AnimatedVisibility(
                     visible = isFastForwarding || isRewinding,
                     enter = fadeIn() + scaleIn(initialScale = 0.88f),
@@ -553,9 +510,7 @@ fun NowPlayingScreen(
                         shape = RoundedCornerShape(18.dp),
                         color = if (isFastForwarding) Color(0xFF06283D).copy(alpha = 0.95f) else Color(0xFF28103A).copy(alpha = 0.95f),
                         border = BorderStroke(1.dp, if (isFastForwarding) activeAccentColor else activeSkipColor),
-                        modifier = Modifier
-                            .padding(top = 4.dp)
-                            .testTag("playback_gesture_badge")
+                        modifier = Modifier.testTag("playback_gesture_badge")
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -577,109 +532,105 @@ fun NowPlayingScreen(
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 5. MAIN PLAYBACK CONTROLS ROW (ENLARGED & EDGE-ALIGNED)
-                Row(
+            // 5. MAIN PLAYBACK CONTROLS ROW (COMFORTABLE TOUCH TARGETS, NO OVERFLOW)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. Rewind 10s Button
+                IconButton(
+                    onClick = onSkipBackward10,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp)
-                        .padding(bottom = 28.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(44.dp)
+                        .testTag("skip_backward_10_button")
                 ) {
-                    // 1. Rewind 10s (Near Left Edge)
-                    IconButton(
-                        onClick = onSkipBackward10,
-                        modifier = Modifier
-                            .size(46.dp)
-                            .testTag("skip_backward_10_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Replay10,
-                            contentDescription = "Rewind 10 Seconds",
-                            tint = Color(0xFF00F5FF),
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Replay10,
+                        contentDescription = "Rewind 10 Seconds",
+                        tint = Color(0xFF00F5FF),
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
 
-                    // 2. Previous Button
-                    HoldableIconButton(
-                        onClick = onPrevious,
-                        onHoldStart = onStartRewind,
-                        onHoldEnd = onStopRewind,
-                        isHolding = isRewinding,
-                        size = 52.dp,
-                        activeGlowColor = activeSkipGlowColor,
-                        modifier = Modifier
-                            .size(52.dp)
-                            .testTag("previous_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SkipPrevious,
-                            contentDescription = "Previous Track",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
+                // 2. Previous Track Button
+                HoldableIconButton(
+                    onClick = onPrevious,
+                    onHoldStart = onStartRewind,
+                    onHoldEnd = onStopRewind,
+                    isHolding = isRewinding,
+                    size = 48.dp,
+                    activeGlowColor = activeSkipGlowColor,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .testTag("previous_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "Previous Track",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
 
-                    // 3. Central Big Play/Pause Button
-                    IconButton(
-                        onClick = onTogglePlayPause,
-                        modifier = Modifier
-                            .size(86.dp)
-                            .shadow(10.dp, CircleShape, ambientColor = Color(0xFF00F5FF), spotColor = Color(0xFF00F5FF))
-                            .clip(CircleShape)
-                            .background(Color(0xFF00F5FF))
-                            .testTag("play_pause_button")
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = Color(0xFF080B14),
-                            modifier = Modifier.size(46.dp)
-                        )
-                    }
+                // 3. Central Big Play/Pause Button
+                IconButton(
+                    onClick = onTogglePlayPause,
+                    modifier = Modifier
+                        .size(72.dp)
+                        .shadow(8.dp, CircleShape, ambientColor = Color(0xFF00E5FF), spotColor = Color(0xFF00E5FF))
+                        .clip(CircleShape)
+                        .background(Color(0xFF00E5FF))
+                        .testTag("play_pause_button")
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        tint = Color(0xFF080B14),
+                        modifier = Modifier.size(38.dp)
+                    )
+                }
 
-                    // 4. Next Button
-                    HoldableIconButton(
-                        onClick = onNext,
-                        onHoldStart = onStartFastForward,
-                        onHoldEnd = onStopFastForward,
-                        isHolding = isFastForwarding,
-                        size = 52.dp,
-                        activeGlowColor = activeSkipGlowColor,
-                        modifier = Modifier
-                            .size(52.dp)
-                            .testTag("next_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SkipNext,
-                            contentDescription = "Next Track",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
+                // 4. Next Track Button
+                HoldableIconButton(
+                    onClick = onNext,
+                    onHoldStart = onStartFastForward,
+                    onHoldEnd = onStopFastForward,
+                    isHolding = isFastForwarding,
+                    size = 48.dp,
+                    activeGlowColor = activeSkipGlowColor,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .testTag("next_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next Track",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
 
-                    // 5. Forward 10s (Near Right Edge)
-                    IconButton(
-                        onClick = onSkipForward10,
-                        modifier = Modifier
-                            .size(46.dp)
-                            .testTag("skip_forward_10_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Forward10,
-                            contentDescription = "Forward 10 Seconds",
-                            tint = Color(0xFF00F5FF),
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
+                // 5. Forward 10s Button
+                IconButton(
+                    onClick = onSkipForward10,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .testTag("skip_forward_10_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Forward10,
+                        contentDescription = "Forward 10 Seconds",
+                        tint = Color(0xFF00F5FF),
+                        modifier = Modifier.size(26.dp)
+                    )
                 }
             }
         }
-    }
 
     // Top Floating Overlay Layer: Search Bar & Floating Search Results (Never pushes base content)
     Column(
@@ -871,6 +822,7 @@ fun NowPlayingScreen(
         }
     }
 }
+}
 
 private fun formatMs(ms: Long): String {
     val totalSeconds = (ms / 1000).coerceAtLeast(0L)
@@ -906,7 +858,8 @@ private fun AlbumArtPresentation(
     songArtist: String,
     albumArtUri: Uri? = null,
     currentPositionMs: Long = 0L,
-    durationMs: Long = 1L
+    durationMs: Long = 1L,
+    modifier: Modifier = Modifier
 ) {
     // Rotation angle animatable that rotates continuously ONLY when isPlaying == true
     val rotationAnim = remember { Animatable(0f) }
@@ -942,8 +895,7 @@ private fun AlbumArtPresentation(
     }
 
     Box(
-        modifier = Modifier
-            .size(200.dp)
+        modifier = modifier
             .clip(RoundedCornerShape(20.dp))
             .testTag("now_playing_album_art_card"),
         contentAlignment = Alignment.Center
