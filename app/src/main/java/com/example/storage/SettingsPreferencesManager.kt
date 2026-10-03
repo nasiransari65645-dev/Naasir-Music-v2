@@ -225,7 +225,7 @@ class SettingsPreferencesManager(context: Context) {
     }
 
     fun loadCrossfadeSec(): Int {
-        return prefs.getInt(KEY_CROSSFADE_SEC, 0)
+        return prefs.getInt(KEY_CROSSFADE_SEC, 5)
     }
 
     fun saveAutoplayHeadset(enabled: Boolean) {

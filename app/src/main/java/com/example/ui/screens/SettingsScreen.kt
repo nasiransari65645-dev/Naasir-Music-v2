@@ -86,6 +86,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -640,7 +641,6 @@ private fun PlayerSubScreen(
 ) {
     val context = LocalContext.current
     var showOverlayPermissionDialog by remember { mutableStateOf(false) }
-    var seekInterval by remember { mutableIntStateOf(prefsManager.loadSeekIntervalSec()) }
     var shakeSensitivity by remember { mutableStateOf(prefsManager.loadShakeSensitivity()) }
 
     if (showOverlayPermissionDialog) {
@@ -694,85 +694,6 @@ private fun PlayerSubScreen(
         )
     }
 
-    // Toggle 1: Show Spinning Vinyl / Animation
-    SettingToggleCard(
-        title = "Spinning Vinyl / Album Art Animation",
-        description = "Animate smooth rotating vinyl disk at 33⅓ RPM during active music playback",
-        checked = spinningVinyl,
-        accentColor = MaterialTheme.colorScheme.primary,
-        onCheckedChange = {
-            onSetSpinningVinyl(it)
-            prefsManager.saveSpinningVinyl(it)
-        }
-    )
-
-    // Picker: Seek Forward / Rewind Interval
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Seek Interval",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Fast-forward & rewind skip step",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val intervals = listOf(5, 10, 15, 30)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                intervals.forEach { sec ->
-                    val isSelected = seekInterval == sec
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                seekInterval = sec
-                                prefsManager.saveSeekIntervalSec(sec)
-                            },
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(
-                            1.dp,
-                            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = "${sec}s",
-                            color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = 10.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-
     // Toggle: Always Keep Screen On
     SettingToggleCard(
         title = "Always Keep Screen On",
@@ -785,68 +706,22 @@ private fun PlayerSubScreen(
         }
     )
 
-    // Check Android system notification status
-    val isSystemNotificationEnabled = remember(notificationControls) {
-        androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()
+    // Automatically ensure media notifications, system controls, spinning vinyl, and 10s seek interval remain permanently in background
+    LaunchedEffect(Unit) {
+        prefsManager.saveSeekIntervalSec(10)
+        if (!spinningVinyl) {
+            onSetSpinningVinyl(true)
+            prefsManager.saveSpinningVinyl(true)
+        }
+        if (!notificationControls) {
+            onToggleNotificationControls(true)
+            prefsManager.saveNotificationControls(true)
+        }
+        if (!useSystemMediaNotification) {
+            onToggleUseSystemMediaNotification(true)
+            prefsManager.saveUseSystemMediaNotification(true)
+        }
     }
-
-    // Auto Notification Toggle for Android System
-    SettingToggleCard(
-        title = "Allow Music Player Notifications",
-        description = if (isSystemNotificationEnabled) {
-            "Allowed in Android System • Notifications are active"
-        } else {
-            "BLOCKED by Android System • Tap to allow in system settings"
-        },
-        checked = isSystemNotificationEnabled && notificationControls,
-        accentColor = if (isSystemNotificationEnabled) MaterialTheme.colorScheme.primary else Color(0xFFEF4444),
-        onCheckedChange = { enable ->
-            if (!isSystemNotificationEnabled || !enable) {
-                try {
-                    val intent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                        android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                            putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
-                        }
-                    } else {
-                        android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = android.net.Uri.fromParts("package", context.packageName, null)
-                        }
-                    }
-                    context.startActivity(intent)
-                } catch (_: Throwable) {}
-            }
-            onToggleNotificationControls(enable)
-            prefsManager.saveNotificationControls(enable)
-        }
-    )
-
-    // Toggle: Android System Media Player vs Custom Rainbow Glow Player
-    SettingToggleCard(
-        title = "Android System Media Player",
-        description = if (useSystemMediaNotification) {
-            "Using Android Native System Player with real-time scrubbable seekbar"
-        } else {
-            "Using Custom Rainbow Glow Player with direct touch-to-seek seekbar"
-        },
-        checked = useSystemMediaNotification,
-        accentColor = MaterialTheme.colorScheme.primary,
-        onCheckedChange = {
-            onToggleUseSystemMediaNotification(it)
-            prefsManager.saveUseSystemMediaNotification(it)
-        }
-    )
-
-    // Toggle: Lock Screen & Notification Media Controls
-    SettingToggleCard(
-        title = "Lock Screen & Notification Controls",
-        description = "Show playback controls, artwork, and seeker in system status bar & lock screen",
-        checked = notificationControls,
-        accentColor = MaterialTheme.colorScheme.primary,
-        onCheckedChange = {
-            onToggleNotificationControls(it)
-            prefsManager.saveNotificationControls(it)
-        }
-    )
 
     // Toggle: Shake Device to Skip
     SettingToggleCard(
@@ -880,10 +755,15 @@ private fun AudioEngineSubScreen(
     playbackPitch: Float = 1.0f,
     onSetPlaybackPitch: (Float) -> Unit = {}
 ) {
-    var autoPauseHeadset by remember { mutableStateOf(prefsManager.loadAutoPauseHeadset()) }
-    var localCrossfade by remember { mutableFloatStateOf(crossfadeSec.toFloat()) }
     var hiResOutput by remember { mutableStateOf(true) }
     var volumeNormalization by remember { mutableStateOf(false) }
+
+    // Enforce 5-second crossfade and auto-pause on disconnect permanently in background
+    LaunchedEffect(Unit) {
+        onSetCrossfadeSec(5)
+        prefsManager.saveCrossfadeSec(5)
+        prefsManager.saveAutoPauseHeadset(true)
+    }
 
     // Toggle: Gapless Playback
     SettingToggleCard(
@@ -894,96 +774,6 @@ private fun AudioEngineSubScreen(
         onCheckedChange = {
             onToggleGaplessPlayback(it)
             prefsManager.saveGaplessPlayback(it)
-        }
-    )
-
-    // Slider: Crossfade
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Crossfade Between Songs",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Smoothly blend outgoing and incoming track volumes",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-                ) {
-                    Text(
-                        text = if (localCrossfade.toInt() == 0) "Off" else "${localCrossfade.toInt()}s",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Slider(
-                value = localCrossfade,
-                onValueChange = {
-                    localCrossfade = it
-                    onSetCrossfadeSec(it.toInt())
-                    prefsManager.saveCrossfadeSec(it.toInt())
-                },
-                valueRange = 0f..12f,
-                steps = 11,
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(text = "0s (Off)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                Text(text = "6s", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                Text(text = "12s (Long)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-            }
-        }
-    }
-
-    // Toggle: Auto-Pause on Disconnect
-    SettingToggleCard(
-        title = "Auto-Pause on Disconnect",
-        description = "Pause audio automatically if headset, Bluetooth, or speaker is disconnected",
-        checked = autoPauseHeadset,
-        accentColor = MaterialTheme.colorScheme.primary,
-        onCheckedChange = {
-            autoPauseHeadset = it
-            prefsManager.saveAutoPauseHeadset(it)
         }
     )
 
