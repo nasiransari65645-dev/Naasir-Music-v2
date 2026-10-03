@@ -697,8 +697,8 @@ private fun Rotation360SubScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 90.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 90.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Master ON/OFF Switch Card
             MasterSwitchCard(
@@ -725,16 +725,17 @@ private fun Rotation360SubScreen(
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Visual 360° Orbital Ring Canvas
+                    // Visual 360° Orbital Ring Canvas (Ultra-compact width & height)
             Card(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(0.50f)
+                    .align(Alignment.CenterHorizontally)
                     .wrapContentHeight()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(vertical = 2.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(14.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 val primaryColor = MaterialTheme.colorScheme.primary
@@ -746,22 +747,22 @@ private fun Rotation360SubScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp, horizontal = 16.dp),
+                        .padding(vertical = 6.dp, horizontal = 10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "ORBITAL SOUNDSTAGE",
-                        fontSize = 11.sp,
+                        fontSize = 9.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        letterSpacing = 1.sp
+                        letterSpacing = 0.8.sp
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
 
                     Box(
                         modifier = Modifier
-                            .size(170.dp)
+                            .size(76.dp)
                             .align(Alignment.CenterHorizontally)
                             .testTag("orbital_ring_canvas"),
                         contentAlignment = Alignment.Center
@@ -769,7 +770,7 @@ private fun Rotation360SubScreen(
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val centerX = size.width / 2f
                             val centerY = size.height / 2f
-                            val radius = (size.minDimension / 2f) - 16.dp.toPx()
+                            val radius = (size.minDimension / 2f) - 8.dp.toPx()
 
                             // Outer dashed orbital guide ring
                             drawCircle(
@@ -777,8 +778,8 @@ private fun Rotation360SubScreen(
                                 radius = radius,
                                 center = Offset(centerX, centerY),
                                 style = Stroke(
-                                    width = 1.5.dp.toPx(),
-                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f)
+                                    width = 1.dp.toPx(),
+                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f), 0f)
                                 )
                             )
 
@@ -788,25 +789,25 @@ private fun Rotation360SubScreen(
                                     color = primaryColor.copy(alpha = 0.25f),
                                     radius = radius,
                                     center = Offset(centerX, centerY),
-                                    style = Stroke(width = 2.dp.toPx())
+                                    style = Stroke(width = 1.2.dp.toPx())
                                 )
                             }
 
                             // Center listener representation
                             drawCircle(
                                 color = surfaceVariant,
-                                radius = 18.dp.toPx(),
+                                radius = 8.dp.toPx(),
                                 center = Offset(centerX, centerY)
                             )
                             drawCircle(
                                 color = if (isMasterEnabled) primaryColor.copy(alpha = 0.4f) else outlineColor,
-                                radius = 16.dp.toPx(),
+                                radius = 7.dp.toPx(),
                                 center = Offset(centerX, centerY),
-                                style = Stroke(width = 1.5.dp.toPx())
+                                style = Stroke(width = 0.8.dp.toPx())
                             )
                             drawCircle(
                                 color = if (isMasterEnabled) primaryColor else onSurfaceVariant,
-                                radius = 5.dp.toPx(),
+                                radius = 2.5.dp.toPx(),
                                 center = Offset(centerX, centerY)
                             )
 
@@ -819,19 +820,19 @@ private fun Rotation360SubScreen(
                             if (isMasterEnabled) {
                                 drawCircle(
                                     color = primaryColor.copy(alpha = 0.35f),
-                                    radius = 12.dp.toPx(),
+                                    radius = 5.dp.toPx(),
                                     center = Offset(orbiterX, orbiterY)
                                 )
                             }
                             // Main orbiter node
                             drawCircle(
                                 color = if (isMasterEnabled) primaryColor else onSurfaceVariant,
-                                radius = 7.dp.toPx(),
+                                radius = 3.5.dp.toPx(),
                                 center = Offset(orbiterX, orbiterY)
                             )
                             drawCircle(
                                 color = surfaceColor,
-                                radius = 2.5.dp.toPx(),
+                                radius = 1.2.dp.toPx(),
                                 center = Offset(orbiterX, orbiterY)
                             )
                         }
@@ -839,39 +840,39 @@ private fun Rotation360SubScreen(
                         // Labels for Left, Right, Front, Back
                         Text(
                             text = "FRONT",
-                            fontSize = 8.5.sp,
+                            fontSize = 6.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.align(Alignment.TopCenter)
                         )
                         Text(
                             text = "BACK",
-                            fontSize = 8.5.sp,
+                            fontSize = 6.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                         Text(
                             text = "L",
-                            fontSize = 10.sp,
+                            fontSize = 7.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.align(Alignment.CenterStart)
                         )
                         Text(
                             text = "R",
-                            fontSize = 10.sp,
+                            fontSize = 7.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.align(Alignment.CenterEnd)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = if (isMasterEnabled) "Active Orbit: ${currentAngleDegrees.roundToInt()}°" else "Orbit Paused (Dead Center)",
-                        fontSize = 11.5.sp,
+                        text = if (isMasterEnabled) "Active Orbit: ${currentAngleDegrees.roundToInt()}°" else "Orbit Paused",
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Medium,
                         color = if (isMasterEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -885,7 +886,7 @@ private fun Rotation360SubScreen(
                 shape = RoundedCornerShape(16.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -893,24 +894,24 @@ private fun Rotation360SubScreen(
                     ) {
                         Text(
                             text = "Rotation Speed",
-                            fontSize = 15.sp,
+                            fontSize = 14.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = String.format(java.util.Locale.US, "%.1fx", speedMultiplier),
-                            fontSize = 14.sp,
+                            fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Adjust orbital rotation velocity (0.1x slow pan to 5.0x fast orbit)",
-                        fontSize = 12.sp,
+                        fontSize = 11.5.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Slider(
                         value = speedMultiplier,
                         onValueChange = onSpeedMultiplierChange,
@@ -935,20 +936,20 @@ private fun Rotation360SubScreen(
                 shape = RoundedCornerShape(16.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Text(
                         text = "Orbit Direction",
-                        fontSize = 15.sp,
+                        fontSize = 14.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Direction of sound panning trajectory around head",
-                        fontSize = 12.sp,
+                        fontSize = 11.5.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
