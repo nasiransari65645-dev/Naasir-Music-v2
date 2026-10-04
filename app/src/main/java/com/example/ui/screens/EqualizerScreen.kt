@@ -36,7 +36,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ButtonDefaults
@@ -199,9 +198,9 @@ private fun EqualizerParentScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = if (eq.isEnabled) {
-                            "Active • ${eq.selectedPresetName} • Tap to configure"
+                            "Active • ${eq.selectedPresetName}"
                         } else {
-                            "Disabled • Tap to configure frequency bands"
+                            "Disabled"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (eq.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -215,35 +214,6 @@ private fun EqualizerParentScreen(
                     contentDescription = "Open 13-Band Equalizer",
                     tint = if (eq.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        // Informational Note Card
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-        ) {
-            Row(
-                modifier = Modifier.padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "High-precision 13-band hardware audio processor. Tap the category card above to adjust individual frequencies, switch acoustic presets, or fine-tune pre-amp and punch levels.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
                 )
             }
         }

@@ -542,7 +542,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         // Combine raw scanned songs with Room metadata (custom titles, artists, custom/auto album art, play counts)
         viewModelScope.launch {
             combine(_rawScannedSongs, songRepository.allMetadata) { scanned, metaMap ->
-                scanned.mapNotNull { song ->
+                val mapped = scanned.mapNotNull { song ->
                     val meta = metaMap[song.id]
                     if (meta?.isDeleted == true) {
                         null
@@ -555,6 +555,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 }
+                AudioScanner.deduplicateSongs(mapped)
             }.collect { merged ->
                 _allSongs.value = merged
                 playerManager.setPlaylist(merged)
