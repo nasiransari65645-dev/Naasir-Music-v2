@@ -108,6 +108,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.animation.core.AnimationState
+import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.ui.platform.LocalContext
+import coil.request.ImageRequest
 import com.example.model.AppThemePalette
 import com.example.model.LibraryCategory
 import com.example.model.LocalAppThemePalette
@@ -313,44 +320,32 @@ fun LibraryScreen(
 
     val songListState = androidx.compose.foundation.lazy.rememberLazyListState()
 
-    var isScrollingDown by remember { mutableStateOf(false) }
-    var previousFirstVisibleIndex by remember { mutableIntStateOf(0) }
-    var previousScrollOffset by remember { mutableIntStateOf(0) }
-
-    val isScrolledAwayFromTop by remember {
-        derivedStateOf {
-            songListState.firstVisibleItemIndex > 0 || songListState.firstVisibleItemScrollOffset > 30
-        }
-    }
-
-    val isNearBottom by remember(displaySongs.size) {
-        derivedStateOf {
-            val layoutInfo = songListState.layoutInfo
-            val totalItems = layoutInfo.totalItemsCount
-            if (totalItems <= 1) true
-            else {
-                val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                lastVisibleIndex >= totalItems - 1
+    // Smooth damped fling behavior: controls scrolling velocity smoothly without lag or runaway speed
+    val smoothFlingBehavior = remember {
+        val decaySpec = exponentialDecay<Float>(
+            frictionMultiplier = 1.75f,
+            absVelocityThreshold = 0.1f
+        )
+        object : FlingBehavior {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+                val dampedVelocity = initialVelocity * 0.70f
+                var lastValue = 0f
+                var velocityLeft = dampedVelocity
+                AnimationState(
+                    initialValue = 0f,
+                    initialVelocity = dampedVelocity
+                ).animateDecay(decaySpec) {
+                    val delta = value - lastValue
+                    val consumed = scrollBy(delta)
+                    lastValue = value
+                    velocityLeft = velocity
+                    if (kotlin.math.abs(delta - consumed) > 0.5f) {
+                        cancelAnimation()
+                    }
+                }
+                return velocityLeft
             }
         }
-    }
-
-    LaunchedEffect(selectedCategory, selectedGroupFilter) {
-        previousFirstVisibleIndex = 0
-        previousScrollOffset = 0
-        isScrollingDown = false
-    }
-
-    LaunchedEffect(songListState.firstVisibleItemIndex, songListState.firstVisibleItemScrollOffset) {
-        val currentIdx = songListState.firstVisibleItemIndex
-        val currentOff = songListState.firstVisibleItemScrollOffset
-        if (currentIdx > previousFirstVisibleIndex || (currentIdx == previousFirstVisibleIndex && currentOff > previousScrollOffset)) {
-            isScrollingDown = true
-        } else if (currentIdx < previousFirstVisibleIndex || (currentIdx == previousFirstVisibleIndex && currentOff < previousScrollOffset)) {
-            isScrollingDown = false
-        }
-        previousFirstVisibleIndex = currentIdx
-        previousScrollOffset = currentOff
     }
 
     Column(
@@ -863,6 +858,7 @@ fun LibraryScreen(
                 ) {
                     LazyColumn(
                         state = songListState,
+                        flingBehavior = smoothFlingBehavior,
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("song_list_view"),
@@ -971,93 +967,6 @@ fun LibraryScreen(
                                     songToDelete = song
                                 }
                             )
-                        }
-                    }
-
-                    // (2) Jump to Last Song Floating Arrow (shows only while scrolling down, hides when scroll stops)
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = songListState.isScrollInProgress && isScrollingDown && !isNearBottom && displaySongs.size > 5,
-                        enter = fadeIn() + slideInVertically { it / 2 },
-                        exit = fadeOut() + slideOutVertically { it / 2 },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 16.dp, bottom = 128.dp)
-                    ) {
-                        Surface(
-                            onClick = {
-                                coroutineScope.launch {
-                                    if (displaySongs.isNotEmpty()) {
-                                        val targetIdx = (displaySongs.size - 1).coerceAtLeast(0)
-                                        val currentIdx = songListState.firstVisibleItemIndex
-                                        if (targetIdx - currentIdx > 8) {
-                                            // Direct jump to proximity of last song
-                                            songListState.scrollToItem((targetIdx - 8).coerceAtLeast(0))
-                                        }
-                                        // Buttery smooth micro-scroll into final position
-                                        songListState.animateScrollToItem(targetIdx)
-                                    }
-                                }
-                            },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
-                            tonalElevation = 6.dp,
-                            shadowElevation = 8.dp,
-                            border = BorderStroke(1.5.dp, CyanNeon.copy(alpha = 0.7f)),
-                            modifier = Modifier
-                                .testTag("scroll_to_bottom_button")
-                                .size(52.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardDoubleArrowDown,
-                                    contentDescription = "Scroll to last song",
-                                    tint = CyanNeon,
-                                    modifier = Modifier.size(34.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // (2) Jump to 1st Song Floating Arrow (shows only while scrolling up, hides when scroll stops)
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = songListState.isScrollInProgress && !isScrollingDown && isScrolledAwayFromTop && displaySongs.size > 5,
-                        enter = fadeIn() + slideInVertically { -it / 2 },
-                        exit = fadeOut() + slideOutVertically { -it / 2 },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 16.dp, bottom = 128.dp)
-                    ) {
-                        Surface(
-                            onClick = {
-                                coroutineScope.launch {
-                                    if (displaySongs.isNotEmpty()) {
-                                        val currentIdx = songListState.firstVisibleItemIndex
-                                        if (currentIdx > 8) {
-                                            // Direct jump to proximity of 1st song
-                                            songListState.scrollToItem(8)
-                                        }
-                                        // Buttery smooth micro-scroll into 1st song
-                                        songListState.animateScrollToItem(0)
-                                    }
-                                }
-                            },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
-                            tonalElevation = 6.dp,
-                            shadowElevation = 8.dp,
-                            border = BorderStroke(1.5.dp, PurpleNeon.copy(alpha = 0.7f)),
-                            modifier = Modifier
-                                .testTag("scroll_to_top_button")
-                                .size(52.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardDoubleArrowUp,
-                                    contentDescription = "Scroll to first song",
-                                    tint = PurpleNeon,
-                                    modifier = Modifier.size(34.dp)
-                                )
-                            }
                         }
                     }
                 }
@@ -1330,8 +1239,12 @@ private fun SongItemRow(
                 contentAlignment = Alignment.Center
             ) {
                 if (song.albumArtUri != null) {
+                    val context = LocalContext.current
                     AsyncImage(
-                        model = song.albumArtUri,
+                        model = ImageRequest.Builder(context)
+                            .data(song.albumArtUri)
+                            .crossfade(false)
+                            .build(),
                         contentDescription = song.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

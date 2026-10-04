@@ -54,21 +54,7 @@ class MainActivity : ComponentActivity() {
           modifier = Modifier.fillMaxSize(),
           color = MaterialTheme.colorScheme.background
         ) {
-          var isLoading by remember { mutableStateOf(true) }
-
-          Box(modifier = Modifier.fillMaxSize()) {
-            MainScreen(viewModel = musicViewModel)
-
-            AnimatedVisibility(
-              visible = isLoading,
-              enter = fadeIn(animationSpec = tween(200)),
-              exit = fadeOut(animationSpec = tween(300))
-            ) {
-              LoadingScreen(
-                onLoadingComplete = { isLoading = false }
-              )
-            }
-          }
+          MainScreen(viewModel = musicViewModel)
         }
       }
     }

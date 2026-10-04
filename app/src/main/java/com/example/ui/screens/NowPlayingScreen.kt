@@ -294,41 +294,19 @@ fun NowPlayingScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top Action Bar with Dedicated Minimize Button (Down Arrow)
-        Row(
+        // Top Action Bar: Clean centered NOW PLAYING label (no duplicate button or song count)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            contentAlignment = Alignment.Center
         ) {
-            IconButton(
-                onClick = onMinimize,
-                modifier = Modifier
-                    .size(42.dp)
-                    .testTag("now_playing_screen_minimize_btn")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Minimize Player",
-                    tint = Color(0xFF00E5FF),
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-
             Text(
                 text = "NOW PLAYING",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.5.sp
-            )
-
-            Text(
-                text = "${currentIndex + 1}/$totalTracks",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                fontSize = 11.sp
             )
         }
 
@@ -573,55 +551,40 @@ fun NowPlayingScreen(
                 }
             }
 
-            // 5. MAIN PLAYBACK CONTROLS ROW (COMFORTABLE TOUCH TARGETS, NO OVERFLOW)
+            // 5. MAIN PLAYBACK CONTROLS ROW (CLEAN 3-BUTTON LAYOUT, NO CLUTTERED 10s BUTTONS)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. Rewind 10s Button
-                IconButton(
-                    onClick = onSkipBackward10,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .testTag("skip_backward_10_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Replay10,
-                        contentDescription = "Rewind 10 Seconds",
-                        tint = Color(0xFF00F5FF),
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-
-                // 2. Previous Track Button (Enlarged touch target & icon)
+                // Previous Track Button
                 HoldableIconButton(
                     onClick = onPrevious,
                     onHoldStart = onStartRewind,
                     onHoldEnd = onStopRewind,
                     isHolding = isRewinding,
-                    size = 56.dp,
+                    size = 60.dp,
                     activeGlowColor = activeSkipGlowColor,
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(60.dp)
                         .testTag("previous_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Previous Track",
                         tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
-                // 3. Central Big Play/Pause Button (Enlarged touch target & icon)
+                // Central Big Play/Pause Button
                 IconButton(
                     onClick = onTogglePlayPause,
                     modifier = Modifier
                         .size(80.dp)
-                        .shadow(10.dp, CircleShape, ambientColor = Color(0xFF00E5FF), spotColor = Color(0xFF00E5FF))
+                        .shadow(12.dp, CircleShape, ambientColor = Color(0xFF00E5FF), spotColor = Color(0xFF00E5FF))
                         .clip(CircleShape)
                         .background(Color(0xFF00E5FF))
                         .testTag("play_pause_button")
@@ -634,38 +597,23 @@ fun NowPlayingScreen(
                     )
                 }
 
-                // 4. Next Track Button (Enlarged touch target & icon)
+                // Next Track Button
                 HoldableIconButton(
                     onClick = onNext,
                     onHoldStart = onStartFastForward,
                     onHoldEnd = onStopFastForward,
                     isHolding = isFastForwarding,
-                    size = 56.dp,
+                    size = 60.dp,
                     activeGlowColor = activeSkipGlowColor,
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(60.dp)
                         .testTag("next_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next Track",
                         tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(38.dp)
-                    )
-                }
-
-                // 5. Forward 10s Button
-                IconButton(
-                    onClick = onSkipForward10,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .testTag("skip_forward_10_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Forward10,
-                        contentDescription = "Forward 10 Seconds",
-                        tint = Color(0xFF00F5FF),
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
             }
@@ -3185,36 +3133,21 @@ private fun CosmicOrbitNowPlayingLayout(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .padding(horizontal = 24.dp, vertical = 8.dp)
                 .padding(bottom = 28.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Rewind 10s Button: Modifier.size(46.dp), icon 30.dp
-            IconButton(
-                onClick = onSkipBackward10,
-                modifier = Modifier
-                    .size(46.dp)
-                    .testTag("skip_backward_10_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Replay10,
-                    contentDescription = "Rewind 10 Seconds",
-                    tint = Color(0xFF00F5FF),
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-
-            // 2. Previous Button with 3D Neumorphic Extrusion: Container 52.dp, icon 36.dp
+            // Previous Button with 3D Neumorphic Extrusion: Container 56.dp, icon 38.dp
             HoldableIconButton(
                 onClick = onPrevious,
                 onHoldStart = onStartRewind,
                 onHoldEnd = onStopRewind,
                 isHolding = isRewinding,
-                size = 52.dp,
+                size = 56.dp,
                 activeGlowColor = Color(0xFF00F5FF).copy(alpha = 0.5f),
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(56.dp)
                     .shadow(
                         elevation = 4.dp,
                         shape = CircleShape,
@@ -3244,18 +3177,18 @@ private fun CosmicOrbitNowPlayingLayout(
                     imageVector = Icons.Default.SkipPrevious,
                     contentDescription = "Previous Track",
                     tint = if (isRewinding) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(38.dp)
                 )
             }
 
-            // 3. Central Big Play/Pause Circular Button: strictly 86.dp, icon 46.dp, Vibrant Neon Cyan #00F5FF
+            // Central Big Play/Pause Circular Button: strictly 86.dp, icon 46.dp, Vibrant Neon Cyan #00F5FF
             IconButton(
                 onClick = onTogglePlayPause,
                 modifier = Modifier
                     .size(86.dp)
-                    .shadow(10.dp, CircleShape, ambientColor = Color(0xFF00F5FF), spotColor = Color(0xFF00F5FF))
+                    .shadow(10.dp, CircleShape, ambientColor = Color(0xFF00E5FF), spotColor = Color(0xFF00E5FF))
                     .clip(CircleShape)
-                    .background(Color(0xFF00F5FF))
+                    .background(Color(0xFF00E5FF))
                     .testTag("play_pause_button")
             ) {
                 Icon(
@@ -3266,16 +3199,16 @@ private fun CosmicOrbitNowPlayingLayout(
                 )
             }
 
-            // 4. Next Button with 3D Neumorphic Extrusion: Container 52.dp, icon 36.dp
+            // Next Button with 3D Neumorphic Extrusion: Container 56.dp, icon 38.dp
             HoldableIconButton(
                 onClick = onNext,
                 onHoldStart = onStartFastForward,
                 onHoldEnd = onStopFastForward,
                 isHolding = isFastForwarding,
-                size = 52.dp,
+                size = 56.dp,
                 activeGlowColor = Color(0xFF00F5FF).copy(alpha = 0.5f),
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(56.dp)
                     .shadow(
                         elevation = 4.dp,
                         shape = CircleShape,
@@ -3305,22 +3238,7 @@ private fun CosmicOrbitNowPlayingLayout(
                     imageVector = Icons.Default.SkipNext,
                     contentDescription = "Next Track",
                     tint = if (isFastForwarding) Color(0xFF00F5FF) else Color(0xFFE2E8F0),
-                    modifier = Modifier.size(36.dp)
-                )
-            }
-
-            // 5. Forward 10s Button: Modifier.size(46.dp), icon 30.dp
-            IconButton(
-                onClick = onSkipForward10,
-                modifier = Modifier
-                    .size(46.dp)
-                    .testTag("skip_forward_10_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Forward10,
-                    contentDescription = "Forward 10 Seconds",
-                    tint = Color(0xFF00F5FF),
-                    modifier = Modifier.size(30.dp)
+                    modifier = Modifier.size(38.dp)
                 )
             }
         }
