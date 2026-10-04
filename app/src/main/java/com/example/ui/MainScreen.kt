@@ -4,9 +4,13 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.example.audio.FloatingPlayerService
+import com.example.storage.SettingsPreferencesManager
 import com.example.model.LibraryCategory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayCircle
@@ -247,6 +252,22 @@ fun MainScreen(
     val isNowPlaying = uiState.selectedTab == AppTab.NOW_PLAYING
     val palette = com.example.model.getPaletteForPreset(activeNaturalTheme)
 
+    val prefsManager = remember { SettingsPreferencesManager(context) }
+
+    val handleMinimizeNowPlaying: () -> Unit = {
+        val isFloatingEnabled = prefsManager.loadFloatingPlayerEnabled()
+        val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(context)
+        } else true
+
+        if (isFloatingEnabled && hasPermission) {
+            FloatingPlayerService.start(context)
+            activity?.moveTaskToBack(true)
+        } else {
+            viewModel.selectTab(AppTab.ALL_SONGS)
+        }
+    }
+
     CompositionLocalProvider(LocalAppThemePalette provides palette) {
         MyApplicationTheme(
             naturalTheme = activeNaturalTheme,
@@ -293,6 +314,8 @@ fun MainScreen(
                                 backgroundColor = MaterialTheme.colorScheme.background,
                                 primaryColor = palette.primaryAccent,
                                 isLightBackground = false,
+                                isNowPlaying = isNowPlaying,
+                                onMinimize = handleMinimizeNowPlaying,
                                 onOpenDrawer = {
                                     coroutineScope.launch { drawerState.open() }
                                 }
@@ -616,7 +639,8 @@ fun MainScreen(
                                     onStopFastForward = { viewModel.stopFastForward() },
                                     onStartRewind = { viewModel.startRewind() },
                                     onStopRewind = { viewModel.stopRewind() },
-                                    onBack = { viewModel.setActiveCategory(LibraryCategory.SONGS) }
+                                    onBack = { viewModel.setActiveCategory(LibraryCategory.SONGS) },
+                                    onMinimize = handleMinimizeNowPlaying
                                 )
                             }
 
@@ -777,6 +801,8 @@ fun NaasirTopBar(
     backgroundColor: Color,
     primaryColor: Color,
     isLightBackground: Boolean = false,
+    isNowPlaying: Boolean = false,
+    onMinimize: () -> Unit = {},
     onOpenDrawer: () -> Unit = {}
 ) {
     Surface(
@@ -804,6 +830,23 @@ fun NaasirTopBar(
                     tint = if (isLightBackground) Color(0xFF0F172A) else MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(24.dp)
                 )
+            }
+
+            // Dedicated Minimize Down Arrow Button on Now Playing Screen
+            if (isNowPlaying) {
+                IconButton(
+                    onClick = onMinimize,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .testTag("now_playing_minimize_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Minimize Now Playing",
+                        tint = Color(0xFF00E5FF),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(4.dp))

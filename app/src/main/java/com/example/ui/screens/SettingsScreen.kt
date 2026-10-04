@@ -57,6 +57,7 @@ import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PictureInPicture
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Refresh
@@ -192,7 +193,8 @@ private enum class LookHierarchy {
     PLAYER_UI_DESIGNS,
     DIGITAL_VOLUME_SLIDER,
     DYNAMIC_EDGE_LIGHTING,
-    AUDIO_VISUALIZER
+    AUDIO_VISUALIZER,
+    FLOATING_PLAYER
 }
 
 /**
@@ -335,6 +337,7 @@ fun SettingsScreen(
                         LookHierarchy.DIGITAL_VOLUME_SLIDER -> "Digital volume slider"
                         LookHierarchy.DYNAMIC_EDGE_LIGHTING -> "Dynamic Edge Lighting"
                         LookHierarchy.AUDIO_VISUALIZER -> "Audio Visualizer"
+                        LookHierarchy.FLOATING_PLAYER -> "Floating Player"
                         null -> null
                     },
                     subtitleOverride = when (activeLookHierarchy) {
@@ -342,6 +345,7 @@ fun SettingsScreen(
                         LookHierarchy.DIGITAL_VOLUME_SLIDER -> "Segmented LED capsule HUD with touch drag & precision haptics"
                         LookHierarchy.DYNAMIC_EDGE_LIGHTING -> "Luminous border effect wrapping around device screen edges"
                         LookHierarchy.AUDIO_VISUALIZER -> "Real-time frequency waveform rendered behind controls"
+                        LookHierarchy.FLOATING_PLAYER -> "Desktop Overlay Preferences"
                         null -> null
                     },
                     iconOverride = when (activeLookHierarchy) {
@@ -349,6 +353,7 @@ fun SettingsScreen(
                         LookHierarchy.DIGITAL_VOLUME_SLIDER -> Icons.Default.Tune
                         LookHierarchy.DYNAMIC_EDGE_LIGHTING -> Icons.Default.FlashOn
                         LookHierarchy.AUDIO_VISUALIZER -> Icons.Default.GraphicEq
+                        LookHierarchy.FLOATING_PLAYER -> Icons.Default.PictureInPicture
                         null -> null
                     },
                     iconColorOverride = when (activeLookHierarchy) {
@@ -356,6 +361,7 @@ fun SettingsScreen(
                         LookHierarchy.DIGITAL_VOLUME_SLIDER -> Color(0xFF00E5FF)
                         LookHierarchy.DYNAMIC_EDGE_LIGHTING -> Color(0xFFFFB300)
                         LookHierarchy.AUDIO_VISUALIZER -> Color(0xFF00E676)
+                        LookHierarchy.FLOATING_PLAYER -> Color(0xFF00E5FF)
                         null -> null
                     }
                 ) {
@@ -1377,23 +1383,14 @@ private fun LookAndFeelSubScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // FLOATING DESKTOP PLAYER SECTION
-            Text(
-                text = "FLOATING DESKTOP PLAYER",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-            )
-
-            // Switch 1: Floating Desktop Player
+            // Hierarchy Item 5: Floating Player
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("card_floating_desktop_player"),
+                    .clickable { onSetActiveLookHierarchy(LookHierarchy.FLOATING_PLAYER) }
+                    .testTag("lookandfeel_floating_player_tile"),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -1402,7 +1399,7 @@ private fun LookAndFeelSubScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -1414,8 +1411,8 @@ private fun LookAndFeelSubScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
+                            imageVector = Icons.Default.PictureInPicture,
+                            contentDescription = "Floating Player",
                             tint = Color(0xFF00E5FF),
                             modifier = Modifier.size(26.dp)
                         )
@@ -1423,7 +1420,7 @@ private fun LookAndFeelSubScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Floating Desktop Player",
+                            text = "Floating Player",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
@@ -1431,99 +1428,17 @@ private fun LookAndFeelSubScreen(
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = "Show interactive floating player on home screen",
+                            text = if (isFloatingPlayerEnabled) "Enabled • Desktop overlay & edge glow" else "Disabled",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
-                    Switch(
-                        checked = isFloatingPlayerEnabled,
-                        onCheckedChange = { checked ->
-                            if (checked) {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
-                                    showOverlayPermissionDialog = true
-                                } else {
-                                    isFloatingPlayerEnabled = true
-                                    prefsManager?.saveFloatingPlayerEnabled(true)
-                                }
-                            } else {
-                                isFloatingPlayerEnabled = false
-                                prefsManager?.saveFloatingPlayerEnabled(false)
-                                com.example.audio.FloatingPlayerService.stop(context)
-                            }
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier.testTag("switch_floating_desktop_player")
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Switch 2: Floating Rainbow Edge Lighting
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("card_floating_rainbow_edge"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFFF0055).copy(alpha = 0.15f))
-                            .border(1.dp, Color(0xFFFF0055).copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FlashOn,
-                            contentDescription = null,
-                            tint = Color(0xFFFFB300),
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Floating Rainbow Edge Lighting",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(3.dp))
-                        Text(
-                            text = "Dynamic rotating rainbow border around floating player",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp
-                        )
-                    }
-                    Switch(
-                        checked = isFloatingRainbowEdgeEnabled,
-                        onCheckedChange = { checked ->
-                            isFloatingRainbowEdgeEnabled = checked
-                            prefsManager?.saveFloatingRainbowEdgeEnabled(checked)
-                            com.example.audio.FloatingPlayerService.updateRainbowEdge(context, checked)
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier.testTag("switch_floating_rainbow_edge")
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Open Floating Player Preferences",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
@@ -2357,6 +2272,13 @@ private fun LookAndFeelSubScreen(
                     }
                 }
             }
+        }
+
+        LookHierarchy.FLOATING_PLAYER -> {
+            FloatingPlayerSettingsContent(
+                prefsManager = prefsManager,
+                onBack = { onSetActiveLookHierarchy(null) }
+            )
         }
     }
 }

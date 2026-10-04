@@ -55,6 +55,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -160,6 +161,7 @@ fun NowPlayingScreen(
     onStartRewind: () -> Unit = {},
     onStopRewind: () -> Unit = {},
     onBack: () -> Unit = {},
+    onMinimize: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // If no song selected in Now Playing, prepare 1st track in paused state
@@ -293,7 +295,43 @@ fun NowPlayingScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        // Top Action Bar with Dedicated Minimize Button (Down Arrow)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(
+                onClick = onMinimize,
+                modifier = Modifier
+                    .size(42.dp)
+                    .testTag("now_playing_screen_minimize_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Minimize Player",
+                    tint = Color(0xFF00E5FF),
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+
+            Text(
+                text = "NOW PLAYING",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.5.sp
+            )
+
+            Text(
+                text = "${currentIndex + 1}/$totalTracks",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                fontSize = 11.sp
+            )
+        }
 
             // 1. ALBUM ART / VINYL DISC (Responsive Auto-Fit)
             Box(
