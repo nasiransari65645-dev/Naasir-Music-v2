@@ -103,7 +103,12 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefsManager = SettingsPreferencesManager(application)
     private val playerManager = AudioPlayerManager.instance ?: AudioPlayerManager(application, viewModelScope)
-    private val songRepository = SongRepository(AppDatabase.getDatabase(application).songMetadataDao())
+    private val appDb = AppDatabase.getDatabase(application)
+    private val songRepository = SongRepository(
+        dao = appDb.songMetadataDao(),
+        songDao = appDb.songDao(),
+        context = application
+    )
 
     private val _rawScannedSongs = MutableStateFlow<List<Song>>(emptyList())
     private val _allSongs = MutableStateFlow<List<Song>>(emptyList())
@@ -660,8 +665,24 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Scan audio library on start
-        scanDeviceAudio()
+        // 1. Immediately load cached songs from local Room Database for instantaneous (0ms) library startup
+        viewModelScope.launch(Dispatchers.IO) {
+            val cached = songRepository.getCachedSongsSync()
+            if (cached.isNotEmpty()) {
+                withContext(Dispatchers.Main.immediate) {
+                    _rawScannedSongs.value = cached
+                    ensureTrackLoaded(autoPlay = false)
+                }
+            }
+            // 2. Run lightweight background sync only if MediaStore audio count changed
+            val synced = songRepository.syncWithMediaStore(forceRescan = false)
+            if (synced.isNotEmpty() && synced != cached) {
+                withContext(Dispatchers.Main.immediate) {
+                    _rawScannedSongs.value = synced
+                    ensureTrackLoaded(autoPlay = false)
+                }
+            }
+        }
     }
 
     private var embeddedArtScanJob: Job? = null
@@ -831,12 +852,12 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun scanDeviceAudio() {
+    fun scanDeviceAudio(forceRescan: Boolean = true) {
         viewModelScope.launch(Dispatchers.IO) {
             _isScanning.value = true
             try {
-                // Scan user's device audio strictly on Dispatchers.IO (never block Dispatchers.Main)
-                val scanned = AudioScanner.scanDeviceAudio(getApplication())
+                // Sync user's device audio strictly on Dispatchers.IO with Room caching
+                val scanned = songRepository.syncWithMediaStore(forceRescan = forceRescan)
                 withContext(Dispatchers.Main.immediate) {
                     _rawScannedSongs.value = scanned
                     _simpleSongs.value = emptyList()
@@ -845,7 +866,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 // Keep existing songs on error
             } finally {
-                _isScanning.value = false
+                withContext(Dispatchers.Main.immediate) {
+                    _isScanning.value = false
+                }
             }
         }
     }
@@ -976,6 +999,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             if (!playerManager.state.value.shuffleEnabled) {
                 playerManager.toggleShuffle()
             }
+            prefsManager.saveShuffle(true)
             val randomSong = _allSongs.value.random()
             playerManager.playSong(randomSong)
         }

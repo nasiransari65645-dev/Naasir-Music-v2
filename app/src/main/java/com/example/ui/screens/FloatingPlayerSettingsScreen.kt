@@ -48,10 +48,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -143,6 +147,8 @@ fun FloatingPlayerSettingsContent(
 ) {
     val context = LocalContext.current
     var showOverlayPermissionDialog by remember { mutableStateOf(false) }
+    var isAwaitingOverlayPermission by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     var isFloatingPlayerEnabled by remember {
         mutableStateOf(prefsManager?.loadFloatingPlayerEnabled() ?: true)
@@ -151,9 +157,30 @@ fun FloatingPlayerSettingsContent(
         mutableStateOf(prefsManager?.loadFloatingRainbowEdgeEnabled() ?: true)
     }
 
+    // Automatically detect when user returns from Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (isAwaitingOverlayPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(context)) {
+                    isFloatingPlayerEnabled = true
+                    prefsManager?.saveFloatingPlayerEnabled(true)
+                    isAwaitingOverlayPermission = false
+                    FloatingPlayerService.start(context)
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     if (showOverlayPermissionDialog) {
         AlertDialog(
-            onDismissRequest = { showOverlayPermissionDialog = false },
+            onDismissRequest = {
+                showOverlayPermissionDialog = false
+                isAwaitingOverlayPermission = false
+            },
             title = {
                 Text(
                     text = "Overlay Permission Required",
@@ -172,6 +199,7 @@ fun FloatingPlayerSettingsContent(
                 Button(
                     onClick = {
                         showOverlayPermissionDialog = false
+                        isAwaitingOverlayPermission = true
                         try {
                             val intent = Intent(
                                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -192,7 +220,10 @@ fun FloatingPlayerSettingsContent(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { showOverlayPermissionDialog = false },
+                    onClick = {
+                        showOverlayPermissionDialog = false
+                        isAwaitingOverlayPermission = false
+                    },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -258,12 +289,15 @@ fun FloatingPlayerSettingsContent(
                     onCheckedChange = { checked ->
                         if (checked) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+                                isAwaitingOverlayPermission = true
                                 showOverlayPermissionDialog = true
                             } else {
                                 isFloatingPlayerEnabled = true
                                 prefsManager?.saveFloatingPlayerEnabled(true)
+                                FloatingPlayerService.start(context)
                             }
                         } else {
+                            isAwaitingOverlayPermission = false
                             isFloatingPlayerEnabled = false
                             prefsManager?.saveFloatingPlayerEnabled(false)
                             FloatingPlayerService.stop(context)

@@ -969,6 +969,84 @@ fun LibraryScreen(
                             )
                         }
                     }
+
+                    // Re-added Floating Scroll Arrow (Ultra-smooth, zero-lag derived state)
+                    val showScrollToTop by remember {
+                        derivedStateOf { songListState.firstVisibleItemIndex > 2 }
+                    }
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showScrollToTop && displaySongs.size > 5,
+                        enter = fadeIn() + scaleIn(initialScale = 0.8f),
+                        exit = fadeOut() + scaleOut(targetScale = 0.8f),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 128.dp)
+                    ) {
+                        Surface(
+                            onClick = {
+                                coroutineScope.launch {
+                                    songListState.animateScrollToItem(0)
+                                }
+                            },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
+                            tonalElevation = 6.dp,
+                            shadowElevation = 8.dp,
+                            border = BorderStroke(1.5.dp, CyanNeon.copy(alpha = 0.75f)),
+                            modifier = Modifier
+                                .testTag("scroll_to_top_button")
+                                .size(50.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardDoubleArrowUp,
+                                    contentDescription = "Scroll to top",
+                                    tint = CyanNeon,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    val showScrollToBottom by remember {
+                        derivedStateOf { songListState.firstVisibleItemIndex == 0 && displaySongs.size > 10 }
+                    }
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showScrollToBottom,
+                        enter = fadeIn() + scaleIn(initialScale = 0.8f),
+                        exit = fadeOut() + scaleOut(targetScale = 0.8f),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 128.dp)
+                    ) {
+                        Surface(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val target = (displaySongs.size - 1).coerceAtLeast(0)
+                                    songListState.animateScrollToItem(target)
+                                }
+                            },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
+                            tonalElevation = 6.dp,
+                            shadowElevation = 8.dp,
+                            border = BorderStroke(1.5.dp, PurpleNeon.copy(alpha = 0.75f)),
+                            modifier = Modifier
+                                .testTag("scroll_to_bottom_button")
+                                .size(50.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardDoubleArrowDown,
+                                    contentDescription = "Scroll to bottom",
+                                    tint = PurpleNeon,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

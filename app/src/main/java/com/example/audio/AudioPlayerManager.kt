@@ -560,6 +560,7 @@ class AudioPlayerManager(
             if (newShuffle) updateShuffleList()
             it.copy(shuffleEnabled = newShuffle)
         }
+        prefsManager.saveShuffle(_state.value.shuffleEnabled)
         notifyServiceState()
     }
 
@@ -567,6 +568,7 @@ class AudioPlayerManager(
         _state.update {
             it.copy(repeatMode = it.repeatMode.next())
         }
+        prefsManager.saveRepeat(_state.value.repeatMode.name)
         notifyServiceState()
     }
 
@@ -583,6 +585,7 @@ class AudioPlayerManager(
             }
             it.copy(favoriteIds = favs)
         }
+        prefsManager.saveFavorites(_state.value.favoriteIds)
         return isFav
     }
 

@@ -472,6 +472,25 @@ object AudioScanner {
         }
     }
 
+    fun getMediaStoreAudioCount(context: Context): Int {
+        return try {
+            val collection: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            } else {
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            }
+            context.contentResolver.query(
+                collection,
+                arrayOf(MediaStore.Audio.Media._ID),
+                "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= ?",
+                arrayOf("15000"),
+                null
+            )?.use { it.count } ?: 0
+        } catch (_: Exception) {
+            0
+        }
+    }
+
     suspend fun loadSimpleMusic(context: Context): List<Song> = withContext(Dispatchers.IO) {
         emptyList()
     }
