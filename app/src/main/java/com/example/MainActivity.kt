@@ -37,6 +37,11 @@ class MainActivity : ComponentActivity() {
     com.example.audio.MediaNotificationManager.createNotificationChannel(this)
     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     enableEdgeToEdge()
+
+    if (intent?.getBooleanExtra(com.example.audio.FloatingPlayerService.EXTRA_OPEN_NOW_PLAYING, false) == true) {
+      musicViewModel.selectTab(com.example.viewmodel.AppTab.NOW_PLAYING)
+    }
+
     setContent {
       val activeTheme = com.example.model.AppNaturalTheme.BLUE
       val isDarkTheme = true
@@ -66,6 +71,34 @@ class MainActivity : ComponentActivity() {
           }
         }
       }
+    }
+  }
+
+  override fun onUserLeaveHint() {
+    super.onUserLeaveHint()
+    val isPlaying = musicViewModel.uiState.value.playerState.isPlaying
+    val prefs = com.example.storage.SettingsPreferencesManager(this)
+    val isFloatingEnabled = prefs.loadFloatingPlayerEnabled()
+    val hasOverlayPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+      android.provider.Settings.canDrawOverlays(this)
+    } else true
+
+    if (isFloatingEnabled && hasOverlayPermission && isPlaying) {
+      com.example.audio.FloatingPlayerService.start(this)
+    }
+  }
+
+  override fun onResume() {
+    super.onResume()
+    // When returning to MainActivity, dismiss floating desktop player so there is no duplicate UI
+    com.example.audio.FloatingPlayerService.stop(this)
+  }
+
+  override fun onNewIntent(intent: android.content.Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    if (intent.getBooleanExtra(com.example.audio.FloatingPlayerService.EXTRA_OPEN_NOW_PLAYING, false)) {
+      musicViewModel.selectTab(com.example.viewmodel.AppTab.NOW_PLAYING)
     }
   }
 

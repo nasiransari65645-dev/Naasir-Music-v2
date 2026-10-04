@@ -1079,6 +1079,12 @@ private fun LookAndFeelSubScreen(
 ) {
     val context = LocalContext.current
     var showOverlayPermissionDialog by remember { mutableStateOf(false) }
+    var isFloatingPlayerEnabled by remember {
+        mutableStateOf(prefsManager?.loadFloatingPlayerEnabled() ?: true)
+    }
+    var isFloatingRainbowEdgeEnabled by remember {
+        mutableStateOf(prefsManager?.loadFloatingRainbowEdgeEnabled() ?: true)
+    }
 
     if (showOverlayPermissionDialog) {
         AlertDialog(
@@ -1092,7 +1098,7 @@ private fun LookAndFeelSubScreen(
             },
             text = {
                 Text(
-                    text = "Allow Naasir Music to display over other apps so the custom volume HUD stays visible while music is playing.",
+                    text = "Allow Naasir Music to display over other apps so the floating desktop player and custom volume HUD can appear on your home screen.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
                 )
@@ -1367,6 +1373,157 @@ private fun LookAndFeelSubScreen(
                         contentDescription = "Open Audio Visualizer",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // FLOATING DESKTOP PLAYER SECTION
+            Text(
+                text = "FLOATING DESKTOP PLAYER",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+            )
+
+            // Switch 1: Floating Desktop Player
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_floating_desktop_player"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF00E5FF).copy(alpha = 0.15f))
+                            .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Floating Desktop Player",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "Show interactive floating player on home screen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Switch(
+                        checked = isFloatingPlayerEnabled,
+                        onCheckedChange = { checked ->
+                            if (checked) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+                                    showOverlayPermissionDialog = true
+                                } else {
+                                    isFloatingPlayerEnabled = true
+                                    prefsManager?.saveFloatingPlayerEnabled(true)
+                                }
+                            } else {
+                                isFloatingPlayerEnabled = false
+                                prefsManager?.saveFloatingPlayerEnabled(false)
+                                com.example.audio.FloatingPlayerService.stop(context)
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.testTag("switch_floating_desktop_player")
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Switch 2: Floating Rainbow Edge Lighting
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_floating_rainbow_edge"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFFF0055).copy(alpha = 0.15f))
+                            .border(1.dp, Color(0xFFFF0055).copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FlashOn,
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Floating Rainbow Edge Lighting",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "Dynamic rotating rainbow border around floating player",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Switch(
+                        checked = isFloatingRainbowEdgeEnabled,
+                        onCheckedChange = { checked ->
+                            isFloatingRainbowEdgeEnabled = checked
+                            prefsManager?.saveFloatingRainbowEdgeEnabled(checked)
+                            com.example.audio.FloatingPlayerService.updateRainbowEdge(context, checked)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.testTag("switch_floating_rainbow_edge")
                     )
                 }
             }

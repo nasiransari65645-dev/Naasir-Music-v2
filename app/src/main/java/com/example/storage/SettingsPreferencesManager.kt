@@ -128,6 +128,10 @@ class SettingsPreferencesManager(context: Context) {
         private const val KEY_VOL_GAUGE_HAPTIC = "key_vol_gauge_haptic"
         private const val KEY_VOL_GAUGE_DELAY = "key_vol_gauge_delay"
         private const val KEY_VOL_GAUGE_OVERLAY = "key_vol_gauge_overlay"
+
+        // Floating Desktop Player Overlay
+        private const val KEY_FLOATING_PLAYER_ENABLED = "key_floating_player_enabled"
+        private const val KEY_FLOATING_RAINBOW_EDGE_ENABLED = "key_floating_rainbow_edge_enabled"
         private const val KEY_APP_THEME_MODE = "key_app_theme_mode"
     }
 
@@ -783,5 +787,21 @@ class SettingsPreferencesManager(context: Context) {
             autoDismissDelaySec = delay,
             floatingOverlayEnabled = overlay
         )
+    }
+
+    fun saveFloatingPlayerEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_FLOATING_PLAYER_ENABLED, enabled).apply()
+    }
+
+    fun loadFloatingPlayerEnabled(): Boolean {
+        return prefs.getBoolean(KEY_FLOATING_PLAYER_ENABLED, true)
+    }
+
+    fun saveFloatingRainbowEdgeEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_FLOATING_RAINBOW_EDGE_ENABLED, enabled).apply()
+    }
+
+    fun loadFloatingRainbowEdgeEnabled(): Boolean {
+        return prefs.getBoolean(KEY_FLOATING_RAINBOW_EDGE_ENABLED, true)
     }
 }
