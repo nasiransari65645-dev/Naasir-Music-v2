@@ -290,8 +290,7 @@ fun NowPlayingScreen(
     // Clean single Column root container
     Column(
         modifier = backdropModifier
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {

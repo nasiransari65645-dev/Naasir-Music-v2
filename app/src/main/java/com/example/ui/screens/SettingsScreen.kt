@@ -1427,8 +1427,9 @@ private fun LookAndFeelSubScreen(
                             fontSize = 16.sp
                         )
                         Spacer(modifier = Modifier.height(3.dp))
+                        val isFloatingActive = prefsManager?.loadFloatingPlayerEnabled() ?: true
                         Text(
-                            text = if (isFloatingPlayerEnabled) "Enabled • Desktop overlay & edge glow" else "Disabled",
+                            text = if (isFloatingActive) "Enabled • Desktop overlay & edge glow" else "Disabled",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp

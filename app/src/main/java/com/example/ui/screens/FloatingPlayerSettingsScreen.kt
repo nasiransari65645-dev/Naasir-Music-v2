@@ -117,10 +117,12 @@ fun FloatingPlayerSettingsScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             FloatingPlayerSettingsContent(
                 prefsManager = prefsManager,
@@ -201,10 +203,7 @@ fun FloatingPlayerSettingsContent(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
         // Card Item 1: Switch for "Floating Desktop Player"
         Card(
