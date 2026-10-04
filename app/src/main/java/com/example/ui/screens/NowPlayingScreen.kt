@@ -16,6 +16,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -93,10 +94,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import com.example.audio.MediaNotificationManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -148,7 +153,7 @@ fun NowPlayingScreen(
     onEnsureTrackLoaded: () -> Unit = {},
     isFastForwarding: Boolean = false,
     isRewinding: Boolean = false,
-    albumArtStyle: String = "Vinyl Record",
+    albumArtStyle: String = "Classic Cover",
     spinningVinyl: Boolean = true,
     onStartFastForward: () -> Unit = {},
     onStopFastForward: () -> Unit = {},
@@ -313,6 +318,8 @@ fun NowPlayingScreen(
                     songTitle = currentSong.title,
                     songArtist = currentSong.artist,
                     albumArtUri = currentSong.albumArtUri,
+                    songUri = currentSong.uri,
+                    songPath = currentSong.path,
                     currentPositionMs = currentPositionMs,
                     durationMs = safeDuration,
                     modifier = Modifier.fillMaxSize()
@@ -1077,6 +1084,8 @@ private fun AlbumArtPresentation(
     songTitle: String,
     songArtist: String,
     albumArtUri: Uri? = null,
+    songUri: Uri? = null,
+    songPath: String? = null,
     currentPositionMs: Long = 0L,
     durationMs: Long = 1L,
     modifier: Modifier = Modifier
@@ -1452,6 +1461,24 @@ private fun AlbumArtPresentation(
                         contentAlignment = Alignment.Center
                     ) {
                         var hasImageError by remember(albumArtUri) { mutableStateOf(false) }
+                        val context = LocalContext.current
+                        var embeddedBitmap by remember(albumArtUri, songUri, songPath) { mutableStateOf<android.graphics.Bitmap?>(null) }
+
+                        LaunchedEffect(albumArtUri, songUri, songPath, hasImageError) {
+                            if (albumArtUri == null || hasImageError) {
+                                withContext(Dispatchers.IO) {
+                                    val bmp = MediaNotificationManager.loadArtworkBitmap(
+                                        context = context,
+                                        albumArtUriString = albumArtUri?.toString(),
+                                        audioUriString = songUri?.toString(),
+                                        filePath = songPath
+                                    )
+                                    withContext(Dispatchers.Main) {
+                                        embeddedBitmap = bmp
+                                    }
+                                }
+                            }
+                        }
 
                         if (albumArtUri != null && !hasImageError) {
                             AsyncImage(
@@ -1460,11 +1487,20 @@ private fun AlbumArtPresentation(
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = "Album Artwork",
-                                contentScale = ContentScale.Fit,
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(20.dp)),
                                 onError = { hasImageError = true }
+                            )
+                        } else if (embeddedBitmap != null) {
+                            Image(
+                                bitmap = embeddedBitmap!!.asImageBitmap(),
+                                contentDescription = "Album Artwork",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(20.dp))
                             )
                         } else {
                             Canvas(modifier = Modifier.fillMaxSize()) {

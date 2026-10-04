@@ -34,7 +34,14 @@ import com.example.database.AppDatabase
 import com.example.network.AlbumArtDownloader
 import android.media.AudioManager
 import android.content.Context
+import android.content.ContentUris
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import android.os.Build
 import android.util.Log
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -86,7 +93,7 @@ data class MusicUiState(
     val shakeToSkip: Boolean = false,
     val sleepTimerMinutes: Int = 0,
     val spinningVinyl: Boolean = true,
-    val albumArtStyle: String = "Vinyl Record",
+    val albumArtStyle: String = "Classic Cover",
     val customThemeSettings: CustomThemeSettings = CustomThemeSettings(),
     val appThemeMode: com.example.model.AppThemeMode = com.example.model.AppThemeMode.DARK_OLED,
     val useSystemMediaNotification: Boolean = false
@@ -559,6 +566,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }.collect { merged ->
                 _allSongs.value = merged
                 playerManager.setPlaylist(merged)
+                preResolveExistingArtwork(merged)
             }
         }
 
@@ -656,20 +664,144 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         scanDeviceAudio()
     }
 
+    private var embeddedArtScanJob: Job? = null
+
+    private fun preResolveExistingArtwork(songs: List<Song>) {
+        embeddedArtScanJob?.cancel()
+        embeddedArtScanJob = viewModelScope.launch(Dispatchers.IO) {
+            for (song in songs) {
+                if (!isActive) break
+                try {
+                    if (!song.customAlbumArtUri.isNullOrBlank()) continue
+                    resolveExistingArtworkOrCheck(song)
+                } catch (_: Throwable) {}
+            }
+        }
+    }
+
+    /**
+     * Checks if the song already has an album art image from:
+     * 1. Existing valid customAlbumArtUri (local cache file or content URI)
+     * 2. MediaStore album art content URI with readable image stream
+     * 3. Embedded artwork in the audio file tags (ID3/FLAC/M4A via MediaMetadataRetriever)
+     * 4. System thumbnail (loadThumbnail on API 29+)
+     *
+     * If embedded artwork or thumbnail is found, it extracts and saves it to local cache,
+     * associating it with the song so it can be displayed immediately.
+     *
+     * Returns true if the song already has album art (so online download must be skipped).
+     */
+    private suspend fun resolveExistingArtworkOrCheck(song: Song): Boolean = withContext(Dispatchers.IO) {
+        val context = getApplication<Application>()
+
+        // 1. Check existing customAlbumArtUri
+        if (!song.customAlbumArtUri.isNullOrBlank()) {
+            try {
+                val uri = Uri.parse(song.customAlbumArtUri)
+                if (uri.scheme == "file") {
+                    val f = File(uri.path ?: "")
+                    if (f.exists() && f.length() > 500) {
+                        return@withContext true
+                    }
+                } else {
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        if (stream.available() > 0) return@withContext true
+                    }
+                }
+            } catch (_: Throwable) {}
+        }
+
+        // 2. Check MediaStore album art URI if available
+        if (song.albumId > 0) {
+            try {
+                val mediaStoreUri = ContentUris.withAppendedId(
+                    Uri.parse("content://media/external/audio/albumart"),
+                    song.albumId
+                )
+                context.contentResolver.openInputStream(mediaStoreUri)?.use { stream ->
+                    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeStream(stream, null, options)
+                    if (options.outWidth > 0 && options.outHeight > 0) {
+                        return@withContext true
+                    }
+                }
+            } catch (_: Throwable) {}
+        }
+
+        // 3. Check embedded picture in the audio file (ID3 / MP3 / M4A / FLAC tags)
+        try {
+            val mmr = MediaMetadataRetriever()
+            var dataSourceSet = false
+            if (song.path.isNotBlank() && File(song.path).exists()) {
+                mmr.setDataSource(song.path)
+                dataSourceSet = true
+            } else if (song.uri != Uri.EMPTY) {
+                mmr.setDataSource(context, song.uri)
+                dataSourceSet = true
+            }
+            if (dataSourceSet) {
+                val picture = mmr.embeddedPicture
+                if (picture != null && picture.isNotEmpty()) {
+                    val artDir = File(context.filesDir, "album_art").apply { if (!exists()) mkdirs() }
+                    val artFile = File(artDir, "embedded_${song.id}.jpg")
+                    artFile.writeBytes(picture)
+                    mmr.release()
+
+                    val fileUri = Uri.fromFile(artFile).toString()
+                    songRepository.setCustomAlbumArt(song.id, fileUri)
+                    withContext(Dispatchers.Main) {
+                        if (playerManager.state.value.currentSong?.id == song.id) {
+                            playerManager.updateCurrentSongAlbumArt(fileUri)
+                        }
+                    }
+                    return@withContext true
+                }
+            }
+            mmr.release()
+        } catch (_: Throwable) {}
+
+        // 4. Check ContentResolver.loadThumbnail on API 29+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && song.uri != Uri.EMPTY) {
+            try {
+                val bmp = context.contentResolver.loadThumbnail(
+                    song.uri,
+                    android.util.Size(512, 512),
+                    null
+                )
+                if (bmp != null && bmp.width > 0 && bmp.height > 0) {
+                    val artDir = File(context.filesDir, "album_art").apply { if (!exists()) mkdirs() }
+                    val artFile = File(artDir, "thumb_${song.id}.jpg")
+                    artFile.outputStream().use { out ->
+                        bmp.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                    }
+                    val fileUri = Uri.fromFile(artFile).toString()
+                    songRepository.setCustomAlbumArt(song.id, fileUri)
+                    withContext(Dispatchers.Main) {
+                        if (playerManager.state.value.currentSong?.id == song.id) {
+                            playerManager.updateCurrentSongAlbumArt(fileUri)
+                        }
+                    }
+                    return@withContext true
+                }
+            } catch (_: Throwable) {}
+        }
+
+        return@withContext false
+    }
+
     private fun checkAndDownloadAlbumArt(song: Song) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val hasCustomArt = if (!song.customAlbumArtUri.isNullOrBlank()) {
-                    try {
-                        val uri = android.net.Uri.parse(song.customAlbumArtUri)
-                        if (uri.scheme == "file") {
-                            val f = java.io.File(uri.path ?: "")
-                            f.exists() && f.length() > 500
-                        } else true
-                    } catch (_: Throwable) { false }
-                } else false
+                // (1) Check if the song ALREADY has album art (local custom, MediaStore, or embedded in audio file).
+                // If yes, do NOT download album art for this song! Keep & display the existing artwork.
+                val alreadyHasArt = resolveExistingArtworkOrCheck(song)
+                if (alreadyHasArt) {
+                    Log.d("MusicViewModel", "Song '${song.title}' already has album art. Skipping online download.")
+                    return@launch
+                }
 
-                if (!hasCustomArt && AlbumArtDownloader.isWifiOrMobileDataConnected(getApplication())) {
+                // (2) Only download from internet if the song has NO existing album art at all
+                if (AlbumArtDownloader.isWifiOrMobileDataConnected(getApplication())) {
                     val downloadedUri = AlbumArtDownloader.downloadAlbumArt(
                         context = getApplication(),
                         songId = song.id,

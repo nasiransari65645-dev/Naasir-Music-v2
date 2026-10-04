@@ -266,7 +266,7 @@ fun SettingsScreen(
     onSetPlaybackSpeed: (Float) -> Unit = {},
     playbackPitch: Float = 1.0f,
     onSetPlaybackPitch: (Float) -> Unit = {},
-    albumArtStyle: String = "Vinyl Record",
+    albumArtStyle: String = "Classic Cover",
     onSetAlbumArtStyle: (String) -> Unit = {},
     spinningVinyl: Boolean = true,
     onSetSpinningVinyl: (Boolean) -> Unit = {},
@@ -453,7 +453,7 @@ fun SettingsScreen(
  */
 @Composable
 private fun MainPreferencesList(
-    albumArtStyle: String = "Vinyl Record",
+    albumArtStyle: String = "Classic Cover",
     onSetAlbumArtStyle: (String) -> Unit = {},
     prefsManager: SettingsPreferencesManager,
     onSelectCategory: (SettingsSubCategory) -> Unit
@@ -698,7 +698,7 @@ private fun PlayerSubScreen(
     onToggleUseSystemMediaNotification: (Boolean) -> Unit = {},
     shakeToSkip: Boolean,
     onToggleShakeToSkip: (Boolean) -> Unit,
-    albumArtStyle: String = "Vinyl Record",
+    albumArtStyle: String = "Classic Cover",
     onSetAlbumArtStyle: (String) -> Unit = {},
     spinningVinyl: Boolean = true,
     onSetSpinningVinyl: (Boolean) -> Unit = {},
@@ -1071,7 +1071,7 @@ private fun LookAndFeelSubScreen(
     onToggleShowVisualizerText: (Boolean) -> Unit,
     visualizerTextColorHex: Long,
     onSelectVisualizerTextColor: (Long) -> Unit,
-    albumArtStyle: String = "Vinyl Record",
+    albumArtStyle: String = "Classic Cover",
     onSetAlbumArtStyle: (String) -> Unit = {},
     prefsManager: SettingsPreferencesManager? = null,
     volumeGaugeSettings: VolumeGaugeSettings = VolumeGaugeSettings(),

@@ -292,8 +292,8 @@ class SettingsPreferencesManager(context: Context) {
     }
 
     fun loadAlbumArtStyle(): String {
-        val saved = prefs.getString(KEY_ALBUM_ART_STYLE, "Vinyl Record") ?: "Vinyl Record"
-        return if (saved == "Full Screen" || saved.isBlank()) "Vinyl Record" else saved
+        val saved = prefs.getString(KEY_ALBUM_ART_STYLE, "Classic Cover") ?: "Classic Cover"
+        return if (saved == "Full Screen" || saved.isBlank()) "Classic Cover" else saved
     }
 
     fun saveSeekIntervalSec(seconds: Int) {
