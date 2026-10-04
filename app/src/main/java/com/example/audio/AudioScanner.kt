@@ -206,11 +206,10 @@ object AudioScanner {
             folderMap.getOrPut(folderName) { mutableListOf() }.add(song)
         }
 
-        // Deduplicate tracks within each folder and sort alphabetically
+        // Folders tree catalog: unfiltered full access, preserves all songs in each folder intact
         val sortedMap = TreeMap<String, List<Song>>(String.CASE_INSENSITIVE_ORDER)
         for ((folder, songs) in folderMap) {
-            val uniqueFolderSongs = deduplicateSongs(songs)
-            val sortedTracks = uniqueFolderSongs.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
+            val sortedTracks = songs.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
             sortedMap[folder] = sortedTracks
         }
         return sortedMap

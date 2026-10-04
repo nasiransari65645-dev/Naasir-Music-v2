@@ -243,11 +243,18 @@ fun LibraryScreen(
         }.sortedByDescending { it.second.size }
     }
 
-    // Folders calculation (strictly deduplicated tracks inside each folder, no duplicates)
-    val foldersList = remember(deduplicatedSongs) {
-        deduplicatedSongs.groupBy { it.folder.ifBlank { "Music" } }.map { (folder, songList) ->
-            folder to songList
-        }.sortedBy { it.first.lowercase() }
+    // Folders calculation (unfiltered: preserves all songs and audio files in each folder)
+    val foldersList = remember(filteredSongs, effectiveSongs) {
+        val cached = com.example.audio.AudioScanner.cachedFolders
+        if (cached.isNotEmpty()) {
+            cached.map { (folder, songList) ->
+                folder to songList
+            }.sortedBy { it.first.lowercase() }
+        } else {
+            effectiveSongs.groupBy { it.folder.ifBlank { "Music" } }.map { (folder, songList) ->
+                folder to songList
+            }.sortedBy { it.first.lowercase() }
+        }
     }
 
     // Genres calculation
@@ -291,7 +298,10 @@ fun LibraryScreen(
                 LibraryCategory.PLAYLISTS -> deduplicatedSongs.filter { favoriteIds.contains(it.id) }
                 LibraryCategory.ARTISTS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.artist.ifBlank { "Unknown Artist" } == selectedGroupFilter } else emptyList()
                 LibraryCategory.ALBUMS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.album.ifBlank { "Unknown Album" } == selectedGroupFilter } else emptyList()
-                LibraryCategory.FOLDERS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.folder.ifBlank { "Music" } == selectedGroupFilter } else emptyList()
+                LibraryCategory.FOLDERS -> if (selectedGroupFilter != null) {
+                    com.example.audio.AudioScanner.cachedFolders[selectedGroupFilter]
+                        ?: effectiveSongs.filter { it.folder.ifBlank { "Music" } == selectedGroupFilter }
+                } else emptyList()
                 LibraryCategory.GENRE -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.genre.ifBlank { "General" } == selectedGroupFilter } else emptyList()
                 LibraryCategory.ALBUM_ARTISTS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.albumArtist.ifBlank { it.artist.ifBlank { "Unknown Artist" } } == selectedGroupFilter } else emptyList()
                 LibraryCategory.COMPILATIONS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.album.ifBlank { "Unknown Album" } == selectedGroupFilter } else emptyList()
@@ -964,9 +974,9 @@ fun LibraryScreen(
                         }
                     }
 
-                    // (2) Jump to Last Song Floating Arrow (appears when scrolling down)
+                    // (2) Jump to Last Song Floating Arrow (shows only while scrolling down, hides when scroll stops)
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = isScrollingDown && !isNearBottom && displaySongs.size > 5,
+                        visible = songListState.isScrollInProgress && isScrollingDown && !isNearBottom && displaySongs.size > 5,
                         enter = fadeIn() + slideInVertically { it / 2 },
                         exit = fadeOut() + slideOutVertically { it / 2 },
                         modifier = Modifier
@@ -978,44 +988,39 @@ fun LibraryScreen(
                                 coroutineScope.launch {
                                     if (displaySongs.isNotEmpty()) {
                                         val targetIdx = (displaySongs.size - 1).coerceAtLeast(0)
+                                        val currentIdx = songListState.firstVisibleItemIndex
+                                        if (targetIdx - currentIdx > 8) {
+                                            // Direct jump to proximity of last song
+                                            songListState.scrollToItem((targetIdx - 8).coerceAtLeast(0))
+                                        }
+                                        // Buttery smooth micro-scroll into final position
                                         songListState.animateScrollToItem(targetIdx)
                                     }
                                 }
                             },
-                            shape = RoundedCornerShape(24.dp),
+                            shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
                             tonalElevation = 6.dp,
                             shadowElevation = 8.dp,
-                            border = BorderStroke(1.dp, CyanNeon.copy(alpha = 0.5f)),
+                            border = BorderStroke(1.5.dp, CyanNeon.copy(alpha = 0.7f)),
                             modifier = Modifier
                                 .testTag("scroll_to_bottom_button")
-                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                .size(52.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.KeyboardDoubleArrowDown,
                                     contentDescription = "Scroll to last song",
                                     tint = CyanNeon,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Last",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = CyanNeon
+                                    modifier = Modifier.size(34.dp)
                                 )
                             }
                         }
                     }
 
-                    // (2) Jump to 1st Song Floating Arrow (appears when scrolling up)
+                    // (2) Jump to 1st Song Floating Arrow (shows only while scrolling up, hides when scroll stops)
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = !isScrollingDown && isScrolledAwayFromTop && displaySongs.size > 5,
+                        visible = songListState.isScrollInProgress && !isScrollingDown && isScrolledAwayFromTop && displaySongs.size > 5,
                         enter = fadeIn() + slideInVertically { -it / 2 },
                         exit = fadeOut() + slideOutVertically { -it / 2 },
                         modifier = Modifier
@@ -1025,35 +1030,32 @@ fun LibraryScreen(
                         Surface(
                             onClick = {
                                 coroutineScope.launch {
-                                    songListState.animateScrollToItem(0)
+                                    if (displaySongs.isNotEmpty()) {
+                                        val currentIdx = songListState.firstVisibleItemIndex
+                                        if (currentIdx > 8) {
+                                            // Direct jump to proximity of 1st song
+                                            songListState.scrollToItem(8)
+                                        }
+                                        // Buttery smooth micro-scroll into 1st song
+                                        songListState.animateScrollToItem(0)
+                                    }
                                 }
                             },
-                            shape = RoundedCornerShape(24.dp),
+                            shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
                             tonalElevation = 6.dp,
                             shadowElevation = 8.dp,
-                            border = BorderStroke(1.dp, PurpleNeon.copy(alpha = 0.5f)),
+                            border = BorderStroke(1.5.dp, PurpleNeon.copy(alpha = 0.7f)),
                             modifier = Modifier
                                 .testTag("scroll_to_top_button")
-                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                .size(52.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.KeyboardDoubleArrowUp,
                                     contentDescription = "Scroll to first song",
                                     tint = PurpleNeon,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "1st Song",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = PurpleNeon
+                                    modifier = Modifier.size(34.dp)
                                 )
                             }
                         }
