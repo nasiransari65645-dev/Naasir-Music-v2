@@ -314,56 +314,77 @@ fun NowPlayingScreen(
             }
 
             // 2. TRACK INFORMATION
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
+                // (1) Song Title & Artist Card: Long/wide across screen with rounded radius
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 48.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .testTag("now_playing_title_card"),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                 ) {
-                    AutoScrollText(
-                        text = currentSong.title,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${currentSong.artist} • ${currentSong.album}",
-                        fontSize = 14.sp,
-                        color = Color(0xFF7E8B9B),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AutoScrollText(
+                            text = currentSong.title,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "${currentSong.artist} • ${currentSong.album}",
+                            fontSize = 13.5.sp,
+                            color = Color(0xFF7E8B9B),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
 
-                // Favorite Heart Button
-                IconButton(
-                    onClick = { onToggleFavorite(currentSong.id) },
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // (2) Favorite Heart Button: Placed slightly lower below the title card, not touching the title text
+                Row(
                     modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isFavorite) Color(0xFFEF4444).copy(alpha = 0.15f)
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        )
-                        .testTag("now_playing_heart_button")
+                        .fillMaxWidth()
+                        .padding(end = 4.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
-                        tint = if (isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    IconButton(
+                        onClick = { onToggleFavorite(currentSong.id) },
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isFavorite) Color(0xFFEF4444).copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                            .testTag("now_playing_heart_button")
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
+                            tint = if (isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
             }
 
@@ -525,32 +546,32 @@ fun NowPlayingScreen(
                     )
                 }
 
-                // 2. Previous Track Button
+                // 2. Previous Track Button (Enlarged touch target & icon)
                 HoldableIconButton(
                     onClick = onPrevious,
                     onHoldStart = onStartRewind,
                     onHoldEnd = onStopRewind,
                     isHolding = isRewinding,
-                    size = 48.dp,
+                    size = 56.dp,
                     activeGlowColor = activeSkipGlowColor,
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(56.dp)
                         .testTag("previous_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Previous Track",
                         tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(38.dp)
                     )
                 }
 
-                // 3. Central Big Play/Pause Button
+                // 3. Central Big Play/Pause Button (Enlarged touch target & icon)
                 IconButton(
                     onClick = onTogglePlayPause,
                     modifier = Modifier
-                        .size(72.dp)
-                        .shadow(8.dp, CircleShape, ambientColor = Color(0xFF00E5FF), spotColor = Color(0xFF00E5FF))
+                        .size(80.dp)
+                        .shadow(10.dp, CircleShape, ambientColor = Color(0xFF00E5FF), spotColor = Color(0xFF00E5FF))
                         .clip(CircleShape)
                         .background(Color(0xFF00E5FF))
                         .testTag("play_pause_button")
@@ -559,27 +580,27 @@ fun NowPlayingScreen(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
                         tint = Color(0xFF080B14),
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(44.dp)
                     )
                 }
 
-                // 4. Next Track Button
+                // 4. Next Track Button (Enlarged touch target & icon)
                 HoldableIconButton(
                     onClick = onNext,
                     onHoldStart = onStartFastForward,
                     onHoldEnd = onStopFastForward,
                     isHolding = isFastForwarding,
-                    size = 48.dp,
+                    size = 56.dp,
                     activeGlowColor = activeSkipGlowColor,
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(56.dp)
                         .testTag("next_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next Track",
                         tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(38.dp)
                     )
                 }
 
