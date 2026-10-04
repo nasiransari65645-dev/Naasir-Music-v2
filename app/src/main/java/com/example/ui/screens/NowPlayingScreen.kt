@@ -6,6 +6,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode as AnimRepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -23,6 +24,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -87,6 +89,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -631,6 +637,421 @@ private fun formatMs(ms: Long): String {
 }
 
 /**
+ * Real-Time Animated Tonearm Stylus for Vinyl & CD Disk Skins.
+ *
+ * Implements an authentic turntable tonearm with:
+ * 1. Dynamic needle tracking synchronized with song progress (0f at outer rim to 18f at inner groove).
+ * 2. Automatic parking at -28f onto resting cradle when playback is paused.
+ * 3. Silver chrome curved tonearm bar with realistic ergonomic S-curve.
+ * 4. High-mass counterweight at top-right gimbal base.
+ * 5. Titanium cartridge headshell with:
+ *    - Classic diamond stylus point & branding stripe for Vinyl Record.
+ *    - Glowing Neon Cyan digital optical tracking dot (#00E5FF) with diffuse laser halo for CD Disk.
+ * 6. Responsive anchoring via transformOrigin = TransformOrigin(pivotX, pivotY) and rotationZ = animatedAngle.
+ */
+@Composable
+private fun TonearmStylusOverlay(
+    isPlaying: Boolean,
+    currentPositionMs: Long,
+    durationMs: Long,
+    isCdDisk: Boolean,
+    modifier: Modifier = Modifier
+) {
+    // 1. Dynamic Needle Angle Calculation (Sync with Song Progress)
+    val progressFraction = (currentPositionMs.toFloat() / durationMs.coerceAtLeast(1L).toFloat()).coerceIn(0f, 1f)
+
+    // When playing:
+    //   Song start (progress = 0f): Needle lands at disc outer edge (angle = 0f)
+    //   Song end (progress = 1f): Needle smoothly progresses towards disc inner center groove (angle = 18f)
+    //   Active Angle = 0f + 18f * progressFraction
+    // When paused:
+    //   Rest Angle = -28f (swung completely off the disc onto resting cradle)
+    val targetAngle = if (isPlaying) {
+        0f + 18f * progressFraction
+    } else {
+        -28f
+    }
+
+    val animatedAngle by animateFloatAsState(
+        targetValue = targetAngle,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "tonearm_stylus_angle"
+    )
+
+    BoxWithConstraints(
+        modifier = modifier.fillMaxSize()
+    ) {
+        val widthPx = constraints.maxWidth.toFloat()
+        val heightPx = constraints.maxHeight.toFloat()
+        val minDim = minOf(widthPx, heightPx)
+
+        // Geometric reference: disc is centered with radius ~ minDim * 0.42f
+        val cx = widthPx / 2f
+        val cy = heightPx / 2f
+        val discRadius = minDim * 0.42f
+
+        // Pivot base positioned at top-right corner of the disc Box container
+        val pivotX = cx + discRadius * 0.78f
+        val pivotY = cy - discRadius * 0.78f
+        val pivotFractionX = (pivotX / widthPx).coerceIn(0f, 1f)
+        val pivotFractionY = (pivotY / heightPx).coerceIn(0f, 1f)
+
+        val armLength = discRadius * 1.15f
+
+        // 1. STATIONARY BASE LAYER: Gimbal Base Bezel & Resting Cradle
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val pivotPt = Offset(pivotX, pivotY)
+
+            // Resting Cradle located at the parked angle (67° from pivot)
+            val restAngleRad = Math.toRadians(67.0).toFloat()
+            val cradleDistance = armLength * 0.72f
+            val cradlePos = Offset(
+                x = pivotX + cradleDistance * kotlin.math.cos(restAngleRad),
+                y = pivotY + cradleDistance * kotlin.math.sin(restAngleRad)
+            )
+
+            // Cradle pillar shadow & base plate
+            drawCircle(
+                color = Color.Black.copy(alpha = 0.5f),
+                radius = 6.dp.toPx(),
+                center = cradlePos + Offset(1.dp.toPx(), 2.dp.toPx())
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF64748B), Color(0xFF1E293B)),
+                    center = cradlePos,
+                    radius = 5.5.dp.toPx()
+                ),
+                radius = 5.5.dp.toPx(),
+                center = cradlePos
+            )
+            // U-shaped resting cradle clip
+            val cradleForkPath = Path().apply {
+                moveTo(cradlePos.x - 3.5.dp.toPx(), cradlePos.y - 4.dp.toPx())
+                lineTo(cradlePos.x - 2.5.dp.toPx(), cradlePos.y + 2.dp.toPx())
+                lineTo(cradlePos.x + 2.5.dp.toPx(), cradlePos.y + 2.dp.toPx())
+                lineTo(cradlePos.x + 3.5.dp.toPx(), cradlePos.y - 4.dp.toPx())
+            }
+            drawPath(
+                path = cradleForkPath,
+                color = Color(0xFFCBD5E1),
+                style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            )
+            // Dark rubberized cradle notch
+            drawCircle(
+                color = Color(0xFF0F172A),
+                radius = 2.dp.toPx(),
+                center = cradlePos
+            )
+
+            // Stationary Pivot Mount Base Plate (Turntable Gimbal Base)
+            drawCircle(
+                color = Color.Black.copy(alpha = 0.6f),
+                radius = 16.dp.toPx(),
+                center = pivotPt + Offset(2.dp.toPx(), 2.5.dp.toPx())
+            )
+            // Brushed metallic mounting flange
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF94A3B8),
+                        Color(0xFF475569),
+                        Color(0xFF1E293B),
+                        Color(0xFF0F172A)
+                    ),
+                    center = pivotPt,
+                    radius = 15.dp.toPx()
+                ),
+                radius = 15.dp.toPx(),
+                center = pivotPt
+            )
+            // Beveled chrome outer rim
+            drawCircle(
+                color = Color(0xFFCBD5E1).copy(alpha = 0.85f),
+                radius = 15.dp.toPx(),
+                center = pivotPt,
+                style = Stroke(width = 1.5.dp.toPx())
+            )
+            // Recessed bearing well
+            drawCircle(
+                color = Color(0xFF090D16),
+                radius = 11.dp.toPx(),
+                center = pivotPt
+            )
+            // Inner pivot collar ring
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFFCBD5E1), Color(0xFF64748B)),
+                    center = pivotPt,
+                    radius = 7.dp.toPx()
+                ),
+                radius = 7.dp.toPx(),
+                center = pivotPt
+            )
+        }
+
+        // 2. ROTATING TONEARM ASSEMBLY (Hardware-accelerated graphicsLayer anchored at pivot)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    transformOrigin = TransformOrigin(pivotFractionX, pivotFractionY)
+                    rotationZ = animatedAngle
+                }
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val pivotPt = Offset(pivotX, pivotY)
+
+                // Counterweight shaft extending backward (direction ~275°)
+                val backAngleRad = Math.toRadians(275.0).toFloat()
+                val shaftLength = minDim * 0.08f
+                val shaftEnd = Offset(
+                    x = pivotX + shaftLength * kotlin.math.cos(backAngleRad),
+                    y = pivotY + shaftLength * kotlin.math.sin(backAngleRad)
+                )
+
+                drawLine(
+                    brush = Brush.linearGradient(listOf(Color(0xFFCBD5E1), Color(0xFF475569))),
+                    start = pivotPt,
+                    end = shaftEnd,
+                    strokeWidth = 3.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+
+                // High-mass Round Metallic Counterweight
+                val weightCenter = Offset(
+                    x = pivotX + (shaftLength * 0.65f) * kotlin.math.cos(backAngleRad),
+                    y = pivotY + (shaftLength * 0.65f) * kotlin.math.sin(backAngleRad)
+                )
+                // Shadow
+                drawCircle(
+                    color = Color.Black.copy(alpha = 0.5f),
+                    radius = 7.dp.toPx(),
+                    center = weightCenter + Offset(1.dp.toPx(), 1.dp.toPx())
+                )
+                // Metallic cylinder
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFFE2E8F0),
+                            Color(0xFF94A3B8),
+                            Color(0xFF334155),
+                            Color(0xFF1E293B)
+                        ),
+                        center = weightCenter - Offset(1.dp.toPx(), 1.dp.toPx()),
+                        radius = 7.dp.toPx()
+                    ),
+                    radius = 7.dp.toPx(),
+                    center = weightCenter
+                )
+                // Calibration scale groove ring
+                drawCircle(
+                    color = Color(0xFF0F172A),
+                    radius = 4.8.dp.toPx(),
+                    center = weightCenter,
+                    style = Stroke(width = 1.dp.toPx())
+                )
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.85f),
+                    radius = 1.8.dp.toPx(),
+                    center = weightCenter
+                )
+
+                // Pivot Gimbal Dome Cap
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFFFFFFFF), Color(0xFF94A3B8), Color(0xFF334155)),
+                        center = pivotPt - Offset(1.dp.toPx(), 1.dp.toPx()),
+                        radius = 4.5.dp.toPx()
+                    ),
+                    radius = 4.5.dp.toPx(),
+                    center = pivotPt
+                )
+
+                // Reference Needle Target & Ergonomic Curved Tonearm Bar (Silver / Metallic Chrome Finish)
+                val baseAngleRad = Math.toRadians(95.0).toFloat()
+                val tipTarget = Offset(
+                    x = pivotX + armLength * kotlin.math.cos(baseAngleRad),
+                    y = pivotY + armLength * kotlin.math.sin(baseAngleRad)
+                )
+
+                // Smooth S-Curve Tonearm Geometry
+                val p0 = pivotPt
+                val p1 = Offset(pivotX - armLength * 0.08f, pivotY + armLength * 0.35f)
+                val p2 = Offset(pivotX + armLength * 0.06f, pivotY + armLength * 0.70f)
+                val headshellBase = Offset(tipTarget.x + armLength * 0.03f, tipTarget.y - armLength * 0.08f)
+
+                val armPath = Path().apply {
+                    moveTo(p0.x, p0.y)
+                    cubicTo(p1.x, p1.y, p2.x, p2.y, headshellBase.x, headshellBase.y)
+                }
+
+                // 1) Tonearm drop shadow
+                drawPath(
+                    path = armPath,
+                    color = Color.Black.copy(alpha = 0.45f),
+                    style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+                // 2) Chrome metallic tonearm bar
+                drawPath(
+                    path = armPath,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFFF8FAFC),
+                            Color(0xFFCBD5E1),
+                            Color(0xFF94A3B8),
+                            Color(0xFF64748B)
+                        ),
+                        start = p0,
+                        end = headshellBase
+                    ),
+                    style = Stroke(width = 3.2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+                // 3) Specular chrome top highlight line
+                drawPath(
+                    path = armPath,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.9f),
+                            Color.White.copy(alpha = 0.35f),
+                            Color.White.copy(alpha = 0.85f)
+                        )
+                    ),
+                    style = Stroke(width = 1.2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+
+                // Headshell Mount Collar
+                drawCircle(
+                    color = Color(0xFF64748B),
+                    radius = 2.5.dp.toPx(),
+                    center = headshellBase
+                )
+
+                // Stylus Cartridge / Headshell
+                val tipPos = tipTarget
+                val cartridgeVector = tipPos - headshellBase
+                val cartridgeLen = kotlin.math.hypot(cartridgeVector.x, cartridgeVector.y)
+                val normVector = if (cartridgeLen > 0f) cartridgeVector / cartridgeLen else Offset(0f, 1f)
+                val perpVector = Offset(-normVector.y, normVector.x)
+
+                val halfCartWidth = 3.8.dp.toPx()
+                val cP1 = headshellBase + perpVector * halfCartWidth
+                val cP2 = headshellBase - perpVector * halfCartWidth
+                val cP3 = tipPos - perpVector * (halfCartWidth * 0.6f)
+                val cP4 = tipPos + perpVector * (halfCartWidth * 0.6f)
+
+                val cartridgePath = Path().apply {
+                    moveTo(cP1.x, cP1.y)
+                    lineTo(cP2.x, cP2.y)
+                    lineTo(cP3.x, cP3.y)
+                    lineTo(cP4.x, cP4.y)
+                    close()
+                }
+
+                // Cartridge drop shadow
+                drawPath(
+                    path = cartridgePath,
+                    color = Color.Black.copy(alpha = 0.5f)
+                )
+                // Cartridge chassis
+                drawPath(
+                    path = cartridgePath,
+                    brush = Brush.linearGradient(
+                        colors = if (isCdDisk) {
+                            listOf(Color(0xFF334155), Color(0xFF1E293B), Color(0xFF0F172A))
+                        } else {
+                            listOf(Color(0xFF1E293B), Color(0xFF0F172A), Color(0xFF090D16))
+                        },
+                        start = headshellBase,
+                        end = tipPos
+                    )
+                )
+                // Headshell rim highlight
+                drawPath(
+                    path = cartridgePath,
+                    color = if (isCdDisk) Color(0xFF00E5FF).copy(alpha = 0.45f) else Color(0xFF94A3B8).copy(alpha = 0.6f),
+                    style = Stroke(width = 1.dp.toPx())
+                )
+
+                // Finger lift cue tab (outer edge)
+                val fingerLiftStart = cP2
+                val fingerLiftEnd = cP2 - perpVector * 5.dp.toPx() + normVector * 2.dp.toPx()
+                drawLine(
+                    color = Color(0xFFCBD5E1),
+                    start = fingerLiftStart,
+                    end = fingerLiftEnd,
+                    strokeWidth = 1.4.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+
+                // Needle Tip Rendering
+                if (isCdDisk) {
+                    // CD DISK: Digital Optical Laser Tracking Head
+                    // Subtle glowing Neon Cyan dot (#00E5FF) at needle tip simulating optical laser tracking
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF00E5FF).copy(alpha = 0.6f),
+                                Color(0xFF00E5FF).copy(alpha = 0.22f),
+                                Color.Transparent
+                            ),
+                            center = tipPos,
+                            radius = 8.dp.toPx()
+                        ),
+                        radius = 8.dp.toPx(),
+                        center = tipPos
+                    )
+                    // Bright Neon Cyan focal dot (#00E5FF)
+                    drawCircle(
+                        color = Color(0xFF00E5FF),
+                        radius = 2.8.dp.toPx(),
+                        center = tipPos
+                    )
+                    // White laser beam core
+                    drawCircle(
+                        color = Color.White,
+                        radius = 1.2.dp.toPx(),
+                        center = tipPos
+                    )
+                } else {
+                    // VINYL RECORD: Classic Phonograph Magnetic Cartridge Needle Tip
+                    // Gold accent branding stripe on cartridge
+                    val stripeP1 = headshellBase + cartridgeVector * 0.45f + perpVector * (halfCartWidth * 0.85f)
+                    val stripeP2 = headshellBase + cartridgeVector * 0.45f - perpVector * (halfCartWidth * 0.85f)
+                    drawLine(
+                        color = Color(0xFFF59E0B),
+                        start = stripeP1,
+                        end = stripeP2,
+                        strokeWidth = 1.5.dp.toPx()
+                    )
+
+                    // Silver cantilever needle point extending onto record
+                    val needleEnd = tipPos + normVector * 3.dp.toPx()
+                    drawLine(
+                        color = Color(0xFFE2E8F0),
+                        start = tipPos,
+                        end = needleEnd,
+                        strokeWidth = 1.4.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                    // Diamond needle tip sparkle
+                    drawCircle(
+                        color = Color.White,
+                        radius = 1.5.dp.toPx(),
+                        center = needleEnd
+                    )
+                    drawCircle(
+                        color = Color(0xFF38BDF8).copy(alpha = 0.5f),
+                        radius = 3.dp.toPx(),
+                        center = needleEnd
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
  * Dynamic Interactive Album Art Presentation supporting 6 distinct styles:
  * 1. Vinyl Record (Grooves, center label, 33⅓ RPM rotation when playing)
  * 2. Classic Cover (Modern rounded artwork card with neon border & glowing badge)
@@ -930,71 +1351,85 @@ private fun AlbumArtPresentation(
             }
 
             "Vinyl Record" -> {
-                // 1. VINYL RECORD
+                // 1. VINYL RECORD (with Authentic Animated Tonearm Stylus)
                 Box(
-                    modifier = Modifier
-                        .size(200.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF0C0E14))
-                        .border(3.dp, if (outerBorderColor != Color.Unspecified) outerBorderColor else Color(0xFF1E2230), CircleShape)
-                        .rotate(if (spinningVinyl && isPlaying) rotationAnim.value else 0f),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val maxR = size.minDimension / 2f
-                        // Concentric microgrooves
-                        for (i in 1..14) {
-                            drawCircle(
-                                color = Color(0xFF1A1F2E).copy(alpha = 0.7f),
-                                radius = maxR * (0.38f + i * 0.042f),
-                                center = center,
-                                style = Stroke(width = 1.dp.toPx())
-                            )
-                        }
-                        // Vinyl vinylite reflection highlights
-                        drawCircle(
-                            brush = Brush.sweepGradient(
-                                listOf(
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.Transparent
-                                )
-                            ),
-                            radius = maxR * 0.96f,
-                            center = center
-                        )
-                    }
-
-                    // Center Vinyl Label Disc
                     Box(
                         modifier = Modifier
-                            .size(92.dp)
+                            .size(192.dp)
                             .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(activeAccentColor, if (outerBorderColor != Color.Unspecified) outerBorderColor.copy(alpha = 0.5f) else Color(0xFF1E1B4B))
-                                )
-                            )
-                            .border(2.dp, activeAccentColor, CircleShape),
+                            .background(Color(0xFF0C0E14))
+                            .border(3.dp, if (outerBorderColor != Color.Unspecified) outerBorderColor else Color(0xFF1E2230), CircleShape)
+                            .rotate(if (spinningVinyl && isPlaying) rotationAnim.value else 0f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val maxR = size.minDimension / 2f
+                            // Concentric microgrooves
+                            for (i in 1..14) {
+                                drawCircle(
+                                    color = Color(0xFF1A1F2E).copy(alpha = 0.7f),
+                                    radius = maxR * (0.38f + i * 0.042f),
+                                    center = center,
+                                    style = Stroke(width = 1.dp.toPx())
+                                )
+                            }
+                            // Vinyl vinylite reflection highlights
+                            drawCircle(
+                                brush = Brush.sweepGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        Color.White.copy(alpha = 0.08f),
+                                        Color.Transparent,
+                                        Color.White.copy(alpha = 0.08f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                radius = maxR * 0.96f,
+                                center = center
+                            )
+                        }
+
+                        // Center Vinyl Label Disc
+                        Box(
+                            modifier = Modifier
+                                .size(88.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(activeAccentColor, if (outerBorderColor != Color.Unspecified) outerBorderColor.copy(alpha = 0.5f) else Color(0xFF1E1B4B))
+                                    )
+                                )
+                                .border(2.dp, activeAccentColor, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+
+                        // Center Spindle Hole
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF06080F))
+                                .border(1.5.dp, Color(0xFF94A3B8), CircleShape)
                         )
                     }
 
-                    // Center Spindle Hole
-                    Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF06080F))
-                            .border(1.5.dp, Color(0xFF94A3B8), CircleShape)
+                    // Authentic Animated Tonearm Stylus Overlay
+                    TonearmStylusOverlay(
+                        isPlaying = isPlaying,
+                        currentPositionMs = currentPositionMs,
+                        durationMs = durationMs,
+                        isCdDisk = false,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
@@ -1081,58 +1516,72 @@ private fun AlbumArtPresentation(
             }
 
             "CD Disk" -> {
-                // 3. COMPACT DISC (CD)
+                // 3. COMPACT DISC (CD with Authentic Animated Tonearm Stylus)
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                        .background(Color(0xFFCBD5E1))
-                        .border(2.dp, Color(0xFF94A3B8), CircleShape)
-                        .rotate(rotationAnim.value),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val maxR = size.minDimension / 2f
-                        // Holographic rainbow diffraction sweep
-                        drawCircle(
-                            brush = Brush.sweepGradient(
-                                listOf(
-                                    Color(0xFFE2E8F0),
-                                    activeAccentColor.copy(alpha = 0.5f),
-                                    Color(0xFFF43F5E).copy(alpha = 0.5f),
-                                    Color(0xFFEAB308).copy(alpha = 0.5f),
-                                    activeAccentColor.copy(alpha = 0.5f),
-                                    Color(0xFFE2E8F0)
-                                )
-                            ),
-                            radius = maxR * 0.96f,
-                            center = center
+                    Box(
+                        modifier = Modifier
+                            .size(192.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFCBD5E1))
+                            .border(2.dp, Color(0xFF94A3B8), CircleShape)
+                            .rotate(rotationAnim.value),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val maxR = size.minDimension / 2f
+                            // Holographic rainbow diffraction sweep
+                            drawCircle(
+                                brush = Brush.sweepGradient(
+                                    listOf(
+                                        Color(0xFFE2E8F0),
+                                        activeAccentColor.copy(alpha = 0.5f),
+                                        Color(0xFFF43F5E).copy(alpha = 0.5f),
+                                        Color(0xFFEAB308).copy(alpha = 0.5f),
+                                        activeAccentColor.copy(alpha = 0.5f),
+                                        Color(0xFFE2E8F0)
+                                    )
+                                ),
+                                radius = maxR * 0.96f,
+                                center = center
+                            )
+                            // Mirror track separator ring
+                            drawCircle(
+                                color = Color(0xFF64748B).copy(alpha = 0.4f),
+                                radius = maxR * 0.42f,
+                                center = center,
+                                style = Stroke(width = 1.5.dp.toPx())
+                            )
+                        }
+
+                        // Polycarbonate inner ring
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF0F172A).copy(alpha = 0.7f))
+                                .border(1.5.dp, Color(0xFF94A3B8), CircleShape)
                         )
-                        // Mirror track separator ring
-                        drawCircle(
-                            color = Color(0xFF64748B).copy(alpha = 0.4f),
-                            radius = maxR * 0.42f,
-                            center = center,
-                            style = Stroke(width = 1.5.dp.toPx())
+
+                        // Center spindle hole
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF080B14))
+                                .border(2.dp, Color(0xFFCBD5E1), CircleShape)
                         )
                     }
 
-                    // Polycarbonate inner ring
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF0F172A).copy(alpha = 0.7f))
-                            .border(1.5.dp, Color(0xFF94A3B8), CircleShape)
-                    )
-
-                    // Center spindle hole
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF080B14))
-                            .border(2.dp, Color(0xFFCBD5E1), CircleShape)
+                    // Authentic Animated Tonearm Stylus with Neon Cyan optical laser dot
+                    TonearmStylusOverlay(
+                        isPlaying = isPlaying,
+                        currentPositionMs = currentPositionMs,
+                        durationMs = durationMs,
+                        isCdDisk = true,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
