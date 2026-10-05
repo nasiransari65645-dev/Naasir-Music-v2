@@ -665,22 +665,33 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Ultra-Fast Zero-Lag App Cold Start: Instant memory hydration from disk cache
+        loadCachedSongsInstantly()
+    }
+
+    /**
+     * Cold Start Routine: Instant memory hydration from local disk/Room cache first.
+     * Never waits for MediaStore or sets _isScanning during launch.
+     */
+    private fun loadCachedSongsInstantly() {
         viewModelScope.launch(Dispatchers.IO) {
-            // Step 1: Instant memory hydration from local disk cache (<2ms, 0ms perceived latency)
-            val localCached = songRepository.getCachedSongs()
-            if (!localCached.isNullOrEmpty()) {
+            // Step 1: Immediately read cached songs from Room DB / Cache
+            val cachedSongs = songRepository.getCachedSongs()
+            if (!cachedSongs.isNullOrEmpty()) {
                 withContext(Dispatchers.Main.immediate) {
-                    _rawScannedSongs.value = localCached // UI updates instantly!
+                    _allSongs.value = cachedSongs
+                    _rawScannedSongs.value = cachedSongs
+                    _simpleSongs.value = cachedSongs
                     ensureTrackLoaded(autoPlay = false)
                 }
             }
 
-            // Step 2: Silent background diff check (Zero UI interruption)
-            val currentMediaStoreSongs = songRepository.syncWithMediaStore(forceRescan = localCached.isNullOrEmpty())
-            if (currentMediaStoreSongs.isNotEmpty() && currentMediaStoreSongs != localCached) {
+            // Step 2: Background silent sync without setting _isScanning = true
+            val freshSongs = songRepository.scanDeviceAudioSilently()
+            if (freshSongs.isNotEmpty() && freshSongs != cachedSongs) {
                 withContext(Dispatchers.Main.immediate) {
-                    _rawScannedSongs.value = currentMediaStoreSongs
+                    _allSongs.value = freshSongs
+                    _rawScannedSongs.value = freshSongs
+                    _simpleSongs.value = freshSongs
                     ensureTrackLoaded(autoPlay = false)
                 }
             }
@@ -850,26 +861,35 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         _hasStoragePermission.value = granted
         prefsManager.saveStoragePermission(granted)
         if (granted) {
-            scanDeviceAudio()
+            if (_allSongs.value.isEmpty()) {
+                loadCachedSongsInstantly()
+            } else {
+                syncNewSongsSilently()
+            }
         }
     }
 
     fun scanDeviceAudio(forceRescan: Boolean = true) {
         viewModelScope.launch(Dispatchers.IO) {
-            _isScanning.value = true
+            if (forceRescan) {
+                _isScanning.value = true
+            }
             try {
-                // Sync user's device audio strictly on Dispatchers.IO with Room caching
+                // Sync user's device audio strictly on Dispatchers.IO with disk & Room caching
                 val scanned = songRepository.syncWithMediaStore(forceRescan = forceRescan)
                 withContext(Dispatchers.Main.immediate) {
+                    _allSongs.value = scanned
                     _rawScannedSongs.value = scanned
-                    _simpleSongs.value = emptyList()
+                    _simpleSongs.value = scanned
                     ensureTrackLoaded(autoPlay = false)
                 }
             } catch (e: Exception) {
                 // Keep existing songs on error
             } finally {
-                withContext(Dispatchers.Main.immediate) {
-                    _isScanning.value = false
+                if (forceRescan) {
+                    withContext(Dispatchers.Main.immediate) {
+                        _isScanning.value = false
+                    }
                 }
             }
         }
@@ -885,7 +905,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 val updated = songRepository.syncNewSongs()
                 if (updated.isNotEmpty()) {
                     withContext(Dispatchers.Main.immediate) {
+                        _allSongs.value = updated
                         _rawScannedSongs.value = updated
+                        _simpleSongs.value = updated
                         ensureTrackLoaded(autoPlay = false)
                     }
                 }
@@ -904,8 +926,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val fresh = songRepository.rescanLibrary()
                 withContext(Dispatchers.Main.immediate) {
+                    _allSongs.value = fresh
                     _rawScannedSongs.value = fresh
-                    _simpleSongs.value = emptyList()
+                    _simpleSongs.value = fresh
                     ensureTrackLoaded(autoPlay = false)
                 }
             } catch (e: Exception) {

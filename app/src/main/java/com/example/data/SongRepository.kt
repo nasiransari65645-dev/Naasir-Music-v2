@@ -74,6 +74,15 @@ class SongRepository(
     }
 
     /**
+     * Silent background scan: checks device audio without blocking UI or showing progress spinner.
+     * Compares MediaStore count with cached count. If matching and not forced, returns cached in 0ms.
+     * Otherwise queries MediaStore in background, updates disk and Room cache, and returns fresh list.
+     */
+    suspend fun scanDeviceAudioSilently(): List<Song> = withContext(Dispatchers.IO) {
+        syncWithMediaStore(forceRescan = false)
+    }
+
+    /**
      * Instantly loads cached songs from Room DB or JSON in 0ms without waiting for MediaStore.
      */
     suspend fun getCachedSongsSync(): List<Song> = withContext(Dispatchers.IO) {
