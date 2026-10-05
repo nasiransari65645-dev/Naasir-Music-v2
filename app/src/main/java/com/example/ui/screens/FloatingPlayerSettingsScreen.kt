@@ -150,8 +150,14 @@ fun FloatingPlayerSettingsContent(
     var isAwaitingOverlayPermission by rememberSaveable { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    val initialHasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        Settings.canDrawOverlays(context)
+    } else true
+
     var isFloatingPlayerEnabled by remember {
-        mutableStateOf(prefsManager?.loadFloatingPlayerEnabled() ?: true)
+        mutableStateOf(
+            (prefsManager?.loadFloatingPlayerEnabled() ?: true) && initialHasPermission
+        )
     }
     var isFloatingRainbowEdgeEnabled by remember {
         mutableStateOf(prefsManager?.loadFloatingRainbowEdgeEnabled() ?: true)
@@ -161,11 +167,12 @@ fun FloatingPlayerSettingsContent(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    Settings.canDrawOverlays(context)
+                } else true
+
                 if (isAwaitingOverlayPermission) {
                     isAwaitingOverlayPermission = false
-                    val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        Settings.canDrawOverlays(context)
-                    } else true
                     if (hasPermission) {
                         // Automatically enable without extra user click
                         isFloatingPlayerEnabled = true
@@ -173,7 +180,7 @@ fun FloatingPlayerSettingsContent(
                         FloatingPlayerService.start(context)
                     }
                 } else {
-                    isFloatingPlayerEnabled = prefsManager?.loadFloatingPlayerEnabled() ?: true
+                    isFloatingPlayerEnabled = (prefsManager?.loadFloatingPlayerEnabled() ?: true) && hasPermission
                 }
             }
         }
