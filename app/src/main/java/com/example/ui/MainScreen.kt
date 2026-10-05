@@ -14,6 +14,7 @@ import com.example.storage.SettingsPreferencesManager
 import com.example.model.LibraryCategory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -318,11 +319,55 @@ fun MainScreen(
                                     primaryColor = palette.primaryAccent,
                                     isLightBackground = false,
                                     isNowPlaying = isNowPlaying,
+                                    showSettingsGear = !showBottomBar,
+                                    onOpenSettings = { viewModel.selectTab(AppTab.SETTINGS) },
                                     onMinimize = handleMinimizeNowPlaying,
                                     onOpenDrawer = {
                                         coroutineScope.launch { drawerState.open() }
                                     }
                                 )
+                            } else {
+                                // Top bar branding is hidden, but Hamburger Menu NEVER hides (Requirement 1)
+                                // And when bottom navigation is hidden on Now Playing, Settings gear is on opposite corner (Requirement 2)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    IconButton(
+                                        onClick = { coroutineScope.launch { drawerState.open() } },
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .testTag("drawer_hamburger_button")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Menu,
+                                            contentDescription = "Open navigation menu",
+                                            tint = MaterialTheme.colorScheme.onBackground,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+
+                                    if (isNowPlaying && !showBottomBar) {
+                                        IconButton(
+                                            onClick = { viewModel.selectTab(AppTab.SETTINGS) },
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .testTag("now_playing_corner_settings_button")
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Settings,
+                                                contentDescription = "Open Settings",
+                                                tint = MaterialTheme.colorScheme.onBackground,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    } else {
+                                        Spacer(modifier = Modifier.size(40.dp))
+                                    }
+                                }
                             }
                         },
                         bottomBar = {
@@ -811,6 +856,8 @@ fun NaasirTopBar(
     primaryColor: Color,
     isLightBackground: Boolean = false,
     isNowPlaying: Boolean = false,
+    showSettingsGear: Boolean = false,
+    onOpenSettings: () -> Unit = {},
     onMinimize: () -> Unit = {},
     onOpenDrawer: () -> Unit = {}
 ) {
@@ -841,26 +888,7 @@ fun NaasirTopBar(
                 )
             }
 
-            // Dedicated Minimize Down Arrow Button on Now Playing Screen
-            if (isNowPlaying) {
-                IconButton(
-                    onClick = onMinimize,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .testTag("now_playing_minimize_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Minimize Now Playing",
-                        tint = Color(0xFF00E5FF),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(4.dp))
-
-            // App Icon with click zoom effect
+            // App Icon directly following hamburger menu (arrow deleted, replaced with Logo and Naasir Music)
             NaasirMusicLogo(
                 size = 36.dp,
                 animatedWavePulse = true,
@@ -870,36 +898,30 @@ fun NaasirTopBar(
 
             Spacer(modifier = Modifier.width(10.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Naasir Music",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (isLightBackground) Color(0xFF0F172A) else MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
+            Text(
+                text = "Naasir Music",
+                style = MaterialTheme.typography.titleMedium,
+                color = if (isLightBackground) Color(0xFF0F172A) else MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp,
+                modifier = Modifier.weight(1f)
+            )
+
+            // Settings Gear Icon: shown on Now Playing screen when bottom navigation is hidden (opposite corner of hamburger)
+            if (isNowPlaying && showSettingsGear) {
+                IconButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .testTag("now_playing_corner_settings_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Open Settings",
+                        tint = if (isLightBackground) Color(0xFF0F172A) else MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(24.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(primaryColor)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "PRO",
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
                 }
-                Text(
-                    text = "Hi-Res Audio Engine Ready",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isLightBackground) Color(0xFF64748B) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp
-                )
             }
         }
     }

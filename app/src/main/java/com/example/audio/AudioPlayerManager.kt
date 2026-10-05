@@ -287,11 +287,11 @@ class AudioPlayerManager(
         }
     }
 
-    fun playSong(song: Song) {
+    fun playSong(song: Song, autoPlay: Boolean = true) {
         isUserInitiatedPlay = true
         scope.launch(Dispatchers.Main.immediate) {
             try {
-                prepareAndSetup(song, autoPlay = true)
+                prepareAndSetup(song, autoPlay = autoPlay)
             } catch (t: Throwable) {
                 Log.e(TAG, "Error playing song: ${song.title} - ${t.message}", t)
                 _state.update { it.copy(isPlaying = false) }
@@ -474,9 +474,11 @@ class AudioPlayerManager(
         }
     }
 
-    fun playNext() {
+    fun playNext(forceAutoPlay: Boolean? = null) {
         isUserInitiatedPlay = true
         if (playlist.isEmpty()) return
+        val isCurrentlyPlaying = _state.value.isPlaying || (try { mediaPlayer?.isPlaying == true } catch (_: Exception) { false })
+        val shouldAutoPlay = forceAutoPlay ?: isCurrentlyPlaying
         val current = _state.value.currentSong
         val nextSong: Song = if (_state.value.shuffleEnabled) {
             if (shuffledIndices.isEmpty()) updateShuffleList()
@@ -496,12 +498,14 @@ class AudioPlayerManager(
             }
             playlist.getOrElse(nextIdx) { playlist.first() }
         }
-        playSong(nextSong)
+        playSong(nextSong, autoPlay = shouldAutoPlay)
     }
 
-    fun playPrevious() {
+    fun playPrevious(forceAutoPlay: Boolean? = null) {
         isUserInitiatedPlay = true
         if (playlist.isEmpty()) return
+        val isCurrentlyPlaying = _state.value.isPlaying || (try { mediaPlayer?.isPlaying == true } catch (_: Exception) { false })
+        val shouldAutoPlay = forceAutoPlay ?: isCurrentlyPlaying
         val currentPosition = try {
             mediaPlayer?.currentPosition ?: 0
         } catch (t: Throwable) {
@@ -535,7 +539,7 @@ class AudioPlayerManager(
             }
             playlist.getOrElse(prevIdx) { playlist.first() }
         }
-        playSong(prevSong)
+        playSong(prevSong, autoPlay = shouldAutoPlay)
     }
 
     fun skipToNext() {
@@ -841,7 +845,7 @@ class AudioPlayerManager(
                 } catch (t: Throwable) {}
             }
             RepeatMode.ALL -> {
-                playNext()
+                playNext(forceAutoPlay = true)
             }
             RepeatMode.OFF -> {
                 val current = _state.value.currentSong
@@ -849,7 +853,7 @@ class AudioPlayerManager(
                 if (!_state.value.shuffleEnabled && currentIndex == playlist.size - 1) {
                     _state.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
                 } else {
-                    playNext()
+                    playNext(forceAutoPlay = true)
                 }
             }
         }
