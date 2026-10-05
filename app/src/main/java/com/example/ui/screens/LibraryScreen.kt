@@ -967,8 +967,8 @@ fun LibraryScreen(
 
                     androidx.compose.animation.AnimatedVisibility(
                         visible = showScrollToTop && displaySongs.size > 5,
-                        enter = fadeIn() + scaleIn(initialScale = 0.8f),
-                        exit = fadeOut() + scaleOut(targetScale = 0.8f),
+                        enter = fadeIn(tween(150)),
+                        exit = fadeOut(tween(150)),
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(end = 16.dp, bottom = 128.dp)
@@ -1005,8 +1005,8 @@ fun LibraryScreen(
 
                     androidx.compose.animation.AnimatedVisibility(
                         visible = showScrollToBottom,
-                        enter = fadeIn() + scaleIn(initialScale = 0.8f),
-                        exit = fadeOut() + scaleOut(targetScale = 0.8f),
+                        enter = fadeIn(tween(150)),
+                        exit = fadeOut(tween(150)),
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(end = 16.dp, bottom = 128.dp)
@@ -1266,12 +1266,12 @@ private fun SongItemRow(
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(
+        onClick = onSongClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onSongClick)
+            .padding(horizontal = 16.dp, vertical = 3.dp)
             .testTag("song_item_${song.id}"),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isCurrentSong) {
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -1279,21 +1279,15 @@ private fun SongItemRow(
                 MaterialTheme.colorScheme.surface
             }
         ),
-        border = BorderStroke(
-            width = if (isCurrentSong) 1.5.dp else 1.dp,
-            color = if (isCurrentSong) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-            }
-        ),
+        border = if (isCurrentSong) {
+            BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+        } else null,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Transparent)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Track Art Thumbnail or Equalizer animation
@@ -1312,7 +1306,7 @@ private fun SongItemRow(
                     val imageRequest = remember(artUri) {
                         ImageRequest.Builder(context)
                             .data(artUri)
-                            .size(128, 128)
+                            .size(100, 100)
                             .crossfade(false)
                             .build()
                     }
@@ -1423,98 +1417,100 @@ private fun SongItemRow(
                     )
                 }
 
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Play Song") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        onClick = {
-                            menuExpanded = false
-                            onSongClick()
-                        },
-                        modifier = Modifier.testTag("menu_play_${song.id}")
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Rename Song") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = null,
-                                tint = CyanNeon,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        onClick = {
-                            menuExpanded = false
-                            onRenameClick()
-                        },
-                        modifier = Modifier.testTag("menu_rename_${song.id}")
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Add / Change Album Art") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Image,
-                                contentDescription = null,
-                                tint = PurpleNeon,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        onClick = {
-                            menuExpanded = false
-                            onPickArtClick()
-                        },
-                        modifier = Modifier.testTag("menu_art_${song.id}")
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Download Album Art (Online)") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.CloudDownload,
-                                contentDescription = null,
-                                tint = Color(0xFF38BDF8),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        onClick = {
-                            menuExpanded = false
-                            onDownloadArtClick()
-                        },
-                        modifier = Modifier.testTag("menu_download_art_${song.id}")
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = "Delete Song",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        onClick = {
-                            menuExpanded = false
-                            onDeleteClick()
-                        },
-                        modifier = Modifier.testTag("menu_delete_${song.id}")
-                    )
+                if (menuExpanded) {
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Play Song") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onSongClick()
+                            },
+                            modifier = Modifier.testTag("menu_play_${song.id}")
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rename Song") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = CyanNeon,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onRenameClick()
+                            },
+                            modifier = Modifier.testTag("menu_rename_${song.id}")
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Add / Change Album Art") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Image,
+                                    contentDescription = null,
+                                    tint = PurpleNeon,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onPickArtClick()
+                            },
+                            modifier = Modifier.testTag("menu_art_${song.id}")
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Download Album Art (Online)") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    tint = Color(0xFF38BDF8),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onDownloadArtClick()
+                            },
+                            modifier = Modifier.testTag("menu_download_art_${song.id}")
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Delete Song",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onDeleteClick()
+                            },
+                            modifier = Modifier.testTag("menu_delete_${song.id}")
+                        )
+                    }
                 }
             }
         }

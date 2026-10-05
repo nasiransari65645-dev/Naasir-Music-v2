@@ -34,10 +34,7 @@ data class Song(
             }
             return if (albumId > 0) {
                 try {
-                    ContentUris.withAppendedId(
-                        Uri.parse("content://media/external/audio/albumart"),
-                        albumId
-                    )
+                    ContentUris.withAppendedId(MEDIA_STORE_ALBUM_ART_BASE_URI, albumId)
                 } catch (t: Throwable) {
                     null
                 }
@@ -49,9 +46,11 @@ data class Song(
             val totalSeconds = (durationMs / 1000).coerceAtLeast(0)
             val minutes = totalSeconds / 60
             val seconds = totalSeconds % 60
-            return "%d:%02d".format(minutes, seconds)
+            return if (seconds < 10) "$minutes:0$seconds" else "$minutes:$seconds"
         }
 }
+
+private val MEDIA_STORE_ALBUM_ART_BASE_URI: Uri = Uri.parse("content://media/external/audio/albumart")
 
 enum class RepeatMode {
     OFF,
