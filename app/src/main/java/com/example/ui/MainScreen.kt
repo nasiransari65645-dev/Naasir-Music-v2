@@ -371,14 +371,15 @@ fun MainScreen(
                             }
                         },
                         bottomBar = {
-                            if (showBottomBar) {
+                            val shouldShowMiniPlayer = uiState.playerState.currentSong != null && uiState.selectedTab != AppTab.NOW_PLAYING
+                            if (shouldShowMiniPlayer || showBottomBar) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .windowInsetsPadding(WindowInsets.navigationBars)
                                 ) {
                             // Mini Player with Next/Prev/Play and Touchable Progress Bar
-                            if (uiState.playerState.currentSong != null && uiState.selectedTab != AppTab.NOW_PLAYING) {
+                            if (shouldShowMiniPlayer) {
                                 MiniPlayer(
                                     currentSong = uiState.playerState.currentSong,
                                     isPlaying = uiState.playerState.isPlaying,
