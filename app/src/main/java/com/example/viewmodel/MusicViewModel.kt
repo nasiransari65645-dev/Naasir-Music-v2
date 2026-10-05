@@ -572,6 +572,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 _allSongs.value = merged
                 playerManager.setPlaylist(merged)
                 preResolveExistingArtwork(merged)
+                if (merged.isNotEmpty()) {
+                    songRepository.songCacheManager?.saveSongs(merged)
+                }
             }
         }
 
