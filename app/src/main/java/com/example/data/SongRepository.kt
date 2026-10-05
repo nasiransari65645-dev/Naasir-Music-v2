@@ -17,7 +17,6 @@ class SongRepository(
     private val songDao: SongDao? = null,
     private val context: Context? = null
 ) {
-    val fastDiskCache: FastSongDiskCache? = context?.let { FastSongDiskCache(it) }
     val songCacheManager: SongCacheManager? = context?.let { SongCacheManager(it) }
 
     val allMetadata: Flow<Map<Long, SongMetadataEntity>> = dao.getAllMetadata().map { list ->
@@ -30,27 +29,29 @@ class SongRepository(
     val allSongs: Flow<List<Song>> = getCachedSongsFlow()
 
     /**
-     * Primary instant cache reader: checks local binary/JSON cache (0ms instant load).
-     * Falls back to Room DB if disk cache is missing.
+     * Primary instant cache reader: checks SongCacheManager (songs_cache.json) for 0ms instant load.
+     * Falls back to Room DB if JSON is empty, and updates SongCacheManager.
      */
     suspend fun getCachedSongs(): List<Song>? = withContext(Dispatchers.IO) {
-        val diskCached = fastDiskCache?.loadCachedSongs()
-        if (!diskCached.isNullOrEmpty()) {
-            return@withContext diskCached
+        // Step 1: Read from SongCacheManager
+        val jsonCached = songCacheManager?.getCachedSongs()
+        if (!jsonCached.isNullOrEmpty()) {
+            return@withContext jsonCached
         }
+        // Step 2: Fallback to Room DB if JSON is empty
         val roomCached = songDao?.getAllSongsSync()?.map { it.toSong() }
         if (!roomCached.isNullOrEmpty()) {
-            fastDiskCache?.saveCachedSongs(roomCached)
+            songCacheManager?.saveSongs(roomCached)
             return@withContext roomCached
         }
         null
     }
 
     /**
-     * Saves songs to both local fast binary disk cache and Room DB.
+     * Saves songs to both local JSON disk cache and Room DB.
      */
     suspend fun saveSongs(songs: List<Song>) = withContext(Dispatchers.IO) {
-        fastDiskCache?.saveCachedSongs(songs)
+        songCacheManager?.saveSongs(songs)
         if (songDao != null && songs.isNotEmpty()) {
             val entities = songs.map { SongEntity.fromSong(it) }
             songDao.insertSongs(entities)
@@ -61,7 +62,7 @@ class SongRepository(
      * Clears both local disk file cache and Room DB.
      */
     suspend fun clearCache() = withContext(Dispatchers.IO) {
-        fastDiskCache?.clearCache()
+        songCacheManager?.clearCache()
         songDao?.clearAll()
     }
 
@@ -117,7 +118,7 @@ class SongRepository(
             val entities = newSongs.map { SongEntity.fromSong(it) }
             songDao.insertSongs(entities)
             val updatedAll = songDao.getAllSongsSync().map { it.toSong() }
-            fastDiskCache?.saveCachedSongs(updatedAll)
+            songCacheManager?.saveSongs(updatedAll)
         }
 
         // Check if any deleted files exist
@@ -157,7 +158,7 @@ class SongRepository(
                 songDao.insertSongs(entities)
                 songDao.deleteRemovedSongs(scanned.map { it.id })
             }
-            fastDiskCache?.saveCachedSongs(scanned)
+            songCacheManager?.saveSongs(scanned)
             return@withContext scanned
         }
 

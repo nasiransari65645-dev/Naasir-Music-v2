@@ -155,7 +155,7 @@ fun LibraryScreen(
     onDownloadAlbumArt: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var selectedCategory by remember { mutableStateOf<LibraryCategory?>(activeCategory) }
+    var selectedCategory by remember { mutableStateOf<LibraryCategory?>(LibraryCategory.SONGS) }
     var selectedGroupFilter by remember { mutableStateOf<String?>(null) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var hasScrolledToActiveTrack by rememberSaveable { mutableStateOf(false) }
@@ -207,11 +207,11 @@ fun LibraryScreen(
         }
     }
 
-    BackHandler(enabled = selectedCategory != null || selectedGroupFilter != null) {
+    BackHandler(enabled = (selectedCategory != null && selectedCategory != LibraryCategory.SONGS) || selectedGroupFilter != null) {
         if (selectedGroupFilter != null) {
             selectedGroupFilter = null
         } else {
-            selectedCategory = null
+            selectedCategory = LibraryCategory.SONGS
         }
     }
 
@@ -313,7 +313,7 @@ fun LibraryScreen(
                 LibraryCategory.ALBUM_ARTISTS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.albumArtist.ifBlank { it.artist.ifBlank { "Unknown Artist" } } == selectedGroupFilter } else emptyList()
                 LibraryCategory.COMPILATIONS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.album.ifBlank { "Unknown Album" } == selectedGroupFilter } else emptyList()
                 LibraryCategory.COMPOSERS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.composer.ifBlank { "Unknown Composer" } == selectedGroupFilter } else emptyList()
-                null -> emptyList()
+                null -> deduplicatedSongs
             }
         }
     }
@@ -835,7 +835,13 @@ fun LibraryScreen(
                 }
             }
 
-            if (displaySongs.isEmpty()) {
+            val effectiveDisplaySongs = if (displaySongs.isEmpty() && deduplicatedSongs.isNotEmpty() && searchQuery.isBlank() && currentCat == LibraryCategory.SONGS) {
+                deduplicatedSongs
+            } else {
+                displaySongs
+            }
+
+            if (effectiveDisplaySongs.isEmpty()) {
                 EmptyPlaceholder(
                     message = when {
                         currentCat == LibraryCategory.MOST_PLAYED -> "No tracks played yet"
@@ -898,16 +904,16 @@ fun LibraryScreen(
                                                     color = Color(0xFFFF9100)
                                                 )
                                                 Text(
-                                                    text = "${displaySongs.size} tracks ranked by play count",
+                                                    text = "${effectiveDisplaySongs.size} tracks ranked by play count",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     fontSize = 11.sp,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
-                                        if (displaySongs.isNotEmpty()) {
+                                        if (effectiveDisplaySongs.isNotEmpty()) {
                                             Button(
-                                                onClick = { onSongClick(displaySongs.first()) },
+                                                onClick = { onSongClick(effectiveDisplaySongs.first()) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9100)),
                                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                                 shape = RoundedCornerShape(8.dp)
@@ -933,7 +939,7 @@ fun LibraryScreen(
                         }
 
                         items(
-                            items = displaySongs,
+                            items = effectiveDisplaySongs,
                             key = { it.id },
                             contentType = { "song_row" }
                         ) { song ->

@@ -665,35 +665,22 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        loadCachedSongsInstantly()
-    }
-
-    /**
-     * Cold Start Routine: Instant memory hydration from local disk/Room cache first.
-     * Never waits for MediaStore or sets _isScanning during launch.
-     */
-    private fun loadCachedSongsInstantly() {
+        // Immediate instant memory hydration from cache on launch
         viewModelScope.launch(Dispatchers.IO) {
-            // Step 1: Immediately read cached songs from Room DB / Cache
-            val cachedSongs = songRepository.getCachedSongs()
-            if (!cachedSongs.isNullOrEmpty()) {
-                withContext(Dispatchers.Main.immediate) {
-                    _allSongs.value = cachedSongs
-                    _rawScannedSongs.value = cachedSongs
-                    _simpleSongs.value = cachedSongs
-                    ensureTrackLoaded(autoPlay = false)
-                }
+            val cached = songRepository.getCachedSongs()
+            if (!cached.isNullOrEmpty()) {
+                _allSongs.value = cached
+                _rawScannedSongs.value = cached
+                _simpleSongs.value = cached
+                ensureTrackLoaded(autoPlay = false)
             }
-
-            // Step 2: Background silent sync without setting _isScanning = true
-            val freshSongs = songRepository.scanDeviceAudioSilently()
-            if (freshSongs.isNotEmpty() && freshSongs != cachedSongs) {
-                withContext(Dispatchers.Main.immediate) {
-                    _allSongs.value = freshSongs
-                    _rawScannedSongs.value = freshSongs
-                    _simpleSongs.value = freshSongs
-                    ensureTrackLoaded(autoPlay = false)
-                }
+            // Silent background sync
+            val fresh = songRepository.syncWithMediaStore(forceRescan = false)
+            if (fresh.isNotEmpty() && fresh != cached) {
+                _allSongs.value = fresh
+                _rawScannedSongs.value = fresh
+                _simpleSongs.value = fresh
+                ensureTrackLoaded(autoPlay = false)
             }
         }
     }
@@ -862,7 +849,22 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         prefsManager.saveStoragePermission(granted)
         if (granted) {
             if (_allSongs.value.isEmpty()) {
-                loadCachedSongsInstantly()
+                viewModelScope.launch(Dispatchers.IO) {
+                    val cached = songRepository.getCachedSongs()
+                    if (!cached.isNullOrEmpty()) {
+                        _allSongs.value = cached
+                        _rawScannedSongs.value = cached
+                        _simpleSongs.value = cached
+                        ensureTrackLoaded(autoPlay = false)
+                    }
+                    val fresh = songRepository.syncWithMediaStore(forceRescan = false)
+                    if (fresh.isNotEmpty() && fresh != cached) {
+                        _allSongs.value = fresh
+                        _rawScannedSongs.value = fresh
+                        _simpleSongs.value = fresh
+                        ensureTrackLoaded(autoPlay = false)
+                    }
+                }
             } else {
                 syncNewSongsSilently()
             }
