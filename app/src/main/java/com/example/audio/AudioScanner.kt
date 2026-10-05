@@ -452,43 +452,6 @@ object AudioScanner {
         return result
     }
 
-    /**
-     * Generates robust fingerprint keys for detecting duplicates across differing folders,
-     * download numbers like (1), bracketed video tags, and duplicate MediaStore entries.
-     */
-    fun generateDeduplicationSignatures(
-        title: String,
-        artist: String,
-        durationMs: Long,
-        path: String
-    ): List<String> {
-        val signatures = mutableListOf<String>()
-        val exactNormTitle = exactNormSongTitle(title)
-        val strippedTitle = cleanSongTitle(title)
-        val normArtist = cleanArtistName(artist)
-        val durationBucket = durationMs / 10000L // 10-second tolerance bucket
-
-        if (exactNormTitle.isNotBlank()) {
-            if (normArtist.isNotBlank()) {
-                signatures.add("ta:$exactNormTitle|$normArtist")
-            }
-            signatures.add("t:$exactNormTitle|$durationBucket")
-        }
-
-        if (strippedTitle.isNotBlank() && strippedTitle != exactNormTitle) {
-            if (normArtist.isNotBlank()) {
-                signatures.add("sta:$strippedTitle|$normArtist")
-            }
-            signatures.add("st:$strippedTitle|$durationBucket")
-        }
-
-        val fileName = cleanFileNameFromPath(path)
-        if (fileName.length >= 3) {
-            signatures.add("f:$fileName|$durationBucket")
-        }
-        return signatures
-    }
-
     private fun extractFolderName(path: String): String {
         if (path.isBlank()) return "Music"
         return try {
@@ -516,9 +479,5 @@ object AudioScanner {
         } catch (_: Exception) {
             0
         }
-    }
-
-    suspend fun loadSimpleMusic(context: Context): List<Song> = withContext(Dispatchers.IO) {
-        emptyList()
     }
 }

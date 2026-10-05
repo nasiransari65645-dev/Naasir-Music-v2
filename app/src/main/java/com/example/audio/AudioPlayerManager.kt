@@ -287,14 +287,6 @@ class AudioPlayerManager(
         }
     }
 
-    fun loadSong(song: Song) {
-        loadSongSilently(song)
-    }
-
-    fun prepareSong(song: Song) {
-        loadSongSilently(song)
-    }
-
     fun playSong(song: Song) {
         isUserInitiatedPlay = true
         scope.launch(Dispatchers.Main.immediate) {

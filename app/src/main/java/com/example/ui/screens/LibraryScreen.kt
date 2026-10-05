@@ -11,9 +11,11 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -152,7 +154,6 @@ fun LibraryScreen(
     onRenameSong: (Long, String, String) -> Unit = { _, _, _ -> },
     onDeleteSong: (Long) -> Unit = {},
     onSetCustomAlbumArt: (Long, android.net.Uri) -> Unit = { _, _ -> },
-    onDownloadAlbumArt: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf<LibraryCategory?>(LibraryCategory.SONGS) }
@@ -853,7 +854,7 @@ fun LibraryScreen(
                             .fillMaxSize()
                             .testTag("song_list_view"),
                         contentPadding = PaddingValues(bottom = 120.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         if (currentCat == LibraryCategory.MOST_PLAYED) {
                             item(key = "most_played_header") {
@@ -949,9 +950,6 @@ fun LibraryScreen(
                                     photoPickerLauncher.launch(
                                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                     )
-                                },
-                                onDownloadArtClick = {
-                                    onDownloadAlbumArt(song.id)
                                 },
                                 onDeleteClick = {
                                     songToDelete = song
@@ -1249,6 +1247,7 @@ private fun EmptyPlaceholder(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SongItemRow(
     song: Song,
@@ -1260,40 +1259,35 @@ private fun SongItemRow(
     onToggleFavorite: () -> Unit,
     onRenameClick: () -> Unit,
     onPickArtClick: () -> Unit,
-    onDownloadArtClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    Card(
-        onClick = onSongClick,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 3.dp)
-            .testTag("song_item_${song.id}"),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrentSong) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        ),
-        border = if (isCurrentSong) {
-            BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-        } else null,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            .combinedClickable(
+                onClick = onSongClick,
+                onLongClick = { menuExpanded = true }
+            )
+            .background(
+                if (isCurrentSong) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                } else {
+                    Color.Transparent
+                }
+            )
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .testTag("song_item_${song.id}")
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 9.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Track Art Thumbnail or Equalizer animation
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(46.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(
                         if (isCurrentSong) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
@@ -1337,7 +1331,7 @@ private fun SongItemRow(
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
             // Song Title & Artist + Play Count info
             Column(
@@ -1383,40 +1377,11 @@ private fun SongItemRow(
                 text = song.formattedDuration,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp)
+                modifier = Modifier.padding(start = 8.dp)
             )
 
-            // Heart Favorite Icon Button
-            IconButton(
-                onClick = onToggleFavorite,
-                modifier = Modifier
-                    .size(34.dp)
-                    .testTag("fav_btn_${song.id}")
-            ) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (isFavorite) "Unlike" else "Like",
-                    tint = if (isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            // 3-Dots More Options Menu
+            // Context Menu on Long-Press
             Box {
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier
-                        .size(34.dp)
-                        .testTag("song_more_btn_${song.id}")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
                 if (menuExpanded) {
                     DropdownMenu(
                         expanded = menuExpanded,
@@ -1440,6 +1405,22 @@ private fun SongItemRow(
                                 onSongClick()
                             },
                             modifier = Modifier.testTag("menu_play_${song.id}")
+                        )
+                        DropdownMenuItem(
+                            text = { Text(if (isFavorite) "Remove from Favorites" else "Add to Favorites") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = null,
+                                    tint = if (isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onToggleFavorite()
+                            },
+                            modifier = Modifier.testTag("menu_fav_${song.id}")
                         )
                         DropdownMenuItem(
                             text = { Text("Rename Song") },
@@ -1472,22 +1453,6 @@ private fun SongItemRow(
                                 onPickArtClick()
                             },
                             modifier = Modifier.testTag("menu_art_${song.id}")
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Download Album Art (Online)") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.CloudDownload,
-                                    contentDescription = null,
-                                    tint = Color(0xFF38BDF8),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onDownloadArtClick()
-                            },
-                            modifier = Modifier.testTag("menu_download_art_${song.id}")
                         )
                         DropdownMenuItem(
                             text = {

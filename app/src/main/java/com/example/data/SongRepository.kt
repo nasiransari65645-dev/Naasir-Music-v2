@@ -24,11 +24,6 @@ class SongRepository(
     }
 
     /**
-     * Reactive flow of cached songs from Room Database for instant UI updates.
-     */
-    val allSongs: Flow<List<Song>> = getCachedSongsFlow()
-
-    /**
      * Primary instant cache reader: checks SongCacheManager (songs_cache.json) for 0ms instant load.
      * Falls back to Room DB if JSON is empty, and updates SongCacheManager.
      */
@@ -75,28 +70,10 @@ class SongRepository(
     }
 
     /**
-     * Silent background scan: checks device audio without blocking UI or showing progress spinner.
-     * Compares MediaStore count with cached count. If matching and not forced, returns cached in 0ms.
-     * Otherwise queries MediaStore in background, updates disk and Room cache, and returns fresh list.
-     */
-    suspend fun scanDeviceAudioSilently(): List<Song> = withContext(Dispatchers.IO) {
-        syncWithMediaStore(forceRescan = false)
-    }
-
-    /**
      * Instantly loads cached songs from Room DB or JSON in 0ms without waiting for MediaStore.
      */
     suspend fun getCachedSongsSync(): List<Song> = withContext(Dispatchers.IO) {
         getCachedSongs() ?: emptyList()
-    }
-
-    /**
-     * Reactive flow of cached songs from Room Database.
-     */
-    fun getCachedSongsFlow(): Flow<List<Song>> {
-        return (songDao?.getAllSongs() ?: kotlinx.coroutines.flow.emptyFlow()).map { entities ->
-            entities.map { it.toSong() }
-        }
     }
 
     /**

@@ -602,8 +602,7 @@ fun MainScreen(
                                     onToggleFavorite = { viewModel.toggleFavorite(it) },
                                     onRenameSong = { id, title, artist -> viewModel.renameSong(id, title, artist) },
                                     onDeleteSong = { id -> viewModel.deleteSong(id) },
-                                    onSetCustomAlbumArt = { id, uri -> viewModel.setCustomAlbumArt(id, uri) },
-                                    onDownloadAlbumArt = { id -> viewModel.downloadAlbumArtForSong(id) }
+                                    onSetCustomAlbumArt = { id, uri -> viewModel.setCustomAlbumArt(id, uri) }
                                 )
                             }
 
