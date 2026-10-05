@@ -43,7 +43,8 @@ fun AutoScrollText(
     style: TextStyle = LocalTextStyle.current,
     fontWeight: FontWeight? = null,
     textAlign: TextAlign = TextAlign.Start,
-    scrollSpeedPxPerSec: Float = 38f
+    scrollSpeedPxPerSec: Float = 38f,
+    initialDelayMs: Long = 3000L
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
@@ -64,16 +65,19 @@ fun AutoScrollText(
     val maxScrollOffset = if (isOverflowing) (textWidthPx - containerWidthPx) else 0
 
     // Auto-scroll loop: Start -> End -> Wait 3s -> Return to Start -> Wait 3s -> Repeat
-    LaunchedEffect(text, isOverflowing, maxScrollOffset) {
+    LaunchedEffect(text, isOverflowing, maxScrollOffset, initialDelayMs) {
         if (!isOverflowing || maxScrollOffset <= 0) {
             scrollState.scrollTo(0)
             return@LaunchedEffect
         }
 
+        var isFirstRun = true
         while (isActive) {
             // 1. Initial pause at the start
             scrollState.scrollTo(0)
-            delay(3000L) // Wait 3 seconds at first text
+            val waitAtStart = if (isFirstRun) initialDelayMs else 3000L
+            isFirstRun = false
+            delay(waitAtStart)
 
             if (!isActive) break
 

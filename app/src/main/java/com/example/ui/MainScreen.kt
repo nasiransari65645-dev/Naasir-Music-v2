@@ -308,23 +308,20 @@ fun MainScreen(
                             .windowInsetsPadding(WindowInsets.statusBars),
                         containerColor = MaterialTheme.colorScheme.background,
                         topBar = {
-                            if (!isNowPlaying) {
-                                NaasirTopBar(
-                                    isPlaying = uiState.playerState.isPlaying,
-                                    autoRotateActive = uiState.playerState.autoRotateEnabled,
-                                    backgroundColor = MaterialTheme.colorScheme.background,
-                                    primaryColor = palette.primaryAccent,
-                                    isLightBackground = false,
-                                    isNowPlaying = isNowPlaying,
-                                    onMinimize = handleMinimizeNowPlaying,
-                                    onOpenDrawer = {
-                                        coroutineScope.launch { drawerState.open() }
-                                    }
-                                )
-                            }
+                            NaasirTopBar(
+                                isPlaying = uiState.playerState.isPlaying,
+                                autoRotateActive = uiState.playerState.autoRotateEnabled,
+                                backgroundColor = MaterialTheme.colorScheme.background,
+                                primaryColor = palette.primaryAccent,
+                                isLightBackground = false,
+                                isNowPlaying = isNowPlaying,
+                                onMinimize = handleMinimizeNowPlaying,
+                                onOpenDrawer = {
+                                    coroutineScope.launch { drawerState.open() }
+                                }
+                            )
                         },
-                    bottomBar = {
-                        if (!isNowPlaying) {
+                        bottomBar = {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -573,8 +570,7 @@ fun MainScreen(
                             }
                         }
                     }
-                }
-            ) { innerPadding ->
+                ) { innerPadding ->
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

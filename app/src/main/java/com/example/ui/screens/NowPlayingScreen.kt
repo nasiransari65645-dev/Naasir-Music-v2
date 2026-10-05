@@ -311,7 +311,7 @@ fun NowPlayingScreen(
     // Clean single Column root container
     Column(
         modifier = backdropModifier
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -319,7 +319,7 @@ fun NowPlayingScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 2.dp),
+                .padding(horizontal = 20.dp, vertical = 2.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -362,49 +362,65 @@ fun NowPlayingScreen(
                 )
             }
 
-            // 2. TRACK INFORMATION
+            // 2. TRACK INFORMATION: Two separate text boxes scrolling edge-to-edge
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                    .padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // (1) Song Title & Artist: Clean text without rounded border
-                Column(
+                // (1) Song Title Box (Edge-to-Edge)
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                        .testTag("now_playing_title_card"),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(horizontal = 2.dp, vertical = 2.dp)
+                        .testTag("now_playing_title_box"),
+                    contentAlignment = Alignment.Center
                 ) {
                     AutoScrollText(
                         text = currentSong.title,
                         color = MaterialTheme.colorScheme.onBackground,
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 19.sp,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         ),
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        initialDelayMs = 3000L
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = "${currentSong.artist} • ${currentSong.album}",
-                        fontSize = 13.5.sp,
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // (2) Subtitle / Artist • Album Box (Edge-to-Edge, starts scrolling 3 sec after title)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp, vertical = 2.dp)
+                        .testTag("now_playing_subtitle_box"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val subtitleText = "${currentSong.artist} • ${currentSong.album}"
+                    AutoScrollText(
+                        text = subtitleText,
                         color = Color(0xFF7E8B9B),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        initialDelayMs = 6000L
                     )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // (2) Favorite Heart Button: Placed slightly lower below the title card, not touching the title text
+                // (3) Favorite Heart Button: Placed slightly lower below the text boxes
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(end = 4.dp),
+                        .padding(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -431,7 +447,9 @@ fun NowPlayingScreen(
 
             // 3. SEEKBAR & INTEGRATED COUNTER ROW
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 TouchableProgressBar(
@@ -488,7 +506,7 @@ fun NowPlayingScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(
