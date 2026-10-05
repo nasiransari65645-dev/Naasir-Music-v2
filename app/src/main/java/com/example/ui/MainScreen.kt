@@ -308,25 +308,28 @@ fun MainScreen(
                             .windowInsetsPadding(WindowInsets.statusBars),
                         containerColor = MaterialTheme.colorScheme.background,
                         topBar = {
-                            NaasirTopBar(
-                                isPlaying = uiState.playerState.isPlaying,
-                                autoRotateActive = uiState.playerState.autoRotateEnabled,
-                                backgroundColor = MaterialTheme.colorScheme.background,
-                                primaryColor = palette.primaryAccent,
-                                isLightBackground = false,
-                                isNowPlaying = isNowPlaying,
-                                onMinimize = handleMinimizeNowPlaying,
-                                onOpenDrawer = {
-                                    coroutineScope.launch { drawerState.open() }
-                                }
-                            )
+                            if (!isNowPlaying) {
+                                NaasirTopBar(
+                                    isPlaying = uiState.playerState.isPlaying,
+                                    autoRotateActive = uiState.playerState.autoRotateEnabled,
+                                    backgroundColor = MaterialTheme.colorScheme.background,
+                                    primaryColor = palette.primaryAccent,
+                                    isLightBackground = false,
+                                    isNowPlaying = isNowPlaying,
+                                    onMinimize = handleMinimizeNowPlaying,
+                                    onOpenDrawer = {
+                                        coroutineScope.launch { drawerState.open() }
+                                    }
+                                )
+                            }
                         },
                     bottomBar = {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .windowInsetsPadding(WindowInsets.navigationBars)
-                        ) {
+                        if (!isNowPlaying) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .windowInsetsPadding(WindowInsets.navigationBars)
+                            ) {
                             // Mini Player with Next/Prev/Play and Touchable Progress Bar
                             if (uiState.playerState.currentSong != null && uiState.selectedTab != AppTab.NOW_PLAYING) {
                                 MiniPlayer(
@@ -570,7 +573,8 @@ fun MainScreen(
                             }
                         }
                     }
-                ) { innerPadding ->
+                }
+            ) { innerPadding ->
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

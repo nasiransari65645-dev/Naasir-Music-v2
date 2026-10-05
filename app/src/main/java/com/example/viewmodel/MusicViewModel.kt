@@ -117,13 +117,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeCategory = MutableStateFlow(LibraryCategory.SONGS)
     private val _categoryEventId = MutableStateFlow(0L)
 
-    // Restore last selected tab or default to NOW_PLAYING (Request 3)
-    private val initialTab: AppTab = try {
-        AppTab.valueOf(prefsManager.loadLastTab(AppTab.NOW_PLAYING.name))
-    } catch (t: Throwable) {
-        AppTab.NOW_PLAYING
-    }
-    private val _selectedTab = MutableStateFlow(initialTab)
+    // Always open directly to NOW_PLAYING on app launch (per user request)
+    private val _selectedTab = MutableStateFlow(AppTab.NOW_PLAYING)
 
     private val _hasStoragePermission = MutableStateFlow(prefsManager.loadStoragePermission())
     private val _selectedTheme = MutableStateFlow(prefsManager.loadTheme())
@@ -459,7 +454,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = MusicUiState(
-            selectedTab = initialTab,
+            selectedTab = AppTab.NOW_PLAYING,
             selectedTheme = _selectedTheme.value,
             currentThemePalette = _currentThemePalette.value,
             edgeLightingSettings = _edgeLightingSettings.value,
