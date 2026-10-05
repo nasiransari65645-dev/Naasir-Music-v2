@@ -804,4 +804,20 @@ class SettingsPreferencesManager(context: Context) {
     fun loadFloatingRainbowEdgeEnabled(): Boolean {
         return prefs.getBoolean(KEY_FLOATING_RAINBOW_EDGE_ENABLED, true)
     }
+
+    fun saveShowTopBar(show: Boolean) {
+        prefs.edit().putBoolean("key_show_top_bar", show).apply()
+    }
+
+    fun loadShowTopBar(): Boolean {
+        return prefs.getBoolean("key_show_top_bar", false)
+    }
+
+    fun saveShowBottomBar(show: Boolean) {
+        prefs.edit().putBoolean("key_show_bottom_bar", show).apply()
+    }
+
+    fun loadShowBottomBar(): Boolean {
+        return prefs.getBoolean("key_show_bottom_bar", false)
+    }
 }

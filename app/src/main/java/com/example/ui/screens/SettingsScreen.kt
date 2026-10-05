@@ -276,6 +276,10 @@ fun SettingsScreen(
     onUpdateVolumeGaugeSettings: (VolumeGaugeSettings) -> Unit = {},
     onSetAppVolume: (Float) -> Unit = {},
     onResetAllSettings: () -> Unit = {},
+    showTopBar: Boolean = false,
+    onToggleTopBar: (Boolean) -> Unit = {},
+    showBottomBar: Boolean = false,
+    onToggleBottomBar: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -432,7 +436,11 @@ fun SettingsScreen(
                             visualizerTextColorHex = visualizerTextColorHex,
                             onSelectVisualizerTextColor = onSelectVisualizerTextColor,
                             volumeGaugeSettings = volumeGaugeSettings,
-                            onUpdateVolumeGaugeSettings = onUpdateVolumeGaugeSettings
+                            onUpdateVolumeGaugeSettings = onUpdateVolumeGaugeSettings,
+                            showTopBar = showTopBar,
+                            onToggleTopBar = onToggleTopBar,
+                            showBottomBar = showBottomBar,
+                            onToggleBottomBar = onToggleBottomBar
                         )
                         SettingsSubCategory.ABOUT -> AboutSubScreen(
                             onResetAllSettings = {
@@ -1081,7 +1089,11 @@ private fun LookAndFeelSubScreen(
     onSetAlbumArtStyle: (String) -> Unit = {},
     prefsManager: SettingsPreferencesManager? = null,
     volumeGaugeSettings: VolumeGaugeSettings = VolumeGaugeSettings(),
-    onUpdateVolumeGaugeSettings: (VolumeGaugeSettings) -> Unit = {}
+    onUpdateVolumeGaugeSettings: (VolumeGaugeSettings) -> Unit = {},
+    showTopBar: Boolean = false,
+    onToggleTopBar: (Boolean) -> Unit = {},
+    showBottomBar: Boolean = false,
+    onToggleBottomBar: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     var showOverlayPermissionDialog by remember { mutableStateOf(false) }
@@ -1145,6 +1157,132 @@ private fun LookAndFeelSubScreen(
 
     when (activeLookHierarchy) {
         null -> {
+            // Setting: Top Bar & Bottom Navigation Visibility (Off = Hide, On = Show, Default = Off/Hide)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("lookandfeel_bars_visibility_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhoneAndroid,
+                                contentDescription = "Bars Visibility",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "Bars & Navigation",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = "Toggle top header and bottom navigation visibility",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Switch 1: Top Bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Top Bar",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (showTopBar) "On • Top bar visible" else "Off • Top bar hidden",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (showTopBar) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(
+                            checked = showTopBar,
+                            onCheckedChange = onToggleTopBar,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            modifier = Modifier.testTag("switch_show_top_bar")
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Switch 2: Bottom Navigation
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Bottom Navigation",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (showBottomBar) "On • Bottom navigation visible" else "Off • Bottom navigation hidden",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (showBottomBar) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(
+                            checked = showBottomBar,
+                            onCheckedChange = onToggleBottomBar,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            modifier = Modifier.testTag("switch_show_bottom_bar")
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // Hierarchy Item 1: Player Ui Designs
             Card(
                 modifier = Modifier

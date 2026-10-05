@@ -171,6 +171,23 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Top Bar and Bottom Navigation Visibility States (Default: false / hidden)
+    private val _showTopBar = MutableStateFlow(prefsManager.loadShowTopBar())
+    val showTopBar: StateFlow<Boolean> = _showTopBar.asStateFlow()
+
+    private val _showBottomBar = MutableStateFlow(prefsManager.loadShowBottomBar())
+    val showBottomBar: StateFlow<Boolean> = _showBottomBar.asStateFlow()
+
+    fun setShowTopBar(show: Boolean) {
+        _showTopBar.value = show
+        prefsManager.saveShowTopBar(show)
+    }
+
+    fun setShowBottomBar(show: Boolean) {
+        _showBottomBar.value = show
+        prefsManager.saveShowBottomBar(show)
+    }
+
     // Right-Edge Analog Speedometer Volume Gauge State & Debounce
     private val _volumeGaugeSettings = MutableStateFlow(prefsManager.loadVolumeGaugeSettings())
     val volumeGaugeSettings: StateFlow<VolumeGaugeSettings> = _volumeGaugeSettings.asStateFlow()

@@ -106,6 +106,8 @@ fun MainScreen(
     val volumeLevel by viewModel.volumeLevel.collectAsStateWithLifecycle()
     val isSpeedometerVisible by viewModel.isSpeedometerVisible.collectAsStateWithLifecycle()
     val volumeGaugeSettings by viewModel.volumeGaugeSettings.collectAsStateWithLifecycle()
+    val showTopBar by viewModel.showTopBar.collectAsStateWithLifecycle()
+    val showBottomBar by viewModel.showBottomBar.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // Permission setup for reading device audio and displaying playback notifications
@@ -308,25 +310,28 @@ fun MainScreen(
                             .windowInsetsPadding(WindowInsets.statusBars),
                         containerColor = MaterialTheme.colorScheme.background,
                         topBar = {
-                            NaasirTopBar(
-                                isPlaying = uiState.playerState.isPlaying,
-                                autoRotateActive = uiState.playerState.autoRotateEnabled,
-                                backgroundColor = MaterialTheme.colorScheme.background,
-                                primaryColor = palette.primaryAccent,
-                                isLightBackground = false,
-                                isNowPlaying = isNowPlaying,
-                                onMinimize = handleMinimizeNowPlaying,
-                                onOpenDrawer = {
-                                    coroutineScope.launch { drawerState.open() }
-                                }
-                            )
+                            if (showTopBar) {
+                                NaasirTopBar(
+                                    isPlaying = uiState.playerState.isPlaying,
+                                    autoRotateActive = uiState.playerState.autoRotateEnabled,
+                                    backgroundColor = MaterialTheme.colorScheme.background,
+                                    primaryColor = palette.primaryAccent,
+                                    isLightBackground = false,
+                                    isNowPlaying = isNowPlaying,
+                                    onMinimize = handleMinimizeNowPlaying,
+                                    onOpenDrawer = {
+                                        coroutineScope.launch { drawerState.open() }
+                                    }
+                                )
+                            }
                         },
                         bottomBar = {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .windowInsetsPadding(WindowInsets.navigationBars)
-                            ) {
+                            if (showBottomBar) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .windowInsetsPadding(WindowInsets.navigationBars)
+                                ) {
                             // Mini Player with Next/Prev/Play and Touchable Progress Bar
                             if (uiState.playerState.currentSong != null && uiState.selectedTab != AppTab.NOW_PLAYING) {
                                 MiniPlayer(
@@ -570,7 +575,8 @@ fun MainScreen(
                             }
                         }
                     }
-                ) { innerPadding ->
+                }
+            ) { innerPadding ->
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -762,7 +768,11 @@ fun MainScreen(
                                 spinningVinyl = uiState.spinningVinyl,
                                 onSetSpinningVinyl = { viewModel.setSpinningVinyl(it) },
                                 volumeGaugeSettings = volumeGaugeSettings,
-                                onUpdateVolumeGaugeSettings = { viewModel.setVolumeGaugeSettings(it) }
+                                onUpdateVolumeGaugeSettings = { viewModel.setVolumeGaugeSettings(it) },
+                                showTopBar = showTopBar,
+                                onToggleTopBar = { viewModel.setShowTopBar(it) },
+                                showBottomBar = showBottomBar,
+                                onToggleBottomBar = { viewModel.setShowBottomBar(it) }
                             )
                         }
                     }
