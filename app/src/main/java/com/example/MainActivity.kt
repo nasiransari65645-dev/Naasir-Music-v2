@@ -7,6 +7,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import com.example.audio.MediaContentObserver
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -31,6 +33,26 @@ import com.example.viewmodel.MusicViewModel
 
 class MainActivity : ComponentActivity() {
   private val musicViewModel: MusicViewModel by viewModels()
+  private var mediaContentObserver: MediaContentObserver? = null
+
+  override fun onStart() {
+    super.onStart()
+    if (mediaContentObserver == null) {
+      mediaContentObserver = MediaContentObserver(
+        context = applicationContext,
+        coroutineScope = lifecycleScope
+      ) {
+        musicViewModel.syncNewSongsSilently()
+      }
+      mediaContentObserver?.register()
+    }
+  }
+
+  override fun onDestroy() {
+    super.onDestroy()
+    mediaContentObserver?.unregister()
+    mediaContentObserver = null
+  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)

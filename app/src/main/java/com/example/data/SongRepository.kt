@@ -23,6 +23,11 @@ class SongRepository(
     }
 
     /**
+     * Reactive flow of cached songs from Room Database for instant UI updates.
+     */
+    val allSongs: Flow<List<Song>> = getCachedSongsFlow()
+
+    /**
      * Instantly loads cached songs from Room DB in 0ms without waiting for MediaStore.
      */
     suspend fun getCachedSongsSync(): List<Song> = withContext(Dispatchers.IO) {
@@ -35,6 +40,36 @@ class SongRepository(
     fun getCachedSongsFlow(): Flow<List<Song>> {
         return (songDao?.getAllSongs() ?: kotlinx.coroutines.flow.emptyFlow()).map { entities ->
             entities.map { it.toSong() }
+        }
+    }
+
+    /**
+     * Incremental sync query: queries MediaStore ONLY for songs with DATE_ADDED > latest dateAdded.
+     * Inserts new songs into Room (which automatically pushes updates via Room Flow).
+     * Also checks if songs have been removed from storage and prunes them cleanly.
+     */
+    suspend fun syncNewSongs(): List<Song> = withContext(Dispatchers.IO) {
+        val ctx = context ?: return@withContext emptyList()
+        val latestTimestamp = songDao?.getLatestDateAdded() ?: 0L
+
+        if (latestTimestamp <= 0L) {
+            // First time sync or empty DB: perform full sync
+            return@withContext syncWithMediaStore(forceRescan = true)
+        }
+
+        val newSongs = AudioScanner.scanDeviceAudioAfter(ctx, latestTimestamp)
+        if (newSongs.isNotEmpty() && songDao != null) {
+            val entities = newSongs.map { SongEntity.fromSong(it) }
+            songDao.insertSongs(entities)
+        }
+
+        // Check if any deleted files exist
+        val dbCount = songDao?.getSongCount() ?: 0
+        val mediaStoreCount = AudioScanner.getMediaStoreAudioCount(ctx)
+        if (mediaStoreCount < dbCount) {
+            syncWithMediaStore(forceRescan = true)
+        } else {
+            getCachedSongsSync()
         }
     }
 

@@ -115,6 +115,33 @@ object AudioScanner {
         result.songs
     }
 
+    /**
+     * Incremental scan query: returns only songs added after minDateAdded timestamp.
+     */
+    suspend fun scanDeviceAudioAfter(context: Context, minDateAdded: Long): List<Song> = withContext(Dispatchers.IO) {
+        val contentResolver = context.contentResolver
+        val collection: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        }
+        val songs = mutableListOf<Song>()
+        try {
+            contentResolver.query(
+                collection,
+                songProjection,
+                "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= ? AND ${MediaStore.Audio.Media.DATE_ADDED} > ?",
+                arrayOf("15000", minDateAdded.toString()),
+                "${MediaStore.Audio.Media.DATE_ADDED} DESC"
+            )?.use { cursor ->
+                songs.addAll(parseSongsCursor(cursor))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in scanDeviceAudioAfter: ${e.message}", e)
+        }
+        songs
+    }
+
     private fun parseSongsCursor(cursor: android.database.Cursor): List<Song> {
         val list = mutableListOf<Song>()
         val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)

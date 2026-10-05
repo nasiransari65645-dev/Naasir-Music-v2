@@ -674,8 +674,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     ensureTrackLoaded(autoPlay = false)
                 }
             }
-            // 2. Run lightweight background sync only if MediaStore audio count changed
-            val synced = songRepository.syncWithMediaStore(forceRescan = false)
+            // 2. Run silent background sync: incremental check for newly downloaded files or count changes
+            val synced = songRepository.syncNewSongs()
             if (synced.isNotEmpty() && synced != cached) {
                 withContext(Dispatchers.Main.immediate) {
                     _rawScannedSongs.value = synced
@@ -869,6 +869,26 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 withContext(Dispatchers.Main.immediate) {
                     _isScanning.value = false
                 }
+            }
+        }
+    }
+
+    /**
+     * Silent background sync triggered by MediaContentObserver or system events.
+     * Incrementally queries only newly added files and updates Room DB without blocking UI.
+     */
+    fun syncNewSongsSilently() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val updated = songRepository.syncNewSongs()
+                if (updated.isNotEmpty()) {
+                    withContext(Dispatchers.Main.immediate) {
+                        _rawScannedSongs.value = updated
+                        ensureTrackLoaded(autoPlay = false)
+                    }
+                }
+            } catch (t: Throwable) {
+                Log.e("MusicViewModel", "Error in syncNewSongsSilently: ${t.message}")
             }
         }
     }
