@@ -17,6 +17,8 @@ class SongRepository(
     private val songDao: SongDao? = null,
     private val context: Context? = null
 ) {
+    val fastDiskCache: FastSongDiskCache? = context?.let { FastSongDiskCache(it) }
+    val songCacheManager: SongCacheManager? = context?.let { SongCacheManager(it) }
 
     val allMetadata: Flow<Map<Long, SongMetadataEntity>> = dao.getAllMetadata().map { list ->
         list.associateBy { it.songId }
@@ -28,10 +30,54 @@ class SongRepository(
     val allSongs: Flow<List<Song>> = getCachedSongsFlow()
 
     /**
-     * Instantly loads cached songs from Room DB in 0ms without waiting for MediaStore.
+     * Primary instant cache reader: checks local binary/JSON cache (0ms instant load).
+     * Falls back to Room DB if disk cache is missing.
+     */
+    suspend fun getCachedSongs(): List<Song>? = withContext(Dispatchers.IO) {
+        val diskCached = fastDiskCache?.loadCachedSongs()
+        if (!diskCached.isNullOrEmpty()) {
+            return@withContext diskCached
+        }
+        val roomCached = songDao?.getAllSongsSync()?.map { it.toSong() }
+        if (!roomCached.isNullOrEmpty()) {
+            fastDiskCache?.saveCachedSongs(roomCached)
+            return@withContext roomCached
+        }
+        null
+    }
+
+    /**
+     * Saves songs to both local fast binary disk cache and Room DB.
+     */
+    suspend fun saveSongs(songs: List<Song>) = withContext(Dispatchers.IO) {
+        fastDiskCache?.saveCachedSongs(songs)
+        if (songDao != null && songs.isNotEmpty()) {
+            val entities = songs.map { SongEntity.fromSong(it) }
+            songDao.insertSongs(entities)
+        }
+    }
+
+    /**
+     * Clears both local disk file cache and Room DB.
+     */
+    suspend fun clearCache() = withContext(Dispatchers.IO) {
+        fastDiskCache?.clearCache()
+        songDao?.clearAll()
+    }
+
+    /**
+     * Manual rescan: clears local cache and performs a full scan of device audio.
+     */
+    suspend fun rescanLibrary(): List<Song> = withContext(Dispatchers.IO) {
+        clearCache()
+        syncWithMediaStore(forceRescan = true)
+    }
+
+    /**
+     * Instantly loads cached songs from Room DB or JSON in 0ms without waiting for MediaStore.
      */
     suspend fun getCachedSongsSync(): List<Song> = withContext(Dispatchers.IO) {
-        songDao?.getAllSongsSync()?.map { it.toSong() } ?: emptyList()
+        getCachedSongs() ?: emptyList()
     }
 
     /**
@@ -45,7 +91,7 @@ class SongRepository(
 
     /**
      * Incremental sync query: queries MediaStore ONLY for songs with DATE_ADDED > latest dateAdded.
-     * Inserts new songs into Room (which automatically pushes updates via Room Flow).
+     * Inserts new songs into Room & fast disk cache (which automatically pushes updates via Room Flow).
      * Also checks if songs have been removed from storage and prunes them cleanly.
      */
     suspend fun syncNewSongs(): List<Song> = withContext(Dispatchers.IO) {
@@ -61,6 +107,8 @@ class SongRepository(
         if (newSongs.isNotEmpty() && songDao != null) {
             val entities = newSongs.map { SongEntity.fromSong(it) }
             songDao.insertSongs(entities)
+            val updatedAll = songDao.getAllSongsSync().map { it.toSong() }
+            fastDiskCache?.saveCachedSongs(updatedAll)
         }
 
         // Check if any deleted files exist
@@ -76,33 +124,36 @@ class SongRepository(
     /**
      * Efficiently syncs with MediaStore:
      * - Fast path: Checks MediaStore audio count. If count matches Room DB count and !forceRescan, returns cached songs immediately (0ms).
-     * - Refresh path: If files changed or forceRescan is requested, queries MediaStore, updates Room DB, prunes removed songs, and returns updated list.
+     * - Refresh path: If files changed or forceRescan is requested, queries MediaStore, updates Room DB & JSON cache, prunes removed songs, and returns updated list.
      */
     suspend fun syncWithMediaStore(forceRescan: Boolean = false): List<Song> = withContext(Dispatchers.IO) {
         val ctx = context ?: return@withContext emptyList()
-        val cached = songDao?.getAllSongsSync() ?: emptyList()
+        val cached = getCachedSongs() ?: emptyList()
 
         if (!forceRescan && cached.isNotEmpty()) {
             val mediaCount = AudioScanner.getMediaStoreAudioCount(ctx)
             if (mediaCount == cached.size) {
-                // Media store count matches local Room cache perfectly -> zero re-scan delay
-                return@withContext cached.map { it.toSong() }
+                // Media store count matches local cache perfectly -> zero re-scan delay
+                return@withContext cached
             }
         }
 
         // Full scan: Audio files changed or forced manual refresh
         val scanned = AudioScanner.scanDeviceAudio(ctx)
-        if (scanned.isNotEmpty() && songDao != null) {
-            val entities = scanned.map { song ->
-                SongEntity.fromSong(song)
+        if (scanned.isNotEmpty()) {
+            if (songDao != null) {
+                val entities = scanned.map { song ->
+                    SongEntity.fromSong(song)
+                }
+                songDao.insertSongs(entities)
+                songDao.deleteRemovedSongs(scanned.map { it.id })
             }
-            songDao.insertSongs(entities)
-            songDao.deleteRemovedSongs(scanned.map { it.id })
+            fastDiskCache?.saveCachedSongs(scanned)
             return@withContext scanned
         }
 
         if (scanned.isEmpty() && cached.isNotEmpty()) {
-            return@withContext cached.map { it.toSong() }
+            return@withContext cached
         }
 
         scanned

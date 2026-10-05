@@ -52,6 +52,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -146,8 +147,7 @@ fun FloatingPlayerSettingsContent(
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var showOverlayPermissionDialog by remember { mutableStateOf(false) }
-    var isAwaitingOverlayPermission by remember { mutableStateOf(false) }
+    var isAwaitingOverlayPermission by rememberSaveable { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var isFloatingPlayerEnabled by remember {
@@ -161,11 +161,19 @@ fun FloatingPlayerSettingsContent(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                if (isAwaitingOverlayPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(context)) {
-                    isFloatingPlayerEnabled = true
-                    prefsManager?.saveFloatingPlayerEnabled(true)
+                if (isAwaitingOverlayPermission) {
                     isAwaitingOverlayPermission = false
-                    FloatingPlayerService.start(context)
+                    val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        Settings.canDrawOverlays(context)
+                    } else true
+                    if (hasPermission) {
+                        // Automatically enable without extra user click
+                        isFloatingPlayerEnabled = true
+                        prefsManager?.saveFloatingPlayerEnabled(true)
+                        FloatingPlayerService.start(context)
+                    }
+                } else {
+                    isFloatingPlayerEnabled = prefsManager?.loadFloatingPlayerEnabled() ?: true
                 }
             }
         }
@@ -173,64 +181,6 @@ fun FloatingPlayerSettingsContent(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
-    }
-
-    if (showOverlayPermissionDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showOverlayPermissionDialog = false
-                isAwaitingOverlayPermission = false
-            },
-            title = {
-                Text(
-                    text = "Overlay Permission Required",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    text = "Allow Naasir Music to display over other apps so the interactive floating player can appear on your home screen when minimized.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showOverlayPermissionDialog = false
-                        isAwaitingOverlayPermission = true
-                        try {
-                            val intent = Intent(
-                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                Uri.parse("package:${context.packageName}")
-                            )
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            try {
-                                val fallback = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                                context.startActivity(fallback)
-                            } catch (_: Exception) {}
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("Grant Permission", color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = {
-                        showOverlayPermissionDialog = false
-                        isAwaitingOverlayPermission = false
-                    },
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                ) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface
-        )
     }
 
     Column(
@@ -287,10 +237,25 @@ fun FloatingPlayerSettingsContent(
                 Switch(
                     checked = isFloatingPlayerEnabled,
                     onCheckedChange = { checked ->
+                        val hasOverlayPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            Settings.canDrawOverlays(context)
+                        } else true
+
                         if (checked) {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+                            if (!hasOverlayPermission) {
                                 isAwaitingOverlayPermission = true
-                                showOverlayPermissionDialog = true
+                                try {
+                                    val intent = Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    )
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    try {
+                                        val fallback = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                                        context.startActivity(fallback)
+                                    } catch (_: Exception) {}
+                                }
                             } else {
                                 isFloatingPlayerEnabled = true
                                 prefsManager?.saveFloatingPlayerEnabled(true)
