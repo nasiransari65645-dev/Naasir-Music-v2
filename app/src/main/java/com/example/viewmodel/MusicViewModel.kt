@@ -552,28 +552,28 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Combine raw scanned songs with Room metadata (custom titles, artists, custom/auto album art, play counts)
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             combine(_rawScannedSongs, songRepository.allMetadata) { scanned, metaMap ->
-                val mapped = scanned.mapNotNull { song ->
+                if (metaMap.isEmpty()) return@combine scanned
+                scanned.mapNotNull { song ->
                     val meta = metaMap[song.id]
                     if (meta?.isDeleted == true) {
                         null
-                    } else {
+                    } else if (meta != null) {
                         song.copy(
-                            title = meta?.customTitle?.ifBlank { song.title } ?: song.title,
-                            artist = meta?.customArtist?.ifBlank { song.artist } ?: song.artist,
-                            customAlbumArtUri = meta?.customAlbumArtUri ?: song.customAlbumArtUri,
-                            playCount = meta?.playCount ?: 0
+                            title = meta.customTitle?.ifBlank { song.title } ?: song.title,
+                            artist = meta.customArtist?.ifBlank { song.artist } ?: song.artist,
+                            customAlbumArtUri = meta.customAlbumArtUri ?: song.customAlbumArtUri,
+                            playCount = meta.playCount
                         )
+                    } else {
+                        song
                     }
                 }
-                AudioScanner.deduplicateSongs(mapped)
             }.collect { merged ->
-                _allSongs.value = merged
-                playerManager.setPlaylist(merged)
-                preResolveExistingArtwork(merged)
-                if (merged.isNotEmpty()) {
-                    songRepository.songCacheManager?.saveSongs(merged)
+                withContext(Dispatchers.Main.immediate) {
+                    _allSongs.value = merged
+                    playerManager.setPlaylist(merged)
                 }
             }
         }
@@ -668,22 +668,26 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Immediate instant memory hydration from cache on launch
+        // Immediate instant memory hydration from cache on launch (0ms lag-free)
         viewModelScope.launch(Dispatchers.IO) {
             val cached = songRepository.getCachedSongs()
             if (!cached.isNullOrEmpty()) {
-                _allSongs.value = cached
-                _rawScannedSongs.value = cached
-                _simpleSongs.value = cached
-                ensureTrackLoaded(autoPlay = false)
+                withContext(Dispatchers.Main.immediate) {
+                    _allSongs.value = cached
+                    _rawScannedSongs.value = cached
+                    _simpleSongs.value = cached
+                    ensureTrackLoaded(autoPlay = false)
+                }
             }
             // Silent background sync
             val fresh = songRepository.syncWithMediaStore(forceRescan = false)
             if (fresh.isNotEmpty() && fresh != cached) {
-                _allSongs.value = fresh
-                _rawScannedSongs.value = fresh
-                _simpleSongs.value = fresh
-                ensureTrackLoaded(autoPlay = false)
+                withContext(Dispatchers.Main.immediate) {
+                    _allSongs.value = fresh
+                    _rawScannedSongs.value = fresh
+                    _simpleSongs.value = fresh
+                    ensureTrackLoaded(autoPlay = false)
+                }
             }
         }
     }

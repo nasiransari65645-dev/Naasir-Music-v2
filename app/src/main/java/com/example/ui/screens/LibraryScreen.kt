@@ -231,68 +231,81 @@ fun LibraryScreen(
     // Displayed songs based on category and sub-filters (memoized to avoid re-filtering on scroll frames)
     val effectiveSongs = if (filteredSongs.isNotEmpty() || searchQuery.isNotBlank()) filteredSongs else sortedSongs
 
-    // Deduplicate songs catalog so 1 song is never listed multiple times
-    val deduplicatedSongs = remember(effectiveSongs) {
-        com.example.audio.AudioScanner.deduplicateSongs(effectiveSongs)
+    // Deduplicated catalog (pre-deduplicated efficiently by repository/scanner)
+    val deduplicatedSongs = effectiveSongs
+
+    // Artist list calculation: only computed when viewing ARTISTS category
+    val artistsList = remember(deduplicatedSongs, selectedCategory) {
+        if (selectedCategory == LibraryCategory.ARTISTS) {
+            deduplicatedSongs.groupBy { it.artist.ifBlank { "Unknown Artist" } }.map { (artist, songList) ->
+                artist to songList
+            }.sortedByDescending { it.second.size }
+        } else emptyList()
     }
 
-    // Artist list calculation
-    val artistsList = remember(deduplicatedSongs) {
-        deduplicatedSongs.groupBy { it.artist.ifBlank { "Unknown Artist" } }.map { (artist, songList) ->
-            artist to songList
-        }.sortedByDescending { it.second.size }
+    // Album list calculation: only computed when viewing ALBUMS or COMPILATIONS
+    val albumsList = remember(deduplicatedSongs, selectedCategory) {
+        if (selectedCategory == LibraryCategory.ALBUMS || selectedCategory == LibraryCategory.COMPILATIONS) {
+            deduplicatedSongs.groupBy { it.album.ifBlank { "Unknown Album" } }.map { (album, songList) ->
+                album to songList
+            }.sortedByDescending { it.second.size }
+        } else emptyList()
     }
 
-    // Album list calculation
-    val albumsList = remember(deduplicatedSongs) {
-        deduplicatedSongs.groupBy { it.album.ifBlank { "Unknown Album" } }.map { (album, songList) ->
-            album to songList
-        }.sortedByDescending { it.second.size }
+    // Folders calculation: only computed when viewing FOLDERS category
+    val foldersList = remember(filteredSongs, effectiveSongs, selectedCategory) {
+        if (selectedCategory == LibraryCategory.FOLDERS) {
+            val cached = com.example.audio.AudioScanner.cachedFolders
+            if (cached.isNotEmpty()) {
+                cached.map { (folder, songList) ->
+                    folder to songList
+                }.sortedBy { it.first.lowercase() }
+            } else {
+                effectiveSongs.groupBy { it.folder.ifBlank { "Music" } }.map { (folder, songList) ->
+                    folder to songList
+                }.sortedBy { it.first.lowercase() }
+            }
+        } else emptyList()
     }
 
-    // Folders calculation (unfiltered: preserves all songs and audio files in each folder)
-    val foldersList = remember(filteredSongs, effectiveSongs) {
-        val cached = com.example.audio.AudioScanner.cachedFolders
-        if (cached.isNotEmpty()) {
-            cached.map { (folder, songList) ->
-                folder to songList
-            }.sortedBy { it.first.lowercase() }
-        } else {
-            effectiveSongs.groupBy { it.folder.ifBlank { "Music" } }.map { (folder, songList) ->
-                folder to songList
-            }.sortedBy { it.first.lowercase() }
-        }
+    // Genres calculation: only computed when viewing GENRE category
+    val genresList = remember(deduplicatedSongs, selectedCategory) {
+        if (selectedCategory == LibraryCategory.GENRE) {
+            deduplicatedSongs.groupBy { it.genre.ifBlank { "General" } }.map { (genre, songList) ->
+                genre to songList
+            }.sortedByDescending { it.second.size }
+        } else emptyList()
     }
 
-    // Genres calculation
-    val genresList = remember(deduplicatedSongs) {
-        deduplicatedSongs.groupBy { it.genre.ifBlank { "General" } }.map { (genre, songList) ->
-            genre to songList
-        }.sortedByDescending { it.second.size }
+    // Album Artists calculation: only computed when viewing ALBUM_ARTISTS category
+    val albumArtistsList = remember(deduplicatedSongs, selectedCategory) {
+        if (selectedCategory == LibraryCategory.ALBUM_ARTISTS) {
+            deduplicatedSongs.groupBy { it.albumArtist.ifBlank { it.artist.ifBlank { "Unknown Artist" } } }.map { (aa, songList) ->
+                aa to songList
+            }.sortedByDescending { it.second.size }
+        } else emptyList()
     }
 
-    // Album Artists calculation
-    val albumArtistsList = remember(deduplicatedSongs) {
-        deduplicatedSongs.groupBy { it.albumArtist.ifBlank { it.artist.ifBlank { "Unknown Artist" } } }.map { (aa, songList) ->
-            aa to songList
-        }.sortedByDescending { it.second.size }
+    // Composers calculation: only computed when viewing COMPOSERS category
+    val composersList = remember(deduplicatedSongs, selectedCategory) {
+        if (selectedCategory == LibraryCategory.COMPOSERS) {
+            deduplicatedSongs.groupBy { it.composer.ifBlank { "Unknown Composer" } }.map { (comp, songList) ->
+                comp to songList
+            }.sortedByDescending { it.second.size }
+        } else emptyList()
     }
 
-    // Composers calculation
-    val composersList = remember(deduplicatedSongs) {
-        deduplicatedSongs.groupBy { it.composer.ifBlank { "Unknown Composer" } }.map { (comp, songList) ->
-            comp to songList
-        }.sortedByDescending { it.second.size }
-    }
-
-    val mostPlayedList = remember(deduplicatedSongs) {
-        deduplicatedSongs
-            .filter { it.playCount > 0 }
-            .sortedWith(
-                compareByDescending<Song> { it.playCount }
-                    .thenByDescending { it.dateAdded }
-                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
-            )
+    // Most played list: only computed when viewing MOST_PLAYED category
+    val mostPlayedList = remember(deduplicatedSongs, selectedCategory) {
+        if (selectedCategory == LibraryCategory.MOST_PLAYED) {
+            deduplicatedSongs
+                .filter { it.playCount > 0 }
+                .sortedWith(
+                    compareByDescending<Song> { it.playCount }
+                        .thenByDescending { it.dateAdded }
+                        .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+                )
+        } else emptyList()
     }
 
     val displaySongs = remember(selectedCategory, deduplicatedSongs, effectiveSongs, mostPlayedList, favoriteIds, selectedGroupFilter, searchQuery) {
@@ -319,34 +332,6 @@ fun LibraryScreen(
     }
 
     val songListState = androidx.compose.foundation.lazy.rememberLazyListState()
-
-    // Smooth damped fling behavior: controls scrolling velocity smoothly without lag or runaway speed
-    val smoothFlingBehavior = remember {
-        val decaySpec = exponentialDecay<Float>(
-            frictionMultiplier = 1.75f,
-            absVelocityThreshold = 0.1f
-        )
-        object : FlingBehavior {
-            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
-                val dampedVelocity = initialVelocity * 0.70f
-                var lastValue = 0f
-                var velocityLeft = dampedVelocity
-                AnimationState(
-                    initialValue = 0f,
-                    initialVelocity = dampedVelocity
-                ).animateDecay(decaySpec) {
-                    val delta = value - lastValue
-                    val consumed = scrollBy(delta)
-                    lastValue = value
-                    velocityLeft = velocity
-                    if (kotlin.math.abs(delta - consumed) > 0.5f) {
-                        cancelAnimation()
-                    }
-                }
-                return velocityLeft
-            }
-        }
-    }
 
     Column(
         modifier = modifier
@@ -864,7 +849,6 @@ fun LibraryScreen(
                 ) {
                     LazyColumn(
                         state = songListState,
-                        flingBehavior = smoothFlingBehavior,
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("song_list_view"),
@@ -1322,13 +1306,18 @@ private fun SongItemRow(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                if (song.albumArtUri != null) {
+                val artUri = song.albumArtUri
+                if (artUri != null) {
                     val context = LocalContext.current
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(song.albumArtUri)
+                    val imageRequest = remember(artUri) {
+                        ImageRequest.Builder(context)
+                            .data(artUri)
+                            .size(128, 128)
                             .crossfade(false)
-                            .build(),
+                            .build()
+                    }
+                    AsyncImage(
+                        model = imageRequest,
                         contentDescription = song.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
