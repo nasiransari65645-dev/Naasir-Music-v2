@@ -78,6 +78,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -308,6 +311,11 @@ fun NowPlayingScreen(
         allSongs.size.coerceAtLeast(1)
     }
 
+    // Intercept hardware/system back button to smoothly return from Now Playing
+    BackHandler {
+        onBack()
+    }
+
     // Clean single Column root container
     Column(
         modifier = backdropModifier
@@ -315,12 +323,31 @@ fun NowPlayingScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-            // 1. ALBUM ART / VINYL DISC (Responsive Auto-Fit)
+            // 1. ALBUM ART / VINYL DISC (Responsive Auto-Fit with swipe next/prev gesture)
+            var swipeDragX by remember { mutableFloatStateOf(0f) }
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.68f)
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(24.dp))
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures(
+                            onDragStart = { swipeDragX = 0f },
+                            onDragEnd = {
+                                if (swipeDragX < -45f) {
+                                    onNext()
+                                } else if (swipeDragX > 45f) {
+                                    onPrevious()
+                                }
+                                swipeDragX = 0f
+                            },
+                            onDragCancel = { swipeDragX = 0f },
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                swipeDragX += dragAmount
+                            }
+                        )
+                    }
                     .testTag("now_playing_album_art_card"),
                 contentAlignment = Alignment.Center
             ) {

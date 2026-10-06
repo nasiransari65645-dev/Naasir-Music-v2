@@ -42,6 +42,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -50,10 +52,12 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlin.math.roundToInt
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -161,6 +165,12 @@ fun FloatingPlayerSettingsContent(
     }
     var isFloatingRainbowEdgeEnabled by remember {
         mutableStateOf(prefsManager?.loadFloatingRainbowEdgeEnabled() ?: true)
+    }
+    var floatingBorderSize by remember {
+        mutableFloatStateOf(prefsManager?.loadFloatingBorderSize() ?: 2.5f)
+    }
+    var floatingAnimSpeed by remember {
+        mutableFloatStateOf(prefsManager?.loadFloatingAnimationSpeed() ?: 2.5f)
     }
 
     // Automatically detect when user returns from Settings.ACTION_MANAGE_OVERLAY_PERMISSION
@@ -343,7 +353,7 @@ fun FloatingPlayerSettingsContent(
                     onCheckedChange = { checked ->
                         isFloatingRainbowEdgeEnabled = checked
                         prefsManager?.saveFloatingRainbowEdgeEnabled(checked)
-                        FloatingPlayerService.updateRainbowEdge(context, checked)
+                        FloatingPlayerService.updateRainbowEdge(context, checked, floatingBorderSize, floatingAnimSpeed)
                     },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
@@ -351,6 +361,83 @@ fun FloatingPlayerSettingsContent(
                     ),
                     modifier = Modifier.testTag("switch_floating_rainbow_edge_toggle")
                 )
+            }
+
+            if (isFloatingRainbowEdgeEnabled && isRainbowActive) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    // Border Size Slider
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Border Size",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${(floatingBorderSize * 10).roundToInt() / 10f} dp",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Slider(
+                        value = floatingBorderSize,
+                        onValueChange = {
+                            floatingBorderSize = it
+                            prefsManager?.saveFloatingBorderSize(it)
+                            FloatingPlayerService.updateRainbowEdge(context, isFloatingRainbowEdgeEnabled, it, floatingAnimSpeed)
+                        },
+                        valueRange = 1.0f..8.0f,
+                        steps = 13,
+                        modifier = Modifier.fillMaxWidth().testTag("slider_floating_border_size")
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Animation Speed Slider
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Animation Speed",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${(floatingAnimSpeed * 10).roundToInt() / 10f} s",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Slider(
+                        value = floatingAnimSpeed,
+                        onValueChange = {
+                            floatingAnimSpeed = it
+                            prefsManager?.saveFloatingAnimationSpeed(it)
+                            FloatingPlayerService.updateRainbowEdge(context, isFloatingRainbowEdgeEnabled, floatingBorderSize, it)
+                        },
+                        valueRange = 0.5f..5.0f,
+                        steps = 8,
+                        modifier = Modifier.fillMaxWidth().testTag("slider_floating_anim_speed")
+                    )
+                }
             }
         }
 

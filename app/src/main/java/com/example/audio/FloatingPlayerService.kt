@@ -15,6 +15,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
+import kotlin.math.roundToInt
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -156,6 +157,8 @@ class FloatingPlayerService : Service() {
     private var screenHeightPx = 1920
 
     private val rainbowEdgeEnabledState = mutableStateOf(true)
+    private val rainbowBorderSizeState = mutableFloatStateOf(2.5f)
+    private val rainbowAnimSpeedState = mutableFloatStateOf(2.5f)
 
     companion object {
         private const val TAG = "FloatingPlayerService"
@@ -164,6 +167,8 @@ class FloatingPlayerService : Service() {
         const val ACTION_STOP = "com.example.audio.ACTION_STOP_FLOATING_PLAYER"
         const val ACTION_UPDATE_RAINBOW = "com.example.audio.ACTION_UPDATE_RAINBOW"
         const val EXTRA_RAINBOW_ENABLED = "extra_rainbow_enabled"
+        const val EXTRA_RAINBOW_BORDER_SIZE = "extra_rainbow_border_size"
+        const val EXTRA_RAINBOW_ANIM_SPEED = "extra_rainbow_anim_speed"
 
         var isRunning: Boolean = false
             private set
@@ -193,11 +198,13 @@ class FloatingPlayerService : Service() {
             }
         }
 
-        fun updateRainbowEdge(context: Context, enabled: Boolean) {
+        fun updateRainbowEdge(context: Context, enabled: Boolean, borderSize: Float = 2.5f, animSpeed: Float = 2.5f) {
             try {
                 val intent = Intent(context, FloatingPlayerService::class.java).apply {
                     action = ACTION_UPDATE_RAINBOW
                     putExtra(EXTRA_RAINBOW_ENABLED, enabled)
+                    putExtra(EXTRA_RAINBOW_BORDER_SIZE, borderSize)
+                    putExtra(EXTRA_RAINBOW_ANIM_SPEED, animSpeed)
                 }
                 context.startService(intent)
             } catch (_: Throwable) {}
@@ -213,6 +220,8 @@ class FloatingPlayerService : Service() {
 
         val prefs = SettingsPreferencesManager(applicationContext)
         rainbowEdgeEnabledState.value = prefs.loadFloatingRainbowEdgeEnabled()
+        rainbowBorderSizeState.floatValue = prefs.loadFloatingBorderSize()
+        rainbowAnimSpeedState.floatValue = prefs.loadFloatingAnimationSpeed()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -223,11 +232,17 @@ class FloatingPlayerService : Service() {
             }
             ACTION_UPDATE_RAINBOW -> {
                 val enabled = intent.getBooleanExtra(EXTRA_RAINBOW_ENABLED, true)
+                val border = intent.getFloatExtra(EXTRA_RAINBOW_BORDER_SIZE, 2.5f)
+                val speed = intent.getFloatExtra(EXTRA_RAINBOW_ANIM_SPEED, 2.5f)
                 rainbowEdgeEnabledState.value = enabled
+                rainbowBorderSizeState.floatValue = border
+                rainbowAnimSpeedState.floatValue = speed
             }
             ACTION_START, null -> {
                 val prefs = SettingsPreferencesManager(applicationContext)
                 rainbowEdgeEnabledState.value = prefs.loadFloatingRainbowEdgeEnabled()
+                rainbowBorderSizeState.floatValue = prefs.loadFloatingBorderSize()
+                rainbowAnimSpeedState.floatValue = prefs.loadFloatingAnimationSpeed()
                 showOverlayView()
             }
         }
@@ -285,10 +300,14 @@ class FloatingPlayerService : Service() {
 
                 setContent {
                     val rainbowEdgeEnabled by rainbowEdgeEnabledState
+                    val rainbowBorderSize by rainbowBorderSizeState
+                    val rainbowAnimSpeed by rainbowAnimSpeedState
 
                     FloatingDesktopPlayerContent(
                         playerManager = AudioPlayerManager.instance,
                         rainbowEdgeEnabled = rainbowEdgeEnabled,
+                        borderSizeDp = rainbowBorderSize,
+                        animSpeedSec = rainbowAnimSpeed,
                         onDismiss = {
                             removeOverlayView()
                             stopSelf()
@@ -367,6 +386,8 @@ class FloatingPlayerService : Service() {
 private fun FloatingDesktopPlayerContent(
     playerManager: AudioPlayerManager?,
     rainbowEdgeEnabled: Boolean,
+    borderSizeDp: Float = 2.5f,
+    animSpeedSec: Float = 2.5f,
     onDismiss: () -> Unit,
     onOpenApp: () -> Unit,
     onDragWindow: (Float, Float) -> Unit
@@ -397,11 +418,12 @@ private fun FloatingDesktopPlayerContent(
 
     // Dynamic rotating Rainbow Edge Lighting
     val infiniteTransition = rememberInfiniteTransition(label = "floating_rainbow_edge")
+    val durationMsAnim = (animSpeedSec * 1000f).roundToInt().coerceIn(300, 10000)
     val rainbowAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            animation = tween(durationMillis = durationMsAnim, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "rainbow_rotation"
@@ -463,7 +485,7 @@ private fun FloatingDesktopPlayerContent(
                     brush = ShaderBrush(sweepShader),
                     size = size,
                     cornerRadius = CornerRadius(20.dp.toPx(), 20.dp.toPx()),
-                    style = Stroke(width = 2.5.dp.toPx())
+                    style = Stroke(width = borderSizeDp.dp.toPx())
                 )
             } else {
                 drawRoundRect(

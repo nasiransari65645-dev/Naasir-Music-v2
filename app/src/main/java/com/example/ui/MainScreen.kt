@@ -371,45 +371,48 @@ fun MainScreen(
                             }
                         },
                         bottomBar = {
-                            val shouldShowMiniPlayer = uiState.playerState.currentSong != null && uiState.selectedTab != AppTab.NOW_PLAYING
+                            val activeSong = uiState.playerState.currentSong ?: uiState.songs.firstOrNull()
+                            val shouldShowMiniPlayer = activeSong != null && uiState.selectedTab != AppTab.NOW_PLAYING
                             if (shouldShowMiniPlayer || showBottomBar) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .windowInsetsPadding(WindowInsets.navigationBars)
                                 ) {
-                            // Mini Player with Next/Prev/Play and Touchable Progress Bar
-                            if (shouldShowMiniPlayer) {
-                                MiniPlayer(
-                                    currentSong = uiState.playerState.currentSong,
-                                    isPlaying = uiState.playerState.isPlaying,
-                                    progressMs = uiState.playerState.currentPositionMs,
-                                    durationMs = uiState.playerState.durationMs,
-                                    autoRotateActive = uiState.playerState.autoRotateEnabled,
-                                    onPlayPauseClick = { viewModel.togglePlayPause() },
-                                    onPreviousClick = { viewModel.playPrevious() },
-                                    onNextClick = { viewModel.playNext() },
-                                    onSeekTo = { viewModel.seekTo(it) },
-                                    onExpandClick = { viewModel.selectTab(AppTab.NOW_PLAYING) },
-                                    isFastForwarding = uiState.playerState.isFastForwarding,
-                                    isRewinding = uiState.playerState.isRewinding,
-                                    onStartFastForward = { viewModel.startFastForward() },
-                                    onStopFastForward = { viewModel.stopFastForward() },
-                                    onStartRewind = { viewModel.startRewind() },
-                                    onStopRewind = { viewModel.stopRewind() },
-                                    customVisualizerText = uiState.customVisualizerText,
-                                    showVisualizerText = uiState.showVisualizerText,
-                                    visualizerTextColor = Color(uiState.visualizerTextColorHex),
-                                    isCosmicOrbit = false
-                                )
-                            }
+                                    // Mini Player with Next/Prev/Play and Touchable Progress Bar
+                                    // Shown on every screen except Now Playing (even when both top & bottom bars are turned off)
+                                    if (shouldShowMiniPlayer && activeSong != null) {
+                                        MiniPlayer(
+                                            currentSong = activeSong,
+                                            isPlaying = uiState.playerState.isPlaying,
+                                            progressMs = uiState.playerState.currentPositionMs,
+                                            durationMs = if (uiState.playerState.durationMs > 0) uiState.playerState.durationMs else activeSong.durationMs,
+                                            autoRotateActive = uiState.playerState.autoRotateEnabled,
+                                            onPlayPauseClick = { viewModel.togglePlayPause() },
+                                            onPreviousClick = { viewModel.playPrevious() },
+                                            onNextClick = { viewModel.playNext() },
+                                            onSeekTo = { viewModel.seekTo(it) },
+                                            onExpandClick = { viewModel.selectTab(AppTab.NOW_PLAYING) },
+                                            isFastForwarding = uiState.playerState.isFastForwarding,
+                                            isRewinding = uiState.playerState.isRewinding,
+                                            onStartFastForward = { viewModel.startFastForward() },
+                                            onStopFastForward = { viewModel.stopFastForward() },
+                                            onStartRewind = { viewModel.startRewind() },
+                                            onStopRewind = { viewModel.stopRewind() },
+                                            customVisualizerText = uiState.customVisualizerText,
+                                            showVisualizerText = uiState.showVisualizerText,
+                                            visualizerTextColor = Color(uiState.visualizerTextColorHex),
+                                            isCosmicOrbit = false
+                                        )
+                                    }
 
-                            // Themed Bottom Navigation Bar
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surface)
-                            ) {
+                                    // Themed Bottom Navigation Bar (only rendered when showBottomBar is true)
+                                    if (showBottomBar) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(MaterialTheme.colorScheme.surface)
+                                        ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     // Top subtle accent line
                                     Box(
@@ -622,7 +625,8 @@ fun MainScreen(
                         }
                     }
                 }
-            ) { innerPadding ->
+            }
+        ) { innerPadding ->
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -647,7 +651,10 @@ fun MainScreen(
                                     onSortOptionSelected = { viewModel.setSongSortOption(it) },
                                     onSelectCategory = { viewModel.setActiveCategory(it) },
                                     onSearchChange = { viewModel.updateSearchQuery(it) },
-                                    onSongClick = { song -> viewModel.playSong(song) },
+                                    onSongClick = { song ->
+                                        viewModel.playSong(song)
+                                        viewModel.selectTab(AppTab.NOW_PLAYING)
+                                    },
                                     onShuffleAllClick = { viewModel.playAllShuffled() },
                                     onRescanClick = { viewModel.scanDeviceAudio(forceRescan = true) },
                                     onRequestPermissionClick = { permissionLauncher.launch(permissionsToRequest) },

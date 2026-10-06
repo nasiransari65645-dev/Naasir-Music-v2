@@ -805,6 +805,22 @@ class SettingsPreferencesManager(context: Context) {
         return prefs.getBoolean(KEY_FLOATING_RAINBOW_EDGE_ENABLED, true)
     }
 
+    fun saveFloatingBorderSize(sizeDp: Float) {
+        prefs.edit().putFloat("key_floating_border_size", sizeDp).apply()
+    }
+
+    fun loadFloatingBorderSize(): Float {
+        return prefs.getFloat("key_floating_border_size", 2.5f)
+    }
+
+    fun saveFloatingAnimationSpeed(speedSec: Float) {
+        prefs.edit().putFloat("key_floating_anim_speed", speedSec).apply()
+    }
+
+    fun loadFloatingAnimationSpeed(): Float {
+        return prefs.getFloat("key_floating_anim_speed", 2.5f)
+    }
+
     fun saveShowTopBar(show: Boolean) {
         prefs.edit().putBoolean("key_show_top_bar", show).apply()
     }

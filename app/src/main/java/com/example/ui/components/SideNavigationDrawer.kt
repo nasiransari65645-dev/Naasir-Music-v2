@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -89,6 +90,7 @@ fun SideNavigationDrawerContent(
     var showProDialog by remember { mutableStateOf(false) }
 
     val navItems = listOf(
+        DrawerMenuItem("Favorites", "Liked & favorite tracks", Icons.Default.Favorite, LibraryCategory.FAVORITES, "drawer_item_favorites"),
         DrawerMenuItem("Artists", "Grouped by performers", Icons.Default.Person, LibraryCategory.ARTISTS, "drawer_item_artists"),
         DrawerMenuItem("Albums", "Releases & compilations", Icons.Default.Album, LibraryCategory.ALBUMS, "drawer_item_albums"),
         DrawerMenuItem("Songs", "All audio files", Icons.Default.MusicNote, LibraryCategory.SONGS, "drawer_item_songs"),

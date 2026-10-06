@@ -296,11 +296,11 @@ fun LibraryScreen(
         } else emptyList()
     }
 
-    // Most played list: only computed when viewing MOST_PLAYED category
+    // Most played list: only computed when viewing MOST_PLAYED category (count > 1, ignoring 1st played)
     val mostPlayedList = remember(deduplicatedSongs, selectedCategory) {
         if (selectedCategory == LibraryCategory.MOST_PLAYED) {
             deduplicatedSongs
-                .filter { it.playCount > 0 }
+                .filter { it.playCount > 1 }
                 .sortedWith(
                     compareByDescending<Song> { it.playCount }
                         .thenByDescending { it.dateAdded }
@@ -315,6 +315,7 @@ fun LibraryScreen(
         } else {
             when (selectedCategory) {
                 LibraryCategory.SONGS -> deduplicatedSongs
+                LibraryCategory.FAVORITES -> deduplicatedSongs.filter { favoriteIds.contains(it.id) }
                 LibraryCategory.MOST_PLAYED -> mostPlayedList
                 LibraryCategory.PLAYLISTS -> deduplicatedSongs.filter { favoriteIds.contains(it.id) }
                 LibraryCategory.ARTISTS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.artist.ifBlank { "Unknown Artist" } == selectedGroupFilter } else emptyList()
@@ -483,8 +484,9 @@ fun LibraryScreen(
             ) {
                 val categoryItems = listOf(
                     LibraryCategory.SONGS to ("${filteredSongs.size} tracks • All audio files" to (Icons.Default.Audiotrack to CyanNeon)),
+                    LibraryCategory.FAVORITES to ("${favoriteIds.size} tracks • Liked & favorite songs" to (Icons.Default.Favorite to Color(0xFFEF4444))),
                     LibraryCategory.MOST_PLAYED to ("${mostPlayedList.size} tracks • Top played tracks" to (Icons.Default.LocalFireDepartment to Color(0xFFFF9100))),
-                    LibraryCategory.PLAYLISTS to ("${favoriteIds.size} tracks • Liked & favorites" to (Icons.Default.Favorite to Color(0xFFEF4444))),
+                    LibraryCategory.PLAYLISTS to ("${favoriteIds.size} tracks • Custom playlists" to (Icons.Default.QueueMusic to Color(0xFF8B5CF6))),
                     LibraryCategory.ARTISTS to ("${artistsList.size} artists • Grouped by performers" to (Icons.Default.Person to PurpleNeon)),
                     LibraryCategory.ALBUMS to ("${albumsList.size} albums • Grouped by releases" to (Icons.Default.Album to Color(0xFF38BDF8))),
                     LibraryCategory.FOLDERS to ("${foldersList.size} folders • Directory browser" to (Icons.Default.Folder to Color(0xFF10B981))),
@@ -684,6 +686,7 @@ fun LibraryScreen(
 
             val isGroupedCategory = selectedCategory != null &&
                 selectedCategory != LibraryCategory.SONGS &&
+                selectedCategory != LibraryCategory.FAVORITES &&
                 selectedCategory != LibraryCategory.MOST_PLAYED &&
                 selectedCategory != LibraryCategory.PLAYLISTS
             val activeGroupList: List<Pair<String, List<Song>>> = when (selectedCategory) {
@@ -831,13 +834,13 @@ fun LibraryScreen(
                 EmptyPlaceholder(
                     message = when {
                         currentCat == LibraryCategory.MOST_PLAYED -> "No tracks played yet"
-                        currentCat == LibraryCategory.PLAYLISTS -> "No favorite songs yet"
+                        currentCat == LibraryCategory.FAVORITES || currentCat == LibraryCategory.PLAYLISTS -> "No favorite songs yet"
                         searchQuery.isNotEmpty() -> "No results found for '$searchQuery'"
                         else -> "No songs found"
                     },
                     subMessage = when {
                         currentCat == LibraryCategory.MOST_PLAYED -> "Songs will appear here after being played for at least 1 minute"
-                        currentCat == LibraryCategory.PLAYLISTS -> "Tap the heart icon on any song to save it here"
+                        currentCat == LibraryCategory.FAVORITES || currentCat == LibraryCategory.PLAYLISTS -> "Tap the heart icon on any song to save it here"
                         !hasStoragePermission -> "Grant permission to index music from your device"
                         else -> "Check audio files on your device"
                     },
@@ -937,7 +940,7 @@ fun LibraryScreen(
                                 isCurrentSong = isCurrent,
                                 isPlaying = isPlayingCurrent,
                                 isFavorite = isFav,
-                                showPlayCount = currentCat == LibraryCategory.MOST_PLAYED || song.playCount > 0,
+                                showPlayCount = currentCat == LibraryCategory.MOST_PLAYED,
                                 onSongClick = { onSongClick(song) },
                                 onToggleFavorite = { onToggleFavorite(song.id) },
                                 onRenameClick = {
@@ -1349,7 +1352,7 @@ private fun SongItemRow(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (showPlayCount || song.playCount > 0) {
+                    if (showPlayCount) {
                         Text(
                             text = "🔥 ${song.playCount} ${if (song.playCount == 1) "play" else "plays"}",
                             fontSize = 11.sp,

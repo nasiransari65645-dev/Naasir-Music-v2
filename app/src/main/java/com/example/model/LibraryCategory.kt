@@ -1,6 +1,7 @@
 package com.example.model
 
 enum class LibraryCategory(val title: String) {
+    FAVORITES("Favorites"),
     ARTISTS("Artists"),
     ALBUMS("Albums"),
     SONGS("Songs"),
@@ -14,7 +15,6 @@ enum class LibraryCategory(val title: String) {
 
     companion object {
         val ALL_SONGS = SONGS
-        val FAVORITES = PLAYLISTS
         val SIMPLE_MUSIC = SONGS
         val QUICK_PICKS = SONGS
     }

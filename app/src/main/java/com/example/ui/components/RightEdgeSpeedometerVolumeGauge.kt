@@ -213,14 +213,17 @@ private fun CurvedSpeedometerVolumeHud(
         )
     }
 
-    // Razor-sharp 1dp contour outline stroke with cyan to purple neon gradient
+    val themePrimary = settings.theme.primaryColor
+    val themeGlow = settings.theme.glowColor
+
+    // Razor-sharp 1dp contour outline stroke with theme gradient
     val contourBorder = BorderStroke(
         1.dp,
         Brush.verticalGradient(
             listOf(
-                Color(0xFF00F5FF).copy(alpha = 0.6f),
-                Color(0xFFBD00FF).copy(alpha = 0.8f),
-                Color(0xFF00F5FF).copy(alpha = 0.4f)
+                themePrimary.copy(alpha = 0.7f),
+                themeGlow.copy(alpha = 0.85f),
+                themePrimary.copy(alpha = 0.5f)
             )
         )
     )
@@ -234,8 +237,8 @@ private fun CurvedSpeedometerVolumeHud(
             .shadow(
                 elevation = 10.dp,
                 shape = contourShape,
-                ambientColor = Color(0xFFBD00FF).copy(alpha = 0.35f),
-                spotColor = Color(0xFF00F5FF).copy(alpha = 0.35f)
+                ambientColor = themeGlow.copy(alpha = 0.35f),
+                spotColor = themePrimary.copy(alpha = 0.35f)
             )
             .clip(contourShape)
             .background(Color(0xCC0D1117))
@@ -310,7 +313,7 @@ private fun CurvedSpeedometerVolumeHud(
                 val x2 = if (isLeft) arcCenterX + arcRadius * cos(th2) else arcCenterX - arcRadius * cos(th2)
                 val y2 = centerY - arcRadius * sin(th2)
                 drawLine(
-                    color = Color(0xFF00E5FF).copy(alpha = 0.28f),
+                    color = themePrimary.copy(alpha = 0.28f),
                     start = Offset(x1, y1),
                     end = Offset(x2, y2),
                     strokeWidth = 1.5.dp.toPx()
@@ -348,8 +351,8 @@ private fun CurvedSpeedometerVolumeHud(
                     }
 
                     val tickColor = when {
-                        isMajor -> Color(0xFF00E5FF).copy(alpha = fadeFactor)
-                        isMedium -> Color(0xFF38BDF8).copy(alpha = fadeFactor * 0.85f)
+                        isMajor -> themePrimary.copy(alpha = fadeFactor)
+                        isMedium -> themeGlow.copy(alpha = fadeFactor * 0.85f)
                         else -> Color(0xFF64748B).copy(alpha = fadeFactor * 0.5f)
                     }
 
@@ -394,7 +397,7 @@ private fun CurvedSpeedometerVolumeHud(
             val needleLen = 5.dp.toPx()
             val needleStart = if (isLeft) focalArcX + needleLen else focalArcX - needleLen
             drawLine(
-                color = Color(0xFF00F5FF),
+                color = themePrimary,
                 start = Offset(needleStart, centerY),
                 end = Offset(focalArcX, centerY),
                 strokeWidth = 2.dp.toPx()
@@ -416,7 +419,7 @@ private fun CurvedSpeedometerVolumeHud(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Docked Volume Icon & "VOL" label neatly centered just above the purple box
+                // Docked Volume Icon & "VOL" label neatly centered just above the theme box
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
@@ -424,13 +427,13 @@ private fun CurvedSpeedometerVolumeHud(
                     Icon(
                         imageVector = volumeIcon,
                         contentDescription = "Volume Icon",
-                        tint = Color(0xFF00F5FF),
+                        tint = themePrimary,
                         modifier = Modifier.size(11.dp)
                     )
                     Spacer(modifier = Modifier.width(2.dp))
                     Text(
                         text = "VOL",
-                        color = Color(0xFF00F5FF),
+                        color = themePrimary,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
@@ -440,7 +443,7 @@ private fun CurvedSpeedometerVolumeHud(
 
                 Spacer(modifier = Modifier.height(3.dp))
 
-                // Magnifier Lens Capsule: purple border, purple translucent fill, centered numeric value
+                // Magnifier Lens Capsule: theme border, theme translucent fill, centered numeric value
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -448,16 +451,16 @@ private fun CurvedSpeedometerVolumeHud(
                         .shadow(
                             elevation = 6.dp,
                             shape = RoundedCornerShape(8.dp),
-                            ambientColor = Color(0xFFBD00FF),
-                            spotColor = Color(0xFFBD00FF)
+                            ambientColor = themeGlow,
+                            spotColor = themeGlow
                         )
-                        .background(Color(0x33BD00FF), RoundedCornerShape(8.dp))
-                        .border(1.5.dp, Color(0xFFBD00FF), RoundedCornerShape(8.dp))
+                        .background(themeGlow.copy(alpha = 0.22f), RoundedCornerShape(8.dp))
+                        .border(1.5.dp, themeGlow, RoundedCornerShape(8.dp))
                         .clip(RoundedCornerShape(8.dp))
                 ) {
                     Text(
                         text = "$percentageInt",
-                        color = Color(0xFF00F5FF),
+                        color = themePrimary,
                         fontSize = 18.5.sp,
                         fontWeight = FontWeight.ExtraBold,
                         fontFamily = FontFamily.Monospace,
