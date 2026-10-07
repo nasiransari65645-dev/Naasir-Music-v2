@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -154,6 +155,7 @@ fun LibraryScreen(
     onRenameSong: (Long, String, String) -> Unit = { _, _, _ -> },
     onDeleteSong: (Long) -> Unit = {},
     onSetCustomAlbumArt: (Long, android.net.Uri) -> Unit = { _, _ -> },
+    onScrollStateChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf<LibraryCategory?>(LibraryCategory.SONGS) }
@@ -334,6 +336,62 @@ fun LibraryScreen(
     }
 
     val songListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val landingListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val groupedListState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    // Speed-aware scroll detection for smooth mini player hide/show:
+    // Hides mini player during fast scrolling, and smoothly reveals as soon as scroll slows down or stops
+    LaunchedEffect(songListState, landingListState, groupedListState) {
+        var lastIndex = 0
+        var lastOffset = 0
+        var lastTime = System.currentTimeMillis()
+        var wasScrollingFast = false
+
+        while (true) {
+            delay(50)
+            val activeState = when {
+                songListState.isScrollInProgress -> songListState
+                landingListState.isScrollInProgress -> landingListState
+                groupedListState.isScrollInProgress -> groupedListState
+                else -> null
+            }
+
+            if (activeState == null) {
+                if (wasScrollingFast) {
+                    wasScrollingFast = false
+                    onScrollStateChange(false)
+                }
+                lastIndex = 0
+                lastOffset = 0
+            } else {
+                val currentIndex = activeState.firstVisibleItemIndex
+                val currentOffset = activeState.firstVisibleItemScrollOffset
+                val now = System.currentTimeMillis()
+                val dt = (now - lastTime).coerceAtLeast(1)
+                lastTime = now
+
+                // Approximate pixel displacement
+                val deltaPx = kotlin.math.abs((currentIndex - lastIndex) * 220 + (currentOffset - lastOffset))
+                val speedPxPerSec = (deltaPx * 1000f) / dt
+
+                lastIndex = currentIndex
+                lastOffset = currentOffset
+
+                // Fast scroll threshold: above ~380 px/sec is fast scrolling (hide mini player)
+                // When scrolling slows down below 240 px/sec or stops, show mini player immediately
+                val isFast = if (wasScrollingFast) {
+                    speedPxPerSec > 240f
+                } else {
+                    speedPxPerSec > 380f
+                }
+
+                if (isFast != wasScrollingFast) {
+                    wasScrollingFast = isFast
+                    onScrollStateChange(isFast)
+                }
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -476,6 +534,7 @@ fun LibraryScreen(
 
             // Primary Landing Page: Vertical List of Library Category Views
             LazyColumn(
+                state = landingListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .testTag("library_views_landing_list"),
@@ -709,6 +768,7 @@ fun LibraryScreen(
                 )
             } else {
                 LazyColumn(
+                    state = groupedListState,
                     modifier = Modifier
                         .fillMaxSize()
                         .testTag("grouped_list_${currentCat.name.lowercase()}"),

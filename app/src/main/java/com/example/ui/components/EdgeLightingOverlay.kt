@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.graphics.Matrix
+import android.graphics.SweepGradient
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -22,7 +24,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.example.model.EdgeLightingSettings
 import com.example.model.EdgeLightingShape
@@ -96,16 +100,18 @@ private fun EdgeLightingContent(
         val centerX = w / 2f
         val centerY = h / 2f
 
-        val nColors = colors.size
-        val shiftedColors = List(nColors) { i ->
-            val idx = (i + (phase * nColors).toInt()) % nColors
-            colors[idx].copy(alpha = pulseAlpha)
+        val colorInts = IntArray(colors.size) { i ->
+            colors[i].copy(alpha = pulseAlpha).toArgb()
         }
+        val positions = FloatArray(colors.size) { i ->
+            i.toFloat() / (colors.size - 1).coerceAtLeast(1)
+        }
+        val sweepShader = SweepGradient(centerX, centerY, colorInts, positions)
+        val matrix = Matrix()
+        matrix.postRotate(phase * 360f, centerX, centerY)
+        sweepShader.setLocalMatrix(matrix)
 
-        val brush = Brush.sweepGradient(
-            colors = shiftedColors,
-            center = Offset(centerX, centerY)
-        )
+        val brush = ShaderBrush(sweepShader)
 
         val cornerRadius = CornerRadius(
             settings.cornerRadiusDp.dp.toPx(),

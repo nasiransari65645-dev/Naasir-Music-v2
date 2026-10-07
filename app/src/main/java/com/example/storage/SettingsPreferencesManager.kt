@@ -821,6 +821,14 @@ class SettingsPreferencesManager(context: Context) {
         return prefs.getFloat("key_floating_anim_speed", 2.5f)
     }
 
+    fun saveFloatingWindowOpacity(opacity: Float) {
+        prefs.edit().putFloat("key_floating_window_opacity", opacity).apply()
+    }
+
+    fun loadFloatingWindowOpacity(): Float {
+        return prefs.getFloat("key_floating_window_opacity", 0.95f)
+    }
+
     fun saveShowTopBar(show: Boolean) {
         prefs.edit().putBoolean("key_show_top_bar", show).apply()
     }

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PictureInPicture
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -172,6 +173,9 @@ fun FloatingPlayerSettingsContent(
     var floatingAnimSpeed by remember {
         mutableFloatStateOf(prefsManager?.loadFloatingAnimationSpeed() ?: 2.5f)
     }
+    var floatingWindowOpacity by remember {
+        mutableFloatStateOf(prefsManager?.loadFloatingWindowOpacity() ?: 0.95f)
+    }
 
     // Automatically detect when user returns from Settings.ACTION_MANAGE_OVERLAY_PERMISSION
     DisposableEffect(lifecycleOwner) {
@@ -290,6 +294,94 @@ fun FloatingPlayerSettingsContent(
                         checkedTrackColor = MaterialTheme.colorScheme.primary
                     ),
                     modifier = Modifier.testTag("switch_floating_desktop_player_toggle")
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Card Item: Window Opacity Slider
+        val isOpacityActive = isFloatingPlayerEnabled
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .alpha(if (isOpacityActive) 1f else 0.45f)
+                .testTag("card_floating_opacity_setting"),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF38BDF8).copy(alpha = 0.15f))
+                            .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = "Window Opacity",
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Window Opacity",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "${(floatingWindowOpacity * 100).roundToInt()}%",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "Adjust transparency of floating player on desktop",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Slider(
+                    value = floatingWindowOpacity,
+                    enabled = isOpacityActive,
+                    onValueChange = {
+                        floatingWindowOpacity = it
+                        prefsManager?.saveFloatingWindowOpacity(it)
+                        FloatingPlayerService.updateOpacity(context, it)
+                    },
+                    valueRange = 0.20f..1.0f,
+                    steps = 15,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("slider_floating_window_opacity")
                 )
             }
         }

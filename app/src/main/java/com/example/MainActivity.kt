@@ -59,7 +59,11 @@ class MainActivity : ComponentActivity() {
     com.example.audio.MediaNotificationManager.createNotificationChannel(this)
     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     enableEdgeToEdge()
-    musicViewModel.selectTab(com.example.viewmodel.AppTab.NOW_PLAYING)
+    if (intent?.getBooleanExtra(com.example.audio.FloatingPlayerService.EXTRA_OPEN_NOW_PLAYING, false) == true) {
+      musicViewModel.selectTab(com.example.viewmodel.AppTab.NOW_PLAYING)
+    } else {
+      musicViewModel.selectTab(com.example.viewmodel.AppTab.ALL_SONGS)
+    }
 
     setContent {
       val activeTheme = com.example.model.AppNaturalTheme.BLUE

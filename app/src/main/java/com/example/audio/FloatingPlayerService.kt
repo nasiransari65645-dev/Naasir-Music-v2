@@ -45,6 +45,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -66,6 +68,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
@@ -159,6 +162,7 @@ class FloatingPlayerService : Service() {
     private val rainbowEdgeEnabledState = mutableStateOf(true)
     private val rainbowBorderSizeState = mutableFloatStateOf(2.5f)
     private val rainbowAnimSpeedState = mutableFloatStateOf(2.5f)
+    private val windowOpacityState = mutableFloatStateOf(0.95f)
 
     companion object {
         private const val TAG = "FloatingPlayerService"
@@ -166,9 +170,11 @@ class FloatingPlayerService : Service() {
         const val ACTION_START = "com.example.audio.ACTION_START_FLOATING_PLAYER"
         const val ACTION_STOP = "com.example.audio.ACTION_STOP_FLOATING_PLAYER"
         const val ACTION_UPDATE_RAINBOW = "com.example.audio.ACTION_UPDATE_RAINBOW"
+        const val ACTION_UPDATE_OPACITY = "com.example.audio.ACTION_UPDATE_OPACITY"
         const val EXTRA_RAINBOW_ENABLED = "extra_rainbow_enabled"
         const val EXTRA_RAINBOW_BORDER_SIZE = "extra_rainbow_border_size"
         const val EXTRA_RAINBOW_ANIM_SPEED = "extra_rainbow_anim_speed"
+        const val EXTRA_FLOATING_OPACITY = "extra_floating_opacity"
 
         var isRunning: Boolean = false
             private set
@@ -209,6 +215,16 @@ class FloatingPlayerService : Service() {
                 context.startService(intent)
             } catch (_: Throwable) {}
         }
+
+        fun updateOpacity(context: Context, opacity: Float) {
+            try {
+                val intent = Intent(context, FloatingPlayerService::class.java).apply {
+                    action = ACTION_UPDATE_OPACITY
+                    putExtra(EXTRA_FLOATING_OPACITY, opacity)
+                }
+                context.startService(intent)
+            } catch (_: Throwable) {}
+        }
     }
 
     override fun onCreate() {
@@ -222,6 +238,7 @@ class FloatingPlayerService : Service() {
         rainbowEdgeEnabledState.value = prefs.loadFloatingRainbowEdgeEnabled()
         rainbowBorderSizeState.floatValue = prefs.loadFloatingBorderSize()
         rainbowAnimSpeedState.floatValue = prefs.loadFloatingAnimationSpeed()
+        windowOpacityState.floatValue = prefs.loadFloatingWindowOpacity()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -238,11 +255,16 @@ class FloatingPlayerService : Service() {
                 rainbowBorderSizeState.floatValue = border
                 rainbowAnimSpeedState.floatValue = speed
             }
+            ACTION_UPDATE_OPACITY -> {
+                val opacity = intent.getFloatExtra(EXTRA_FLOATING_OPACITY, 0.95f)
+                windowOpacityState.floatValue = opacity
+            }
             ACTION_START, null -> {
                 val prefs = SettingsPreferencesManager(applicationContext)
                 rainbowEdgeEnabledState.value = prefs.loadFloatingRainbowEdgeEnabled()
                 rainbowBorderSizeState.floatValue = prefs.loadFloatingBorderSize()
                 rainbowAnimSpeedState.floatValue = prefs.loadFloatingAnimationSpeed()
+                windowOpacityState.floatValue = prefs.loadFloatingWindowOpacity()
                 showOverlayView()
             }
         }
@@ -302,12 +324,14 @@ class FloatingPlayerService : Service() {
                     val rainbowEdgeEnabled by rainbowEdgeEnabledState
                     val rainbowBorderSize by rainbowBorderSizeState
                     val rainbowAnimSpeed by rainbowAnimSpeedState
+                    val windowOpacity by windowOpacityState
 
                     FloatingDesktopPlayerContent(
                         playerManager = AudioPlayerManager.instance,
                         rainbowEdgeEnabled = rainbowEdgeEnabled,
                         borderSizeDp = rainbowBorderSize,
                         animSpeedSec = rainbowAnimSpeed,
+                        windowOpacity = windowOpacity,
                         onDismiss = {
                             removeOverlayView()
                             stopSelf()
@@ -388,6 +412,7 @@ private fun FloatingDesktopPlayerContent(
     rainbowEdgeEnabled: Boolean,
     borderSizeDp: Float = 2.5f,
     animSpeedSec: Float = 2.5f,
+    windowOpacity: Float = 0.95f,
     onDismiss: () -> Unit,
     onOpenApp: () -> Unit,
     onDragWindow: (Float, Float) -> Unit
@@ -440,10 +465,11 @@ private fun FloatingDesktopPlayerContent(
         Color(0xFFFF0055)  // Red
     )
 
-    // Outer Card Container with drag detection
+    // Outer Card Container with drag detection and configurable window opacity
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .alpha(windowOpacity)
             .clip(RoundedCornerShape(20.dp))
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
@@ -587,6 +613,31 @@ private fun FloatingDesktopPlayerContent(
                             fontSize = 10.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    // Favorite / Heart Button for current song
+                    val isFavorite = currentSong?.let { playerState?.favoriteIds?.contains(it.id) } == true
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(if (isFavorite) Color(0xFFEF4444).copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f))
+                            .clickable {
+                                currentSong?.let { song ->
+                                    playerManager?.toggleFavorite(song.id)
+                                }
+                            }
+                            .testTag("floating_player_btn_favorite"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Favorited" else "Favorite",
+                            tint = if (isFavorite) Color(0xFFEF4444) else Color(0xFFCBD5E1),
+                            modifier = Modifier.size(16.dp)
                         )
                     }
 

@@ -8,6 +8,17 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.example.audio.FloatingPlayerService
 import com.example.storage.SettingsPreferencesManager
@@ -241,6 +252,7 @@ fun MainScreen(
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
+    var isSongsScrolling by remember { mutableStateOf(false) }
 
     // Intercept back press when drawer is open, or on another tab to return to library smoothly
     BackHandler(enabled = drawerState.isOpen || uiState.selectedTab != AppTab.ALL_SONGS) {
@@ -373,6 +385,8 @@ fun MainScreen(
                         bottomBar = {
                             val activeSong = uiState.playerState.currentSong ?: uiState.songs.firstOrNull()
                             val shouldShowMiniPlayer = activeSong != null && uiState.selectedTab != AppTab.NOW_PLAYING
+                            val isMiniPlayerVisible = shouldShowMiniPlayer && (!isSongsScrolling || uiState.selectedTab != AppTab.ALL_SONGS)
+
                             if (shouldShowMiniPlayer || showBottomBar) {
                                 Column(
                                     modifier = Modifier
@@ -380,30 +394,45 @@ fun MainScreen(
                                         .windowInsetsPadding(WindowInsets.navigationBars)
                                 ) {
                                     // Mini Player with Next/Prev/Play and Touchable Progress Bar
-                                    // Shown on every screen except Now Playing (even when both top & bottom bars are turned off)
-                                    if (shouldShowMiniPlayer && activeSong != null) {
-                                        MiniPlayer(
-                                            currentSong = activeSong,
-                                            isPlaying = uiState.playerState.isPlaying,
-                                            progressMs = uiState.playerState.currentPositionMs,
-                                            durationMs = if (uiState.playerState.durationMs > 0) uiState.playerState.durationMs else activeSong.durationMs,
-                                            autoRotateActive = uiState.playerState.autoRotateEnabled,
-                                            onPlayPauseClick = { viewModel.togglePlayPause() },
-                                            onPreviousClick = { viewModel.playPrevious() },
-                                            onNextClick = { viewModel.playNext() },
-                                            onSeekTo = { viewModel.seekTo(it) },
-                                            onExpandClick = { viewModel.selectTab(AppTab.NOW_PLAYING) },
-                                            isFastForwarding = uiState.playerState.isFastForwarding,
-                                            isRewinding = uiState.playerState.isRewinding,
-                                            onStartFastForward = { viewModel.startFastForward() },
-                                            onStopFastForward = { viewModel.stopFastForward() },
-                                            onStartRewind = { viewModel.startRewind() },
-                                            onStopRewind = { viewModel.stopRewind() },
-                                            customVisualizerText = uiState.customVisualizerText,
-                                            showVisualizerText = uiState.showVisualizerText,
-                                            visualizerTextColor = Color(uiState.visualizerTextColorHex),
-                                            isCosmicOrbit = false
-                                        )
+                                    // Smoothly slides down and hides while songs list is scrolling, then springs back up when scroll settles
+                                    AnimatedVisibility(
+                                        visible = isMiniPlayerVisible && activeSong != null,
+                                        enter = slideInVertically(
+                                            initialOffsetY = { it },
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                stiffness = Spring.StiffnessMediumLow
+                                            )
+                                        ) + fadeIn(animationSpec = tween(260)),
+                                        exit = slideOutVertically(
+                                            targetOffsetY = { it },
+                                            animationSpec = tween(180, easing = FastOutLinearInEasing)
+                                        ) + fadeOut(animationSpec = tween(140))
+                                    ) {
+                                        if (activeSong != null) {
+                                            MiniPlayer(
+                                                currentSong = activeSong,
+                                                isPlaying = uiState.playerState.isPlaying,
+                                                progressMs = uiState.playerState.currentPositionMs,
+                                                durationMs = if (uiState.playerState.durationMs > 0) uiState.playerState.durationMs else activeSong.durationMs,
+                                                autoRotateActive = uiState.playerState.autoRotateEnabled,
+                                                onPlayPauseClick = { viewModel.togglePlayPause() },
+                                                onPreviousClick = { viewModel.playPrevious() },
+                                                onNextClick = { viewModel.playNext() },
+                                                onSeekTo = { viewModel.seekTo(it) },
+                                                onExpandClick = { viewModel.selectTab(AppTab.NOW_PLAYING) },
+                                                isFastForwarding = uiState.playerState.isFastForwarding,
+                                                isRewinding = uiState.playerState.isRewinding,
+                                                onStartFastForward = { viewModel.startFastForward() },
+                                                onStopFastForward = { viewModel.stopFastForward() },
+                                                onStartRewind = { viewModel.startRewind() },
+                                                onStopRewind = { viewModel.stopRewind() },
+                                                customVisualizerText = uiState.customVisualizerText,
+                                                showVisualizerText = uiState.showVisualizerText,
+                                                visualizerTextColor = Color(uiState.visualizerTextColorHex),
+                                                isCosmicOrbit = false
+                                            )
+                                        }
                                     }
 
                                     // Themed Bottom Navigation Bar (only rendered when showBottomBar is true)
@@ -661,7 +690,8 @@ fun MainScreen(
                                     onToggleFavorite = { viewModel.toggleFavorite(it) },
                                     onRenameSong = { id, title, artist -> viewModel.renameSong(id, title, artist) },
                                     onDeleteSong = { id -> viewModel.deleteSong(id) },
-                                    onSetCustomAlbumArt = { id, uri -> viewModel.setCustomAlbumArt(id, uri) }
+                                    onSetCustomAlbumArt = { id, uri -> viewModel.setCustomAlbumArt(id, uri) },
+                                    onScrollStateChange = { isSongsScrolling = it }
                                 )
                             }
 

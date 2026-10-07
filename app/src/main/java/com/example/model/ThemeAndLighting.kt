@@ -106,12 +106,14 @@ enum class EdgeLightingStyle(
     RAINBOW_SPECTRUM(
         title = "Rainbow",
         colors = listOf(
-            Color(0xFFFF0055),
-            Color(0xFFFF9900),
-            Color(0xFF00FF66),
-            Color(0xFF00CCFF),
-            Color(0xFF9900FF),
-            Color(0xFFFF0055)
+            Color(0xFFFF0055), // Red
+            Color(0xFFFF7700), // Orange
+            Color(0xFFFFEE00), // Yellow
+            Color(0xFF00FF66), // Green
+            Color(0xFF00E5FF), // Cyan
+            Color(0xFF0066FF), // Blue
+            Color(0xFF9900FF), // Violet
+            Color(0xFFFF0055)  // Red
         )
     ),
     ELECTRIC_SUNSET(

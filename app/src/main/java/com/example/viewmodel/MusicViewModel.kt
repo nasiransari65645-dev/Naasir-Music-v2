@@ -71,7 +71,7 @@ data class MusicUiState(
     val filteredSongs: List<Song> = emptyList(),
     val searchQuery: String = "",
     val isScanning: Boolean = false,
-    val selectedTab: AppTab = AppTab.NOW_PLAYING,
+    val selectedTab: AppTab = AppTab.ALL_SONGS,
     val activeCategory: LibraryCategory = LibraryCategory.SONGS,
     val categoryEventId: Long = 0L,
     val playerState: PlayerState = PlayerState(),
@@ -117,8 +117,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeCategory = MutableStateFlow(LibraryCategory.SONGS)
     private val _categoryEventId = MutableStateFlow(0L)
 
-    // Always open directly to NOW_PLAYING on app launch (per user request)
-    private val _selectedTab = MutableStateFlow(AppTab.NOW_PLAYING)
+    // Default to library on launch so all songs appear immediately
+    private val _selectedTab = MutableStateFlow(AppTab.ALL_SONGS)
 
     private val _hasStoragePermission = MutableStateFlow(prefsManager.loadStoragePermission())
     private val _selectedTheme = MutableStateFlow(prefsManager.loadTheme())
@@ -471,7 +471,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = MusicUiState(
-            selectedTab = AppTab.NOW_PLAYING,
+            selectedTab = AppTab.ALL_SONGS,
             selectedTheme = _selectedTheme.value,
             currentThemePalette = _currentThemePalette.value,
             edgeLightingSettings = _edgeLightingSettings.value,
