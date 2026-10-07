@@ -837,22 +837,55 @@ fun LibraryScreen(
             }
 
             if (effectiveDisplaySongs.isEmpty()) {
-                EmptyPlaceholder(
-                    message = when {
-                        currentCat == LibraryCategory.MOST_PLAYED -> "No tracks played yet"
-                        currentCat == LibraryCategory.FAVORITES || currentCat == LibraryCategory.PLAYLISTS -> "No favorite songs yet"
-                        searchQuery.isNotEmpty() -> "No results found for '$searchQuery'"
-                        else -> "No songs found"
-                    },
-                    subMessage = when {
-                        currentCat == LibraryCategory.MOST_PLAYED -> "Songs will appear here after being played for at least 1 minute"
-                        currentCat == LibraryCategory.FAVORITES || currentCat == LibraryCategory.PLAYLISTS -> "Tap the heart icon on any song to save it here"
-                        !hasStoragePermission -> "Grant permission to index music from your device"
-                        else -> "Check audio files on your device"
-                    },
-                    hasPermissionButton = !hasStoragePermission,
-                    onRequestPermission = onRequestPermissionClick
-                )
+                if (isScanning) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(44.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Loading your music library...",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Please wait a moment",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    EmptyPlaceholder(
+                        message = when {
+                            currentCat == LibraryCategory.MOST_PLAYED -> "No tracks played yet"
+                            currentCat == LibraryCategory.FAVORITES || currentCat == LibraryCategory.PLAYLISTS -> "No favorite songs yet"
+                            searchQuery.isNotEmpty() -> "No results found for '$searchQuery'"
+                            else -> "No songs found"
+                        },
+                        subMessage = when {
+                            currentCat == LibraryCategory.MOST_PLAYED -> "Songs will appear here after being played for at least 1 minute"
+                            currentCat == LibraryCategory.FAVORITES || currentCat == LibraryCategory.PLAYLISTS -> "Tap the heart icon on any song to save it here"
+                            !hasStoragePermission -> "Grant permission to index music from your device"
+                            else -> "Check audio files on your device"
+                        },
+                        hasPermissionButton = !hasStoragePermission,
+                        onRequestPermission = onRequestPermissionClick
+                    )
+                }
             } else {
                 Box(
                     modifier = Modifier.fillMaxSize()
