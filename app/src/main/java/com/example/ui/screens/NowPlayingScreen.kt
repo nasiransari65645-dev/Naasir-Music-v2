@@ -320,30 +320,13 @@ fun NowPlayingScreen(
         onBack()
     }
 
-    // Dynamic rotating Rainbow Edge Lighting (Same vibrant effect & fluid algorithm as Floating Window)
-    val rainbowTransition = rememberInfiniteTransition(label = "now_playing_rainbow_edge")
-    val rainbowAngle by rainbowTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2800, easing = LinearEasing),
-            repeatMode = AnimRepeatMode.Restart
-        ),
-        label = "now_playing_rainbow_rotation"
-    )
-
-    Box(
-        modifier = backdropModifier,
-        contentAlignment = Alignment.Center
+    // Clean single Column root container
+    Column(
+        modifier = backdropModifier
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Clean single Column root container
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
             // 1. ALBUM ART / VINYL DISC (Responsive Auto-Fit with swipe next/prev gesture)
             var swipeDragX by remember { mutableFloatStateOf(0f) }
             Box(
@@ -682,53 +665,7 @@ fun NowPlayingScreen(
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
-
-        // Floating Window Style Rainbow Edge Lighting along the perimeter of Now Playing Screen
-        // (Exact SweepGradient + matrix.postRotate continuous 360-degree rotation from Floating Window)
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(1.5.dp)
-        ) {
-            val rainbowIntColors = intArrayOf(
-                0xFFFF0055.toInt(), // Red
-                0xFFFF7700.toInt(), // Orange
-                0xFFFFEE00.toInt(), // Yellow
-                0xFF00FF66.toInt(), // Green
-                0xFF00E5FF.toInt(), // Cyan
-                0xFF0066FF.toInt(), // Blue
-                0xFF9900FF.toInt(), // Violet
-                0xFFFF0055.toInt()  // Red
-            )
-            val positions = floatArrayOf(0f, 0.14f, 0.28f, 0.42f, 0.57f, 0.71f, 0.85f, 1f)
-            val sweepShader = SweepGradient(center.x, center.y, rainbowIntColors, positions)
-            val matrix = Matrix()
-            matrix.postRotate(if (isPlaying) rainbowAngle else 0f, center.x, center.y)
-            sweepShader.setLocalMatrix(matrix)
-
-            val rainbowBrush = ShaderBrush(sweepShader)
-            val cornerRadius = CornerRadius(28.dp.toPx(), 28.dp.toPx())
-
-            // Outer luminous neon aura glow
-            drawRoundRect(
-                brush = rainbowBrush,
-                size = size,
-                cornerRadius = cornerRadius,
-                style = Stroke(width = 6.dp.toPx()),
-                alpha = if (isPlaying) 0.38f else 0.18f
-            )
-
-            // Core precision laser rainbow border
-            drawRoundRect(
-                brush = rainbowBrush,
-                size = size,
-                cornerRadius = cornerRadius,
-                style = Stroke(width = 3.dp.toPx()),
-                alpha = if (isPlaying) 0.95f else 0.55f
-            )
-        }
     }
-}
 
 private fun formatMs(ms: Long): String {
     val totalSeconds = (ms / 1000).coerceAtLeast(0L)

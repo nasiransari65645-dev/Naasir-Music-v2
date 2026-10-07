@@ -252,7 +252,6 @@ fun MainScreen(
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
-    var isSongsScrolling by remember { mutableStateOf(false) }
 
     // Intercept back press when drawer is open, or on another tab to return to library smoothly
     BackHandler(enabled = drawerState.isOpen || uiState.selectedTab != AppTab.ALL_SONGS) {
@@ -385,7 +384,6 @@ fun MainScreen(
                         bottomBar = {
                             val activeSong = uiState.playerState.currentSong ?: uiState.songs.firstOrNull()
                             val shouldShowMiniPlayer = activeSong != null && uiState.selectedTab != AppTab.NOW_PLAYING
-                            val isMiniPlayerVisible = shouldShowMiniPlayer && (!isSongsScrolling || uiState.selectedTab != AppTab.ALL_SONGS)
 
                             if (shouldShowMiniPlayer || showBottomBar) {
                                 Column(
@@ -394,23 +392,9 @@ fun MainScreen(
                                         .windowInsetsPadding(WindowInsets.navigationBars)
                                 ) {
                                     // Mini Player with Next/Prev/Play and Touchable Progress Bar
-                                    // Smoothly slides down and hides while songs list is scrolling, then springs back up when scroll settles
-                                    AnimatedVisibility(
-                                        visible = isMiniPlayerVisible && activeSong != null,
-                                        enter = slideInVertically(
-                                            initialOffsetY = { it },
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessMediumLow
-                                            )
-                                        ) + fadeIn(animationSpec = tween(260)),
-                                        exit = slideOutVertically(
-                                            targetOffsetY = { it },
-                                            animationSpec = tween(180, easing = FastOutLinearInEasing)
-                                        ) + fadeOut(animationSpec = tween(140))
-                                    ) {
-                                        if (activeSong != null) {
-                                            MiniPlayer(
+                                    // Stably docked at the bottom without flickering or scroll-jumping
+                                    if (shouldShowMiniPlayer && activeSong != null) {
+                                        MiniPlayer(
                                                 currentSong = activeSong,
                                                 isPlaying = uiState.playerState.isPlaying,
                                                 progressMs = uiState.playerState.currentPositionMs,
@@ -433,7 +417,6 @@ fun MainScreen(
                                                 isCosmicOrbit = false
                                             )
                                         }
-                                    }
 
                                     // Themed Bottom Navigation Bar (only rendered when showBottomBar is true)
                                     if (showBottomBar) {
@@ -690,8 +673,7 @@ fun MainScreen(
                                     onToggleFavorite = { viewModel.toggleFavorite(it) },
                                     onRenameSong = { id, title, artist -> viewModel.renameSong(id, title, artist) },
                                     onDeleteSong = { id -> viewModel.deleteSong(id) },
-                                    onSetCustomAlbumArt = { id, uri -> viewModel.setCustomAlbumArt(id, uri) },
-                                    onScrollStateChange = { isSongsScrolling = it }
+                                    onSetCustomAlbumArt = { id, uri -> viewModel.setCustomAlbumArt(id, uri) }
                                 )
                             }
 
@@ -862,9 +844,19 @@ fun MainScreen(
                 }
             }
 
-            // Edge Lighting visual overlay along all device borders (Request 10)
+            // Edge Lighting visual overlay along all device borders (True outer screen perimeter)
+            val isNowPlayingTab = uiState.selectedTab == AppTab.NOW_PLAYING
+            val effectiveEdgeSettings = if (isNowPlayingTab && !uiState.edgeLightingSettings.isEnabled) {
+                uiState.edgeLightingSettings.copy(
+                    isEnabled = true,
+                    style = com.example.model.EdgeLightingStyle.RAINBOW_SPECTRUM
+                )
+            } else {
+                uiState.edgeLightingSettings
+            }
+
             EdgeLightingOverlay(
-                settings = uiState.edgeLightingSettings,
+                settings = effectiveEdgeSettings,
                 isPlaying = uiState.playerState.isPlaying
             )
 
