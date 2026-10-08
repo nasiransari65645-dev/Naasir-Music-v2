@@ -45,7 +45,7 @@ fun EdgeLightingOverlay(
     modifier: Modifier = Modifier,
     forcePreview: Boolean = false
 ) {
-    val shouldRender = settings.isEnabled && (isPlaying || forcePreview)
+    val shouldRender = false 
 
     AnimatedVisibility(
         visible = shouldRender,
