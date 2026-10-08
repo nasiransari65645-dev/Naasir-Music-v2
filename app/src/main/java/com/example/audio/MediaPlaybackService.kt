@@ -239,7 +239,12 @@ class MediaPlaybackService : Service() {
     private fun registerNoisyReceiver() {
         if (!isNoisyReceiverRegistered) {
             try {
-                registerReceiver(noisyAudioReceiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+                androidx.core.content.ContextCompat.registerReceiver(
+                    this,
+                    noisyAudioReceiver,
+                    IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+                    androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+                )
                 isNoisyReceiverRegistered = true
                 Log.d(TAG, "MediaPlaybackService: Registered ACTION_AUDIO_BECOMING_NOISY receiver")
             } catch (t: Throwable) {

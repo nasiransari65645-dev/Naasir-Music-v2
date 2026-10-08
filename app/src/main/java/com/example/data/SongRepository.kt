@@ -143,6 +143,40 @@ class SongRepository(
             return@withContext cached
         }
 
+        if (scanned.isEmpty() && cached.isEmpty()) {
+            try {
+                val demoFiles = com.example.audio.SampleAudioGenerator.ensureSampleTracksExist(ctx)
+                val demoSongs = demoFiles.mapIndexed { index, file ->
+                    val def = com.example.audio.SampleAudioGenerator.SAMPLE_TRACKS.getOrNull(index)
+                    Song(
+                        id = (100000L + index),
+                        title = def?.title ?: file.nameWithoutExtension,
+                        artist = def?.artist ?: "Naasir Music",
+                        album = def?.album ?: "Spatial Odyssey",
+                        durationMs = ((def?.durationSeconds ?: 20) * 1000).toLong(),
+                        uri = android.net.Uri.fromFile(file),
+                        path = file.absolutePath,
+                        isDemoTrack = true,
+                        genre = "8D Surround",
+                        composer = "Naasir Audio Lab",
+                        albumArtist = def?.artist ?: "Naasir Music",
+                        folder = "Samples",
+                        dateAdded = System.currentTimeMillis()
+                    )
+                }
+                if (demoSongs.isNotEmpty()) {
+                    if (songDao != null) {
+                        val entities = demoSongs.map { SongEntity.fromSong(it) }
+                        songDao.insertSongs(entities)
+                    }
+                    songCacheManager?.saveSongs(demoSongs)
+                    return@withContext demoSongs
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SongRepository", "Failed to generate sample tracks: ${e.message}", e)
+            }
+        }
+
         scanned
     }
 

@@ -169,31 +169,35 @@ fun MainScreen(
     DisposableEffect(isEdgeLightingEnabled, uiState.selectedTheme) {
         val window = activity?.window
         if (window != null) {
-            val originalNavBarColor = window.navigationBarColor
-            val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
-            if (isEdgeLightingEnabled) {
-                window.navigationBarColor = android.graphics.Color.TRANSPARENT
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    window.isNavigationBarContrastEnforced = false
+            val originalNavBarColor = try { window.navigationBarColor } catch (_: Throwable) { 0 }
+            try {
+                val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+                if (isEdgeLightingEnabled) {
+                    try { window.navigationBarColor = android.graphics.Color.TRANSPARENT } catch (_: Throwable) {}
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        try { window.isNavigationBarContrastEnforced = false } catch (_: Throwable) {}
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        try { window.navigationBarDividerColor = android.graphics.Color.TRANSPARENT } catch (_: Throwable) {}
+                    }
+                } else {
+                    // When Edge Lighting is OFF, explicitly make device navigation visible, solid, and non-transparent
+                    try { window.navigationBarColor = uiState.selectedTheme.surfaceColor.toArgb() } catch (_: Throwable) {}
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        try { window.isNavigationBarContrastEnforced = true } catch (_: Throwable) {}
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        try { window.navigationBarDividerColor = 0xFF1E293B.toInt() } catch (_: Throwable) {}
+                    }
+                    try { insetsController.show(androidx.core.view.WindowInsetsCompat.Type.navigationBars()) } catch (_: Throwable) {}
+                    try { insetsController.isAppearanceLightNavigationBars = false } catch (_: Throwable) {}
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    window.navigationBarDividerColor = android.graphics.Color.TRANSPARENT
-                }
-            } else {
-                // When Edge Lighting is OFF, explicitly make device navigation visible, solid, and non-transparent
-                window.navigationBarColor = uiState.selectedTheme.surfaceColor.toArgb()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    window.isNavigationBarContrastEnforced = true
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    window.navigationBarDividerColor = 0xFF1E293B.toInt()
-                }
-                insetsController.show(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
-                insetsController.isAppearanceLightNavigationBars = false
-            }
+            } catch (_: Throwable) {}
+
             onDispose {
                 try {
                     window.navigationBarColor = originalNavBarColor
+                    val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
                     insetsController.show(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
                 } catch (t: Throwable) {}
             }

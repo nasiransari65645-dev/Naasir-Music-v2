@@ -37,27 +37,37 @@ class MainActivity : ComponentActivity() {
 
   override fun onStart() {
     super.onStart()
-    if (mediaContentObserver == null) {
-      mediaContentObserver = MediaContentObserver(
-        context = applicationContext,
-        coroutineScope = lifecycleScope
-      ) {
-        musicViewModel.syncNewSongsSilently()
+    try {
+      if (mediaContentObserver == null) {
+        mediaContentObserver = MediaContentObserver(
+          context = applicationContext,
+          coroutineScope = lifecycleScope
+        ) {
+          musicViewModel.syncNewSongsSilently()
+        }
+        mediaContentObserver?.register()
       }
-      mediaContentObserver?.register()
+    } catch (e: Exception) {
+      android.util.Log.e("MainActivity", "Error registering MediaContentObserver: ${e.message}", e)
     }
   }
 
   override fun onDestroy() {
     super.onDestroy()
-    mediaContentObserver?.unregister()
+    try {
+      mediaContentObserver?.unregister()
+    } catch (_: Exception) {}
     mediaContentObserver = null
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    com.example.audio.MediaNotificationManager.createNotificationChannel(this)
-    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    try {
+      com.example.audio.MediaNotificationManager.createNotificationChannel(this)
+    } catch (_: Exception) {}
+    try {
+      requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    } catch (_: Exception) {}
     enableEdgeToEdge()
     if (intent?.getBooleanExtra(com.example.audio.FloatingPlayerService.EXTRA_OPEN_NOW_PLAYING, false) == true) {
       musicViewModel.selectTab(com.example.viewmodel.AppTab.NOW_PLAYING)

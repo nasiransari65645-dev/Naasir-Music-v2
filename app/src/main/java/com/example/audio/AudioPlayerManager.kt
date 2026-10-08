@@ -209,7 +209,12 @@ class AudioPlayerManager(
         if (!isNoisyReceiverRegistered) {
             try {
                 val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-                context.registerReceiver(audioBecomingNoisyReceiver, filter)
+                androidx.core.content.ContextCompat.registerReceiver(
+                    context,
+                    audioBecomingNoisyReceiver,
+                    filter,
+                    androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+                )
                 isNoisyReceiverRegistered = true
                 Log.d(TAG, "Registered ACTION_AUDIO_BECOMING_NOISY receiver")
             } catch (t: Throwable) {
