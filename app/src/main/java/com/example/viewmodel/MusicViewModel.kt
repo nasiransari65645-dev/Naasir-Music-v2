@@ -695,25 +695,17 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         _hasStoragePermission.value = granted
         prefsManager.saveStoragePermission(granted)
         if (granted) {
-            if (_allSongs.value.isEmpty()) {
-                viewModelScope.launch(Dispatchers.IO) {
-                    val cached = songRepository.getCachedSongs()
-                    if (!cached.isNullOrEmpty()) {
-                        _allSongs.value = cached
-                        _rawScannedSongs.value = cached
-                        _simpleSongs.value = cached
-                        ensureTrackLoaded(autoPlay = false)
-                    }
-                    val fresh = songRepository.syncWithMediaStore(forceRescan = false)
-                    if (fresh.isNotEmpty() && fresh != cached) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val hasOnlyDemoTracks = _allSongs.value.isEmpty() || _allSongs.value.all { it.isDemoTrack }
+                val fresh = songRepository.syncWithMediaStore(forceRescan = hasOnlyDemoTracks)
+                if (fresh.isNotEmpty()) {
+                    withContext(Dispatchers.Main.immediate) {
                         _allSongs.value = fresh
                         _rawScannedSongs.value = fresh
                         _simpleSongs.value = fresh
                         ensureTrackLoaded(autoPlay = false)
                     }
                 }
-            } else {
-                syncNewSongsSilently()
             }
         }
     }

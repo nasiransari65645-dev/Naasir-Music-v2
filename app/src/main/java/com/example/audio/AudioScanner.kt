@@ -2,8 +2,11 @@ package com.example.audio
 
 import android.content.ContentUris
 import android.content.Context
+import android.media.MediaMetadataRetriever
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import com.example.model.Song
@@ -48,19 +51,18 @@ object AudioScanner {
         MediaStore.Audio.Media.DATE_ADDED
     )
 
-    /**
-     * Built-in Zero-Touch Automatic Media Scanning Architecture:
-     * Applies two distinct pipelines in a single scan pass:
-     *
-     * Pipeline A: Main Songs Catalog (Auto-Filtered & Auto-Sorted)
-     * - Only complete music tracks: IS_MUSIC != 0 AND DURATION >= 15000 (filters out < 15s clips)
-     * - Native Auto-Sort Order: DATE_ADDED DESC (newest tracks at top)
-     *
-     * Pipeline B: Folder Tree Catalog (Unfiltered Full Access)
-     * - Complete directory structure: DURATION > 0 (all audio intact)
-     * - Folders sorted alphabetically (A to Z)
-     * - Tracks inside folders sorted alphabetically by title
-     */
+    private val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "wav", "flac", "aac", "ogg")
+
+    private const val AUDIO_SELECTION_QUERY = "((${MediaStore.Audio.Media.IS_MUSIC} != 0) OR " +
+            "(${MediaStore.Audio.Media.MIME_TYPE} LIKE 'audio/%') OR " +
+            "(${MediaStore.Audio.Media.DATA} LIKE '%.mp3') OR " +
+            "(${MediaStore.Audio.Media.DATA} LIKE '%.m4a') OR " +
+            "(${MediaStore.Audio.Media.DATA} LIKE '%.wav') OR " +
+            "(${MediaStore.Audio.Media.DATA} LIKE '%.flac') OR " +
+            "(${MediaStore.Audio.Media.DATA} LIKE '%.aac') OR " +
+            "(${MediaStore.Audio.Media.DATA} LIKE '%.ogg') OR " +
+            "(${MediaStore.Audio.Media.DISPLAY_NAME} LIKE '%.mp3'))"
+
     suspend fun scanMediaAutomatically(context: Context): ScannedAudioResult = withContext(Dispatchers.IO) {
         val contentResolver = context.contentResolver
         val collection: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -69,55 +71,57 @@ object AudioScanner {
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         }
 
-        // --- Pipeline A: Main Songs Catalog (Auto-Filtered & Auto-Sorted) ---
-        val autoSortedSongs = mutableListOf<Song>()
+        // Pipeline A: MediaStore query for all audio files (including downloaded, transferred MP3s)
+        val mediaStoreSongs = mutableListOf<Song>()
         try {
             contentResolver.query(
                 collection,
                 songProjection,
-                "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= ?",
-                arrayOf("15000"),
-                "${MediaStore.Audio.Media.DATE_ADDED} DESC"
-            )?.use { cursor ->
-                autoSortedSongs.addAll(parseSongsCursor(cursor))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in Pipeline A (Main Songs): ${e.message}", e)
-        }
-
-        // --- Pipeline B: Folder Tree Catalog (Unfiltered Full Access) ---
-        var autoOrganizedFolders: Map<String, List<Song>> = emptyMap()
-        try {
-            contentResolver.query(
-                collection,
-                folderProjection,
-                "${MediaStore.Audio.Media.DURATION} > 0",
+                AUDIO_SELECTION_QUERY,
                 null,
                 "${MediaStore.Audio.Media.DATE_ADDED} DESC"
             )?.use { cursor ->
-                autoOrganizedFolders = parseFoldersAndGroup(cursor)
+                mediaStoreSongs.addAll(parseSongsCursor(cursor))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error in Pipeline B (Folder Tree): ${e.message}", e)
+            Log.e(TAG, "Error in MediaStore scan: ${e.message}", e)
         }
 
-        val result = ScannedAudioResult(songs = autoSortedSongs, folders = autoOrganizedFolders)
+        // Pipeline B: Direct file system discovery across storage directories to catch any unindexed .mp3 files
+        val directFiles = scanStorageFilesDirectly(context)
+
+        // Merge both pipelines seamlessly
+        val combined = mutableListOf<Song>()
+        combined.addAll(mediaStoreSongs)
+        val existingPaths = mediaStoreSongs.mapNotNull { it.path.takeIf { p -> p.isNotBlank() }?.lowercase() }.toSet()
+        for (directSong in directFiles) {
+            if (directSong.path.lowercase() !in existingPaths) {
+                combined.add(directSong)
+            }
+        }
+
+        val finalSongs = deduplicateSongs(combined)
+
+        // Pipeline C: Automatic Folder Tree categorization
+        val folderMap = TreeMap<String, MutableList<Song>>(String.CASE_INSENSITIVE_ORDER)
+        for (song in finalSongs) {
+            val folder = song.folder.ifBlank { "Music" }
+            folderMap.getOrPut(folder) { mutableListOf() }.add(song)
+        }
+        val autoOrganizedFolders = folderMap.mapValues { (_, tracks) ->
+            tracks.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
+        }
+
+        val result = ScannedAudioResult(songs = finalSongs, folders = autoOrganizedFolders)
         cachedResult = result
         result
     }
 
-    /**
-     * Primary entry point invoked by ViewModel.
-     * Executes the automatic dual-pipeline scan and returns the auto-sorted main songs catalog.
-     */
     suspend fun scanDeviceAudio(context: Context): List<Song> = withContext(Dispatchers.IO) {
         val result = scanMediaAutomatically(context)
         result.songs
     }
 
-    /**
-     * Incremental scan query: returns only songs added after minDateAdded timestamp.
-     */
     suspend fun scanDeviceAudioAfter(context: Context, minDateAdded: Long): List<Song> = withContext(Dispatchers.IO) {
         val contentResolver = context.contentResolver
         val collection: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -127,11 +131,12 @@ object AudioScanner {
         }
         val songs = mutableListOf<Song>()
         try {
+            val selection = "$AUDIO_SELECTION_QUERY AND (${MediaStore.Audio.Media.DATE_ADDED} > ?)"
             contentResolver.query(
                 collection,
                 songProjection,
-                "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= ? AND ${MediaStore.Audio.Media.DATE_ADDED} > ?",
-                arrayOf("15000", minDateAdded.toString()),
+                selection,
+                arrayOf(minDateAdded.toString()),
                 "${MediaStore.Audio.Media.DATE_ADDED} DESC"
             )?.use { cursor ->
                 songs.addAll(parseSongsCursor(cursor))
@@ -139,7 +144,124 @@ object AudioScanner {
         } catch (e: Exception) {
             Log.e(TAG, "Error in scanDeviceAudioAfter: ${e.message}", e)
         }
-        songs
+        // Also check if any direct storage files have a newer timestamp
+        val direct = scanStorageFilesDirectly(context).filter { it.dateAdded > minDateAdded }
+        val merged = mutableListOf<Song>()
+        merged.addAll(songs)
+        val existing = songs.map { it.path.lowercase() }.toSet()
+        for (d in direct) {
+            if (d.path.lowercase() !in existing) {
+                merged.add(d)
+            }
+        }
+        deduplicateSongs(merged)
+    }
+
+    /**
+     * Direct file system discovery across storage directories.
+     * Ensures any .mp3 file placed on device is discovered even before MediaStore indexing.
+     */
+    fun scanStorageFilesDirectly(context: Context): List<Song> {
+        val foundSongs = mutableListOf<Song>()
+        val scannedPaths = mutableSetOf<String>()
+
+        val candidateDirectories = mutableListOf<File>()
+        try {
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)?.let { candidateDirectories.add(it) }
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)?.let { candidateDirectories.add(it) }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS)?.let { candidateDirectories.add(it) }
+            }
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PODCASTS)?.let { candidateDirectories.add(it) }
+            Environment.getExternalStorageDirectory()?.let { candidateDirectories.add(it) }
+            candidateDirectories.add(File("/storage/emulated/0/Music"))
+            candidateDirectories.add(File("/storage/emulated/0/Download"))
+            candidateDirectories.add(File("/sdcard/Music"))
+            candidateDirectories.add(File("/sdcard/Download"))
+        } catch (_: Exception) {}
+
+        val uniqueDirs = candidateDirectories.filter { it.exists() && it.isDirectory }.distinctBy { it.absolutePath }
+        val audioFilesToScan = mutableListOf<File>()
+
+        for (dir in uniqueDirs) {
+            findAudioFilesRecursive(dir, audioFilesToScan, maxDepth = 4, currentDepth = 0)
+        }
+
+        if (audioFilesToScan.isEmpty()) return emptyList()
+
+        // Request system MediaScanner to index newly detected files in background
+        try {
+            val paths = audioFilesToScan.map { it.absolutePath }.toTypedArray()
+            MediaScannerConnection.scanFile(context, paths, null, null)
+        } catch (_: Exception) {}
+
+        val retriever = MediaMetadataRetriever()
+        for (file in audioFilesToScan) {
+            if (!scannedPaths.add(file.absolutePath.lowercase())) continue
+            try {
+                var title: String? = null
+                var artist: String? = null
+                var album: String? = null
+                var durationMs: Long = 0L
+                var genre: String? = null
+
+                try {
+                    retriever.setDataSource(file.absolutePath)
+                    title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                    artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                    album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                    genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE)
+                    val durStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                    durationMs = durStr?.toLongOrNull() ?: 0L
+                } catch (_: Exception) {}
+
+                val finalTitle = title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension
+                val finalArtist = artist?.takeIf { it.isNotBlank() && !it.contains("<unknown>", ignoreCase = true) } ?: "Unknown Artist"
+                val finalAlbum = album?.takeIf { it.isNotBlank() && !it.contains("<unknown>", ignoreCase = true) } ?: (file.parentFile?.name ?: "Local Music")
+                val finalFolder = file.parentFile?.name?.ifBlank { "Music" } ?: "Music"
+
+                val stableId = (file.absolutePath.hashCode().toLong() and 0x7FFFFFFF).let { if (it == 0L) file.length() else it }
+
+                foundSongs.add(
+                    Song(
+                        id = stableId,
+                        title = finalTitle,
+                        artist = finalArtist,
+                        album = finalAlbum,
+                        durationMs = durationMs,
+                        uri = Uri.fromFile(file),
+                        path = file.absolutePath,
+                        isDemoTrack = false,
+                        folder = finalFolder,
+                        albumArtist = finalArtist,
+                        genre = genre ?: "Music",
+                        dateAdded = file.lastModified() / 1000L
+                    )
+                )
+            } catch (_: Exception) {}
+        }
+        try { retriever.release() } catch (_: Exception) {}
+
+        return foundSongs
+    }
+
+    private fun findAudioFilesRecursive(dir: File, result: MutableList<File>, maxDepth: Int, currentDepth: Int) {
+        if (currentDepth > maxDepth || !dir.exists() || !dir.isDirectory || dir.name.startsWith(".")) return
+        if (dir.name.equals("data", ignoreCase = true) || dir.name.equals("obb", ignoreCase = true)) {
+            if (dir.parentFile?.name.equals("Android", ignoreCase = true)) return
+        }
+
+        val files = dir.listFiles() ?: return
+        for (file in files) {
+            if (file.isDirectory) {
+                findAudioFilesRecursive(file, result, maxDepth, currentDepth + 1)
+            } else if (file.isFile) {
+                val ext = file.extension.lowercase()
+                if (ext in AUDIO_EXTENSIONS && file.length() > 1024) {
+                    result.add(file)
+                }
+            }
+        }
     }
 
     private fun parseSongsCursor(cursor: android.database.Cursor): List<Song> {
@@ -472,8 +594,8 @@ object AudioScanner {
             context.contentResolver.query(
                 collection,
                 arrayOf(MediaStore.Audio.Media._ID),
-                "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= ?",
-                arrayOf("15000"),
+                AUDIO_SELECTION_QUERY,
+                null,
                 null
             )?.use { it.count } ?: 0
         } catch (_: Exception) {

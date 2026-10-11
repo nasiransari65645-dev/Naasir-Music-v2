@@ -45,7 +45,8 @@ fun EdgeLightingOverlay(
     modifier: Modifier = Modifier,
     forcePreview: Boolean = false
 ) {
-    val shouldRender = settings.isEnabled || forcePreview
+    // Only render edge lighting strictly when enabled AND audio is playing (not when paused or stopped)
+    val shouldRender = settings.isEnabled && isPlaying
 
     AnimatedVisibility(
         visible = shouldRender,

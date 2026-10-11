@@ -162,17 +162,17 @@ fun MainScreen(
         }
     }
 
-    // Request 1: Dynamic Navigation Bar transparency when Edge Lighting is enabled; visible device navigation when off
-    val isEdgeLightingEnabled = uiState.edgeLightingSettings.isEnabled
+    // Dynamic Navigation Bar transparency ONLY when Edge Lighting is enabled AND audio is playing; visible device navigation when off or paused
+    val isEdgeLightingActive = uiState.edgeLightingSettings.isEnabled && uiState.playerState.isPlaying
     val activity = context as? Activity
 
-    DisposableEffect(isEdgeLightingEnabled, uiState.selectedTheme) {
+    DisposableEffect(isEdgeLightingActive, uiState.selectedTheme) {
         val window = activity?.window
         if (window != null) {
             val originalNavBarColor = try { window.navigationBarColor } catch (_: Throwable) { 0 }
             try {
                 val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
-                if (isEdgeLightingEnabled) {
+                if (isEdgeLightingActive) {
                     try { window.navigationBarColor = android.graphics.Color.TRANSPARENT } catch (_: Throwable) {}
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         try { window.isNavigationBarContrastEnforced = false } catch (_: Throwable) {}

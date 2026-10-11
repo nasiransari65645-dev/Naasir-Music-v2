@@ -111,6 +111,8 @@ class MainActivity : ComponentActivity() {
     super.onResume()
     // When returning to MainActivity, dismiss floating desktop player so there is no duplicate UI
     com.example.audio.FloatingPlayerService.stop(this)
+    // Auto scan and sync any newly downloaded or added audio files
+    musicViewModel.syncNewSongsSilently()
   }
 
   override fun onNewIntent(intent: android.content.Intent) {

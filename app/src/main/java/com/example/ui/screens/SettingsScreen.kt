@@ -137,16 +137,9 @@ data class UiDesignOption(
 )
 
 val ALL_UI_DESIGNS = listOf(
-    UiDesignOption("Vinyl Record", "Vinyl Record", "33⅓ RPM rotating turntable vinyl disc", Icons.Default.Album, "Retro"),
-    UiDesignOption("Cosmic Orbit", "Cosmic Orbit", "Nebula orbit ring, satellite gauge & cyan wave", Icons.Default.AutoAwesome, "Cosmic"),
-    UiDesignOption("Cyber Neon", "Cyber Neon", "Futuristic HUD rings & pulsing neon aura", Icons.Default.AutoAwesome, "Sci-Fi"),
-    UiDesignOption("Studio Console", "Studio Console", "Twin stereo VU meters & analog knob", Icons.Default.GraphicEq, "Studio"),
-    UiDesignOption("CD Disk", "CD Disk", "Holographic laser compact disc", Icons.Default.Album, "90s"),
-    UiDesignOption("Cassette Tape", "Cassette Tape", "Vintage Hi-Fi analog dual spool tape", Icons.Default.Radio, "Analog"),
+    UiDesignOption("Classic Cover", "Classic Cover", "High-res full album artwork cover", Icons.Default.MusicNote, "Default"),
     UiDesignOption("Walkman", "Walkman", "Retro portable stereo player with LED", Icons.Default.Headphones, "Vintage"),
-    UiDesignOption("Acoustic Orb", "Acoustic Orb", "3D harmonic pulsating energy sphere", Icons.Default.SurroundSound, "3D"),
-    UiDesignOption("Minimalist Edge", "Minimalist Edge", "Frosted glassmorphism edge cover", Icons.Default.Waves, "Modern"),
-    UiDesignOption("Classic Cover", "Classic Cover", "High-res full album artwork cover", Icons.Default.MusicNote, "Default")
+    UiDesignOption("Cassette Tape", "Cassette Tape", "Vintage Hi-Fi analog dual spool tape", Icons.Default.Radio, "Analog")
 )
 
 /**

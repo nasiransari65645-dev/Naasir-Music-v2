@@ -83,10 +83,16 @@ class SongRepository(
      */
     suspend fun syncNewSongs(): List<Song> = withContext(Dispatchers.IO) {
         val ctx = context ?: return@withContext emptyList()
-        val latestTimestamp = songDao?.getLatestDateAdded() ?: 0L
+        val cached = getCachedSongs() ?: emptyList()
+        val hasOnlyDemoTracks = cached.isEmpty() || cached.all { it.isDemoTrack }
 
+        if (hasOnlyDemoTracks) {
+            // First time or had only demo tracks: perform full auto-scan
+            return@withContext syncWithMediaStore(forceRescan = true)
+        }
+
+        val latestTimestamp = songDao?.getLatestDateAdded() ?: 0L
         if (latestTimestamp <= 0L) {
-            // First time sync or empty DB: perform full sync
             return@withContext syncWithMediaStore(forceRescan = true)
         }
 
@@ -96,12 +102,13 @@ class SongRepository(
             songDao.insertSongs(entities)
             val updatedAll = songDao.getAllSongsSync().map { it.toSong() }
             songCacheManager?.saveSongs(updatedAll)
+            return@withContext updatedAll
         }
 
-        // Check if any deleted files exist
+        // Check if any deleted files exist or count differs
         val dbCount = songDao?.getSongCount() ?: 0
         val mediaStoreCount = AudioScanner.getMediaStoreAudioCount(ctx)
-        if (mediaStoreCount < dbCount) {
+        if (mediaStoreCount != dbCount) {
             syncWithMediaStore(forceRescan = true)
         } else {
             getCachedSongsSync()
@@ -116,8 +123,9 @@ class SongRepository(
     suspend fun syncWithMediaStore(forceRescan: Boolean = false): List<Song> = withContext(Dispatchers.IO) {
         val ctx = context ?: return@withContext emptyList()
         val cached = getCachedSongs() ?: emptyList()
+        val hasOnlyDemoTracks = cached.isNotEmpty() && cached.all { it.isDemoTrack }
 
-        if (!forceRescan && cached.isNotEmpty()) {
+        if (!forceRescan && cached.isNotEmpty() && !hasOnlyDemoTracks) {
             val mediaCount = AudioScanner.getMediaStoreAudioCount(ctx)
             if (mediaCount == cached.size) {
                 // Media store count matches local cache perfectly -> zero re-scan delay
@@ -139,11 +147,11 @@ class SongRepository(
             return@withContext scanned
         }
 
-        if (scanned.isEmpty() && cached.isNotEmpty()) {
+        if (scanned.isEmpty() && cached.isNotEmpty() && !hasOnlyDemoTracks) {
             return@withContext cached
         }
 
-        if (scanned.isEmpty() && cached.isEmpty()) {
+        if (scanned.isEmpty() && (cached.isEmpty() || hasOnlyDemoTracks)) {
             try {
                 val demoFiles = com.example.audio.SampleAudioGenerator.ensureSampleTracksExist(ctx)
                 val demoSongs = demoFiles.mapIndexed { index, file ->
@@ -161,7 +169,7 @@ class SongRepository(
                         composer = "Naasir Audio Lab",
                         albumArtist = def?.artist ?: "Naasir Music",
                         folder = "Samples",
-                        dateAdded = System.currentTimeMillis()
+                        dateAdded = 0L
                     )
                 }
                 if (demoSongs.isNotEmpty()) {
