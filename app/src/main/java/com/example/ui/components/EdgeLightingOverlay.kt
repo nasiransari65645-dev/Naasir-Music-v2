@@ -45,15 +45,15 @@ fun EdgeLightingOverlay(
     modifier: Modifier = Modifier,
     forcePreview: Boolean = false
 ) {
-    val shouldRender = false 
+    val shouldRender = settings.isEnabled || forcePreview
 
     AnimatedVisibility(
         visible = shouldRender,
-        enter = fadeIn(animationSpec = tween(400)),
-        exit = fadeOut(animationSpec = tween(300)),
+        enter = fadeIn(animationSpec = tween(300)),
+        exit = fadeOut(animationSpec = tween(250)),
         modifier = modifier
     ) {
-        EdgeLightingContent(settings = settings, isPlaying = isPlaying || forcePreview)
+        EdgeLightingContent(settings = settings, isPlaying = isPlaying)
     }
 }
 
@@ -78,17 +78,17 @@ private fun EdgeLightingContent(
 
     // Pulse factor when music is playing (Bass pulse reactivity)
     val pulseAlpha by transition.animateFloat(
-        initialValue = if (settings.musicReactive && isPlaying) 0.55f else 0.85f,
+        initialValue = if (settings.musicReactive && isPlaying) 0.65f else 0.90f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(if (isPlaying) 400 else 1000, easing = LinearEasing),
+            animation = tween(if (isPlaying) 400 else 1400, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseAlpha"
     )
 
     val colors = settings.style.colors
-    val strokeWidthPx = settings.strokeWidthDp.dp
+    val strokeWidthPx = settings.strokeWidthDp.coerceIn(2f, 8f).dp
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
@@ -113,23 +113,22 @@ private fun EdgeLightingContent(
 
         val brush = ShaderBrush(sweepShader)
 
-        val cornerRadius = CornerRadius(
-            settings.cornerRadiusDp.dp.toPx(),
-            settings.cornerRadiusDp.dp.toPx()
-        )
+        val crPx = settings.cornerRadiusDp.coerceIn(0f, 32f).dp.toPx()
+        val cornerRadius = CornerRadius(crPx, crPx)
 
         when (settings.shape) {
             EdgeLightingShape.SOLID_LINE -> {
-                // Outer glow layer
+                // Outer soft halo strictly right at the edge
                 drawRoundRect(
                     brush = brush,
                     topLeft = Offset(sw / 2f, sw / 2f),
                     size = Size(w - sw, h - sw),
                     cornerRadius = cornerRadius,
-                    style = Stroke(width = sw * 2.0f)
+                    style = Stroke(width = sw * 1.6f),
+                    alpha = 0.35f
                 )
 
-                // Sharp core border
+                // Crisp, vibrant edge border
                 drawRoundRect(
                     brush = brush,
                     topLeft = Offset(sw / 2f, sw / 2f),
@@ -145,7 +144,7 @@ private fun EdgeLightingContent(
                     topLeft = Offset(sw / 2f, sw / 2f),
                     size = Size(w - sw, h - sw),
                     cornerRadius = cornerRadius,
-                    style = Stroke(width = sw * 1.5f, pathEffect = dotDash)
+                    style = Stroke(width = sw * 1.3f, pathEffect = dotDash)
                 )
             }
             EdgeLightingShape.STARS, EdgeLightingShape.HEARTS, EdgeLightingShape.MUSIC_NOTES -> {
@@ -155,7 +154,7 @@ private fun EdgeLightingContent(
                     topLeft = Offset(sw / 2f, sw / 2f),
                     size = Size(w - sw, h - sw),
                     cornerRadius = cornerRadius,
-                    style = Stroke(width = sw * 1.8f, pathEffect = dashEffect)
+                    style = Stroke(width = sw * 1.5f, pathEffect = dashEffect)
                 )
                 // Core border
                 drawRoundRect(

@@ -91,7 +91,7 @@ data class MusicUiState(
     val keepScreenOn: Boolean = false,
     val shakeToSkip: Boolean = false,
     val sleepTimerMinutes: Int = 0,
-    val spinningVinyl: Boolean = true,
+    val spinningVinyl: Boolean = false,
     val albumArtStyle: String = "Classic Cover",
     val customThemeSettings: CustomThemeSettings = CustomThemeSettings(),
     val appThemeMode: com.example.model.AppThemeMode = com.example.model.AppThemeMode.DARK_OLED,

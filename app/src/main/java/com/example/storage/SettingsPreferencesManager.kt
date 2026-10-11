@@ -288,7 +288,7 @@ class SettingsPreferencesManager(context: Context) {
     }
 
     fun loadSpinningVinyl(): Boolean {
-        return prefs.getBoolean(KEY_SPINNING_VINYL, true)
+        return prefs.getBoolean(KEY_SPINNING_VINYL, false)
     }
 
     fun saveAlbumArtStyle(style: String) {
@@ -297,7 +297,7 @@ class SettingsPreferencesManager(context: Context) {
 
     fun loadAlbumArtStyle(): String {
         val saved = prefs.getString(KEY_ALBUM_ART_STYLE, "Classic Cover") ?: "Classic Cover"
-        return if (saved == "Full Screen" || saved.isBlank()) "Classic Cover" else saved
+        return if (saved == "Full Screen" || saved == "CD Disk" || saved == "Vinyl Record" || saved.isBlank()) "Classic Cover" else saved
     }
 
     fun saveSeekIntervalSec(seconds: Int) {

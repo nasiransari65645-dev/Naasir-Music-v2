@@ -129,11 +129,11 @@ enum class EdgeLightingStyle(
 data class EdgeLightingSettings(
     val isEnabled: Boolean = false,
     val isNotificationBorderEnabled: Boolean = true,
-    val style: EdgeLightingStyle = EdgeLightingStyle.CYBER_PULSE,
-    val strokeWidthDp: Float = 4.0f,
+    val style: EdgeLightingStyle = EdgeLightingStyle.NEON_CYAN,
+    val strokeWidthDp: Float = 3.5f,
     val animationSpeedSec: Float = 3.5f,
     val musicReactive: Boolean = true,
-    val cornerRadiusDp: Float = 36.0f,
+    val cornerRadiusDp: Float = 24.0f,
     val shape: EdgeLightingShape = EdgeLightingShape.SOLID_LINE
 )
 

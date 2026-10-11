@@ -849,19 +849,10 @@ fun MainScreen(
             }
 
             // Edge Lighting visual overlay along all device borders (True outer screen perimeter)
-            val isNowPlayingTab = uiState.selectedTab == AppTab.NOW_PLAYING
-            val effectiveEdgeSettings = if (isNowPlayingTab && !uiState.edgeLightingSettings.isEnabled) {
-                uiState.edgeLightingSettings.copy(
-                    isEnabled = true,
-                    style = com.example.model.EdgeLightingStyle.RAINBOW_SPECTRUM
-                )
-            } else {
-                uiState.edgeLightingSettings
-            }
-
             EdgeLightingOverlay(
-                settings = effectiveEdgeSettings,
-                isPlaying = uiState.playerState.isPlaying
+                settings = uiState.edgeLightingSettings,
+                isPlaying = uiState.playerState.isPlaying,
+                modifier = Modifier.fillMaxSize()
             )
 
             // Speedometer Volume Gauge Overlay (Left or Right Edge, Isolated from audio threads)

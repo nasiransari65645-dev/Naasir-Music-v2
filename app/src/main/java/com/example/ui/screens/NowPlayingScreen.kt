@@ -1197,11 +1197,11 @@ private fun AlbumArtPresentation(
                             drawCircle(
                                 brush = Brush.sweepGradient(
                                     colors = listOf(
-                                        Color(0xFF00E5FF),
-                                        Color(0xFF8B5CF6),
-                                        Color(0xFFD946EF),
-                                        Color(0xFF3B82F6),
-                                        Color(0xFF00E5FF)
+                                        activeAccentColor,
+                                        activeAccentColor.copy(alpha = 0.5f),
+                                        activeAccentColor,
+                                        activeAccentColor.copy(alpha = 0.8f),
+                                        activeAccentColor
                                     )
                                 ),
                                 radius = maxR * 0.90f,
@@ -1388,92 +1388,8 @@ private fun AlbumArtPresentation(
                 }
             }
 
-            "Vinyl Record" -> {
-                // 1. VINYL RECORD (with Authentic Animated Tonearm Stylus)
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(192.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF0C0E14))
-                            .border(3.dp, if (outerBorderColor != Color.Unspecified) outerBorderColor else Color(0xFF1E2230), CircleShape)
-                            .rotate(if (spinningVinyl && isPlaying) rotationAnim.value else 0f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val maxR = size.minDimension / 2f
-                            // Concentric microgrooves
-                            for (i in 1..14) {
-                                drawCircle(
-                                    color = Color(0xFF1A1F2E).copy(alpha = 0.7f),
-                                    radius = maxR * (0.38f + i * 0.042f),
-                                    center = center,
-                                    style = Stroke(width = 1.dp.toPx())
-                                )
-                            }
-                            // Vinyl vinylite reflection highlights
-                            drawCircle(
-                                brush = Brush.sweepGradient(
-                                    listOf(
-                                        Color.Transparent,
-                                        Color.White.copy(alpha = 0.08f),
-                                        Color.Transparent,
-                                        Color.White.copy(alpha = 0.08f),
-                                        Color.Transparent
-                                    )
-                                ),
-                                radius = maxR * 0.96f,
-                                center = center
-                            )
-                        }
-
-                        // Center Vinyl Label Disc
-                        Box(
-                            modifier = Modifier
-                                .size(88.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(activeAccentColor, if (outerBorderColor != Color.Unspecified) outerBorderColor.copy(alpha = 0.5f) else Color(0xFF1E1B4B))
-                                    )
-                                )
-                                .border(2.dp, activeAccentColor, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-
-                        // Center Spindle Hole
-                        Box(
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF06080F))
-                                .border(1.5.dp, Color(0xFF94A3B8), CircleShape)
-                        )
-                    }
-
-                    // Authentic Animated Tonearm Stylus Overlay
-                    TonearmStylusOverlay(
-                        isPlaying = isPlaying,
-                        currentPositionMs = currentPositionMs,
-                        durationMs = durationMs,
-                        isCdDisk = false,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-
-            "Classic Cover" -> {
-                // 2. CLASSIC COVER (Displays real album artwork with fallback)
+            "Vinyl Record", "CD Disk", "Classic Cover" -> {
+                // CLASSIC COVER (Clean modern album artwork card with high-res cover art or stylish card fallback)
                 Card(
                     modifier = Modifier
                         .fillMaxSize()
@@ -1532,122 +1448,77 @@ private fun AlbumArtPresentation(
                                     .clip(RoundedCornerShape(20.dp))
                             )
                         } else {
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(
-                                            activeAccentColor.copy(alpha = 0.35f),
-                                            Color.Transparent
-                                        ),
-                                        center = center,
-                                        radius = size.minDimension * 0.65f
+                            // Clean modern album art card (NO CD or disc elements)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(
+                                                Color(0xFF0F172A),
+                                                Color(0xFF1E293B),
+                                                activeAccentColor.copy(alpha = 0.25f),
+                                                Color(0xFF0A0E17)
+                                            )
+                                        )
                                     ),
-                                    radius = size.minDimension * 0.65f,
-                                    center = center
-                                )
-                                val maxR = size.minDimension / 2f
-                                for (i in 1..3) {
-                                    drawCircle(
-                                        color = Color(0xFF374151).copy(alpha = 0.5f),
-                                        radius = maxR * (0.4f + i * 0.16f),
-                                        center = center,
-                                        style = Stroke(width = 1.dp.toPx())
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(20.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(22.dp),
+                                        color = activeAccentColor.copy(alpha = 0.15f),
+                                        border = BorderStroke(1.5.dp, activeAccentColor.copy(alpha = 0.45f)),
+                                        modifier = Modifier.size(84.dp)
+                                    ) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier.fillMaxSize()
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.MusicNote,
+                                                contentDescription = "Music",
+                                                tint = activeAccentColor,
+                                                modifier = Modifier.size(44.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(14.dp))
+
+                                    Text(
+                                        text = songTitle.ifBlank { "Naasir Music" },
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp
+                                        ),
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        text = songArtist.ifBlank { "Audio Track" },
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = activeAccentColor.copy(alpha = 0.85f),
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                     )
                                 }
                             }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(96.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(activeAccentColor, Color(0xFF1E1B4B))
-                                        )
-                                    )
-                                    .border(2.dp, activeAccentColor, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(44.dp)
-                                )
-                            }
                         }
                     }
-                }
-            }
-
-            "CD Disk" -> {
-                // 3. COMPACT DISC (CD with Authentic Animated Tonearm Stylus)
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(192.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFCBD5E1))
-                            .border(2.dp, Color(0xFF94A3B8), CircleShape)
-                            .rotate(rotationAnim.value),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val maxR = size.minDimension / 2f
-                            // Holographic rainbow diffraction sweep
-                            drawCircle(
-                                brush = Brush.sweepGradient(
-                                    listOf(
-                                        Color(0xFFE2E8F0),
-                                        activeAccentColor.copy(alpha = 0.5f),
-                                        Color(0xFFF43F5E).copy(alpha = 0.5f),
-                                        Color(0xFFEAB308).copy(alpha = 0.5f),
-                                        activeAccentColor.copy(alpha = 0.5f),
-                                        Color(0xFFE2E8F0)
-                                    )
-                                ),
-                                radius = maxR * 0.96f,
-                                center = center
-                            )
-                            // Mirror track separator ring
-                            drawCircle(
-                                color = Color(0xFF64748B).copy(alpha = 0.4f),
-                                radius = maxR * 0.42f,
-                                center = center,
-                                style = Stroke(width = 1.5.dp.toPx())
-                            )
-                        }
-
-                        // Polycarbonate inner ring
-                        Box(
-                            modifier = Modifier
-                                .size(76.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF0F172A).copy(alpha = 0.7f))
-                                .border(1.5.dp, Color(0xFF94A3B8), CircleShape)
-                        )
-
-                        // Center spindle hole
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF080B14))
-                                .border(2.dp, Color(0xFFCBD5E1), CircleShape)
-                        )
-                    }
-
-                    // Authentic Animated Tonearm Stylus with Neon Cyan optical laser dot
-                    TonearmStylusOverlay(
-                        isPlaying = isPlaying,
-                        currentPositionMs = currentPositionMs,
-                        durationMs = durationMs,
-                        isCdDisk = true,
-                        modifier = Modifier.fillMaxSize()
-                    )
                 }
             }
 
@@ -1976,8 +1847,7 @@ private fun AlbumArtPresentation(
                                 Brush.sweepGradient(
                                     listOf(
                                         activeAccentColor,
-                                        Color(0xFF00E5FF),
-                                        Color(0xFFD500F9),
+                                        activeAccentColor.copy(alpha = 0.5f),
                                         activeAccentColor
                                     )
                                 )
@@ -2730,9 +2600,9 @@ private fun CosmicOrbitNowPlayingLayout(
                             brush = Brush.sweepGradient(
                                 colors = listOf(
                                     Color(0xFF00E5FF),
-                                    Color(0xFF8B5CF6),
-                                    Color(0xFFD946EF),
-                                    Color(0xFF3B82F6),
+                                    Color(0xFF00E5FF).copy(alpha = 0.5f),
+                                    Color(0xFF00E5FF),
+                                    Color(0xFF00E5FF).copy(alpha = 0.8f),
                                     Color(0xFF00E5FF)
                                 )
                             ),
