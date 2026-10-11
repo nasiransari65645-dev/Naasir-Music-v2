@@ -144,17 +144,97 @@ object AudioScanner {
         } catch (e: Exception) {
             Log.e(TAG, "Error in scanDeviceAudioAfter: ${e.message}", e)
         }
-        // Also check if any direct storage files have a newer timestamp
-        val direct = scanStorageFilesDirectly(context).filter { it.dateAdded > minDateAdded }
+        // Fast lightweight check in standard download/music folders for newly placed files
+        val quickNew = scanQuickNewFiles(context, minDateAdded)
         val merged = mutableListOf<Song>()
         merged.addAll(songs)
         val existing = songs.map { it.path.lowercase() }.toSet()
-        for (d in direct) {
+        for (d in quickNew) {
             if (d.path.lowercase() !in existing) {
                 merged.add(d)
             }
         }
         deduplicateSongs(merged)
+    }
+
+    /**
+     * Fast incremental check for newly downloaded audio files without deep recursive scanning.
+     */
+    fun scanQuickNewFiles(context: Context, minDateAdded: Long): List<Song> {
+        val targetDirs = listOfNotNull(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+            File("/storage/emulated/0/Download"),
+            File("/storage/emulated/0/Music")
+        ).filter { it.exists() && it.isDirectory }.distinctBy { it.absolutePath }
+
+        val newFiles = mutableListOf<File>()
+        for (dir in targetDirs) {
+            val files = dir.listFiles() ?: continue
+            for (f in files) {
+                if (f.isFile) {
+                    val ext = f.extension.lowercase()
+                    if (ext in AUDIO_EXTENSIONS && f.length() > 1024) {
+                        val fileDate = f.lastModified() / 1000L
+                        if (fileDate > minDateAdded) {
+                            newFiles.add(f)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (newFiles.isEmpty()) return emptyList()
+
+        try {
+            val paths = newFiles.map { it.absolutePath }.toTypedArray()
+            MediaScannerConnection.scanFile(context, paths, null, null)
+        } catch (_: Exception) {}
+
+        val result = mutableListOf<Song>()
+        val retriever = MediaMetadataRetriever()
+        for (file in newFiles) {
+            try {
+                var title: String? = null
+                var artist: String? = null
+                var album: String? = null
+                var durationMs = 0L
+                var genre: String? = null
+                try {
+                    retriever.setDataSource(file.absolutePath)
+                    title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                    artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                    album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                    genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE)
+                    durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+                } catch (_: Exception) {}
+
+                val finalTitle = title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension
+                val finalArtist = artist?.takeIf { it.isNotBlank() && !it.contains("<unknown>", ignoreCase = true) } ?: "Unknown Artist"
+                val finalAlbum = album?.takeIf { it.isNotBlank() && !it.contains("<unknown>", ignoreCase = true) } ?: (file.parentFile?.name ?: "Local Music")
+                val finalFolder = file.parentFile?.name?.ifBlank { "Music" } ?: "Music"
+                val stableId = (file.absolutePath.hashCode().toLong() and 0x7FFFFFFF).let { if (it == 0L) file.length() else it }
+
+                result.add(
+                    Song(
+                        id = stableId,
+                        title = finalTitle,
+                        artist = finalArtist,
+                        album = finalAlbum,
+                        durationMs = durationMs,
+                        uri = Uri.fromFile(file),
+                        path = file.absolutePath,
+                        isDemoTrack = false,
+                        folder = finalFolder,
+                        albumArtist = finalArtist,
+                        genre = genre ?: "Music",
+                        dateAdded = file.lastModified() / 1000L
+                    )
+                )
+            } catch (_: Exception) {}
+        }
+        try { retriever.release() } catch (_: Exception) {}
+        return result
     }
 
     /**

@@ -105,14 +105,8 @@ class SongRepository(
             return@withContext updatedAll
         }
 
-        // Check if any deleted files exist or count differs
-        val dbCount = songDao?.getSongCount() ?: 0
-        val mediaStoreCount = AudioScanner.getMediaStoreAudioCount(ctx)
-        if (mediaStoreCount != dbCount) {
-            syncWithMediaStore(forceRescan = true)
-        } else {
-            getCachedSongsSync()
-        }
+        // If no new songs were found, return empty list immediately in 0ms (no heavy full scan)
+        emptyList()
     }
 
     /**
@@ -126,11 +120,8 @@ class SongRepository(
         val hasOnlyDemoTracks = cached.isNotEmpty() && cached.all { it.isDemoTrack }
 
         if (!forceRescan && cached.isNotEmpty() && !hasOnlyDemoTracks) {
-            val mediaCount = AudioScanner.getMediaStoreAudioCount(ctx)
-            if (mediaCount == cached.size) {
-                // Media store count matches local cache perfectly -> zero re-scan delay
-                return@withContext cached
-            }
+            // Instant 0ms cache return without any disk/MediaStore scanning
+            return@withContext cached
         }
 
         // Full scan: Audio files changed or forced manual refresh

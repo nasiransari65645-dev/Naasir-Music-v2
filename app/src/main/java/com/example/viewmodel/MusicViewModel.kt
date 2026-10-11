@@ -667,26 +667,52 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Immediate instant memory hydration from cache on launch (0ms lag-free)
+        // Instant cache memory hydration on launch (0ms, no re-scanning)
         viewModelScope.launch(Dispatchers.IO) {
             val cached = songRepository.getCachedSongs()
-            if (!cached.isNullOrEmpty()) {
+            val hasRealCachedSongs = !cached.isNullOrEmpty() && cached.any { !it.isDemoTrack }
+            if (hasRealCachedSongs) {
                 withContext(Dispatchers.Main.immediate) {
-                    _allSongs.value = cached
+                    _allSongs.value = cached!!
                     _rawScannedSongs.value = cached
                     _simpleSongs.value = cached
                     ensureTrackLoaded(autoPlay = false)
                 }
-            }
-            // Silent background sync
-            val fresh = songRepository.syncWithMediaStore(forceRescan = false)
-            if (fresh.isNotEmpty() && fresh != cached) {
-                withContext(Dispatchers.Main.immediate) {
-                    _allSongs.value = fresh
-                    _rawScannedSongs.value = fresh
-                    _simpleSongs.value = fresh
-                    ensureTrackLoaded(autoPlay = false)
+            } else {
+                // First run: only scan when no cached songs exist yet
+                val fresh = songRepository.syncWithMediaStore(forceRescan = false)
+                if (fresh.isNotEmpty()) {
+                    withContext(Dispatchers.Main.immediate) {
+                        _allSongs.value = fresh
+                        _rawScannedSongs.value = fresh
+                        _simpleSongs.value = fresh
+                        ensureTrackLoaded(autoPlay = false)
+                    }
                 }
+            }
+        }
+
+        // Start background auto-check for new songs (checks every 30s quietly on Dispatchers.IO)
+        startBackgroundNewSongsCheck()
+    }
+
+    private var backgroundCheckJob: Job? = null
+
+    private fun startBackgroundNewSongsCheck() {
+        backgroundCheckJob?.cancel()
+        backgroundCheckJob = viewModelScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                delay(30_000) // check every 30s
+                try {
+                    val updated = songRepository.syncNewSongs()
+                    if (updated.isNotEmpty() && updated.size != _allSongs.value.size) {
+                        withContext(Dispatchers.Main.immediate) {
+                            _allSongs.value = updated
+                            _rawScannedSongs.value = updated
+                            _simpleSongs.value = updated
+                        }
+                    }
+                } catch (_: Exception) {}
             }
         }
     }

@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
     super.onResume()
     // When returning to MainActivity, dismiss floating desktop player so there is no duplicate UI
     com.example.audio.FloatingPlayerService.stop(this)
-    // Auto scan and sync any newly downloaded or added audio files
+    // Fast silent check: only checks if a new song was added while user was outside
     musicViewModel.syncNewSongsSilently()
   }
 
