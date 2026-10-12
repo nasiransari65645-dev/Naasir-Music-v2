@@ -190,6 +190,42 @@ class AudioPlayerManager(
         instance = this
         startAutoRotateLoop()
         registerAudioBecomingNoisyReceiver()
+        warmUpEngine()
+    }
+
+    /**
+     * Pre-warms the MediaPlayer and audio attributes on background/standby so
+     * when the user taps play on any song, playback starts instantly with 0ms delay.
+     */
+    fun warmUpEngine() {
+        scope.launch(Dispatchers.Default) {
+            try {
+                if (mediaPlayer == null) {
+                    val player = MediaPlayer().apply {
+                        setOnErrorListener { mp, what, extra ->
+                            Log.e(TAG, "MediaPlayer error: what=$what, extra=$extra")
+                            scope.launch(Dispatchers.Main.immediate) {
+                                _state.update { it.copy(isPlaying = false) }
+                                try { mp.reset() } catch (_: Throwable) {}
+                            }
+                            true
+                        }
+                        try {
+                            setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK)
+                        } catch (_: Throwable) {}
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .build()
+                        )
+                    }
+                    mediaPlayer = player
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "Engine warm-up: ${t.message}")
+            }
+        }
     }
 
     private var isNoisyReceiverRegistered: Boolean = false

@@ -119,6 +119,7 @@ import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.ui.platform.LocalContext
 import coil.request.ImageRequest
 import com.example.model.AppThemePalette
+import com.example.model.CategoryIndex
 import com.example.model.LibraryCategory
 import com.example.model.LocalAppThemePalette
 import com.example.model.Song
@@ -128,6 +129,7 @@ import com.example.ui.theme.CardDark
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.CyanNeon
 import com.example.ui.theme.PurpleNeon
+import com.example.util.AppImageLoader
 
 @Composable
 fun LibraryScreen(
@@ -135,6 +137,7 @@ fun LibraryScreen(
     filteredSongs: List<Song>,
     sortedSongs: List<Song> = songs,
     simpleSongs: List<Song> = emptyList(),
+    categoryIndex: CategoryIndex = CategoryIndex(),
     currentSong: Song?,
     isPlaying: Boolean,
     isScanning: Boolean,
@@ -237,81 +240,89 @@ fun LibraryScreen(
     // Deduplicated catalog (pre-deduplicated efficiently by repository/scanner)
     val deduplicatedSongs = effectiveSongs
 
-    // Artist list calculation: only computed when viewing ARTISTS category
-    val artistsList = remember(deduplicatedSongs, selectedCategory) {
+    // Use Pre-Indexed lists directly for instant 0ms tab switching (fallback to computed if index is building)
+    val artistsList = remember(categoryIndex, deduplicatedSongs, selectedCategory) {
         if (selectedCategory == LibraryCategory.ARTISTS) {
-            deduplicatedSongs.groupBy { it.artist.ifBlank { "Unknown Artist" } }.map { (artist, songList) ->
-                artist to songList
-            }.sortedByDescending { it.second.size }
-        } else emptyList()
-    }
-
-    // Album list calculation: only computed when viewing ALBUMS or COMPILATIONS
-    val albumsList = remember(deduplicatedSongs, selectedCategory) {
-        if (selectedCategory == LibraryCategory.ALBUMS || selectedCategory == LibraryCategory.COMPILATIONS) {
-            deduplicatedSongs.groupBy { it.album.ifBlank { "Unknown Album" } }.map { (album, songList) ->
-                album to songList
-            }.sortedByDescending { it.second.size }
-        } else emptyList()
-    }
-
-    // Folders calculation: only computed when viewing FOLDERS category
-    val foldersList = remember(filteredSongs, effectiveSongs, selectedCategory) {
-        if (selectedCategory == LibraryCategory.FOLDERS) {
-            val cached = com.example.audio.AudioScanner.cachedFolders
-            if (cached.isNotEmpty()) {
-                cached.map { (folder, songList) ->
-                    folder to songList
-                }.sortedBy { it.first.lowercase() }
-            } else {
-                effectiveSongs.groupBy { it.folder.ifBlank { "Music" } }.map { (folder, songList) ->
-                    folder to songList
-                }.sortedBy { it.first.lowercase() }
+            categoryIndex.artistsList.ifEmpty {
+                deduplicatedSongs.groupBy { it.artist.ifBlank { "Unknown Artist" } }.map { (artist, songList) ->
+                    artist to songList
+                }.sortedByDescending { it.second.size }
             }
         } else emptyList()
     }
 
-    // Genres calculation: only computed when viewing GENRE category
-    val genresList = remember(deduplicatedSongs, selectedCategory) {
+    val albumsList = remember(categoryIndex, deduplicatedSongs, selectedCategory) {
+        if (selectedCategory == LibraryCategory.ALBUMS || selectedCategory == LibraryCategory.COMPILATIONS) {
+            categoryIndex.albumsList.ifEmpty {
+                deduplicatedSongs.groupBy { it.album.ifBlank { "Unknown Album" } }.map { (album, songList) ->
+                    album to songList
+                }.sortedByDescending { it.second.size }
+            }
+        } else emptyList()
+    }
+
+    val foldersList = remember(categoryIndex, filteredSongs, effectiveSongs, selectedCategory) {
+        if (selectedCategory == LibraryCategory.FOLDERS) {
+            categoryIndex.foldersList.ifEmpty {
+                val cached = com.example.audio.AudioScanner.cachedFolders
+                if (cached.isNotEmpty()) {
+                    cached.map { (folder, songList) ->
+                        folder to songList
+                    }.sortedBy { it.first.lowercase() }
+                } else {
+                    effectiveSongs.groupBy { it.folder.ifBlank { "Music" } }.map { (folder, songList) ->
+                        folder to songList
+                    }.sortedBy { it.first.lowercase() }
+                }
+            }
+        } else emptyList()
+    }
+
+    val genresList = remember(categoryIndex, deduplicatedSongs, selectedCategory) {
         if (selectedCategory == LibraryCategory.GENRE) {
-            deduplicatedSongs.groupBy { it.genre.ifBlank { "General" } }.map { (genre, songList) ->
-                genre to songList
-            }.sortedByDescending { it.second.size }
+            categoryIndex.genresList.ifEmpty {
+                deduplicatedSongs.groupBy { it.genre.ifBlank { "General" } }.map { (genre, songList) ->
+                    genre to songList
+                }.sortedByDescending { it.second.size }
+            }
         } else emptyList()
     }
 
-    // Album Artists calculation: only computed when viewing ALBUM_ARTISTS category
-    val albumArtistsList = remember(deduplicatedSongs, selectedCategory) {
+    val albumArtistsList = remember(categoryIndex, deduplicatedSongs, selectedCategory) {
         if (selectedCategory == LibraryCategory.ALBUM_ARTISTS) {
-            deduplicatedSongs.groupBy { it.albumArtist.ifBlank { it.artist.ifBlank { "Unknown Artist" } } }.map { (aa, songList) ->
-                aa to songList
-            }.sortedByDescending { it.second.size }
+            categoryIndex.albumArtistsList.ifEmpty {
+                deduplicatedSongs.groupBy { it.albumArtist.ifBlank { it.artist.ifBlank { "Unknown Artist" } } }.map { (aa, songList) ->
+                    aa to songList
+                }.sortedByDescending { it.second.size }
+            }
         } else emptyList()
     }
 
-    // Composers calculation: only computed when viewing COMPOSERS category
-    val composersList = remember(deduplicatedSongs, selectedCategory) {
+    val composersList = remember(categoryIndex, deduplicatedSongs, selectedCategory) {
         if (selectedCategory == LibraryCategory.COMPOSERS) {
-            deduplicatedSongs.groupBy { it.composer.ifBlank { "Unknown Composer" } }.map { (comp, songList) ->
-                comp to songList
-            }.sortedByDescending { it.second.size }
+            categoryIndex.composersList.ifEmpty {
+                deduplicatedSongs.groupBy { it.composer.ifBlank { "Unknown Composer" } }.map { (comp, songList) ->
+                    comp to songList
+                }.sortedByDescending { it.second.size }
+            }
         } else emptyList()
     }
 
-    // Most played list: only computed when viewing MOST_PLAYED category (count > 1, ignoring 1st played)
-    val mostPlayedList = remember(deduplicatedSongs, selectedCategory) {
+    val mostPlayedList = remember(categoryIndex, deduplicatedSongs, selectedCategory) {
         if (selectedCategory == LibraryCategory.MOST_PLAYED) {
-            deduplicatedSongs
-                .filter { it.playCount > 1 }
-                .sortedWith(
-                    compareByDescending<Song> { it.playCount }
-                        .thenByDescending { it.dateAdded }
-                        .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
-                )
+            categoryIndex.mostPlayedList.ifEmpty {
+                deduplicatedSongs
+                    .filter { it.playCount > 1 }
+                    .sortedWith(
+                        compareByDescending<Song> { it.playCount }
+                            .thenByDescending { it.dateAdded }
+                            .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+                    )
+            }
         } else emptyList()
     }
 
-    val displaySongs = remember(selectedCategory, deduplicatedSongs, effectiveSongs, mostPlayedList, favoriteIds, selectedGroupFilter, searchQuery) {
+    val displaySongs = remember(selectedCategory, deduplicatedSongs, effectiveSongs, mostPlayedList, favoriteIds, selectedGroupFilter, searchQuery, categoryIndex) {
         if (searchQuery.isNotBlank() && selectedCategory == null) {
             deduplicatedSongs
         } else {
@@ -320,15 +331,28 @@ fun LibraryScreen(
                 LibraryCategory.FAVORITES -> deduplicatedSongs.filter { favoriteIds.contains(it.id) }
                 LibraryCategory.MOST_PLAYED -> mostPlayedList
                 LibraryCategory.PLAYLISTS -> deduplicatedSongs.filter { favoriteIds.contains(it.id) }
-                LibraryCategory.ARTISTS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.artist.ifBlank { "Unknown Artist" } == selectedGroupFilter } else emptyList()
-                LibraryCategory.ALBUMS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.album.ifBlank { "Unknown Album" } == selectedGroupFilter } else emptyList()
+                LibraryCategory.ARTISTS -> if (selectedGroupFilter != null) {
+                    categoryIndex.artistSongsMap[selectedGroupFilter]
+                        ?: deduplicatedSongs.filter { it.artist.ifBlank { "Unknown Artist" } == selectedGroupFilter }
+                } else emptyList()
+                LibraryCategory.ALBUMS -> if (selectedGroupFilter != null) {
+                    categoryIndex.albumSongsMap[selectedGroupFilter]
+                        ?: deduplicatedSongs.filter { it.album.ifBlank { "Unknown Album" } == selectedGroupFilter }
+                } else emptyList()
                 LibraryCategory.FOLDERS -> if (selectedGroupFilter != null) {
-                    com.example.audio.AudioScanner.cachedFolders[selectedGroupFilter]
+                    categoryIndex.folderSongsMap[selectedGroupFilter]
+                        ?: com.example.audio.AudioScanner.cachedFolders[selectedGroupFilter]
                         ?: effectiveSongs.filter { it.folder.ifBlank { "Music" } == selectedGroupFilter }
                 } else emptyList()
-                LibraryCategory.GENRE -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.genre.ifBlank { "General" } == selectedGroupFilter } else emptyList()
+                LibraryCategory.GENRE -> if (selectedGroupFilter != null) {
+                    categoryIndex.genreSongsMap[selectedGroupFilter]
+                        ?: deduplicatedSongs.filter { it.genre.ifBlank { "General" } == selectedGroupFilter }
+                } else emptyList()
                 LibraryCategory.ALBUM_ARTISTS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.albumArtist.ifBlank { it.artist.ifBlank { "Unknown Artist" } } == selectedGroupFilter } else emptyList()
-                LibraryCategory.COMPILATIONS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.album.ifBlank { "Unknown Album" } == selectedGroupFilter } else emptyList()
+                LibraryCategory.COMPILATIONS -> if (selectedGroupFilter != null) {
+                    categoryIndex.albumSongsMap[selectedGroupFilter]
+                        ?: deduplicatedSongs.filter { it.album.ifBlank { "Unknown Album" } == selectedGroupFilter }
+                } else emptyList()
                 LibraryCategory.COMPOSERS -> if (selectedGroupFilter != null) deduplicatedSongs.filter { it.composer.ifBlank { "Unknown Composer" } == selectedGroupFilter } else emptyList()
                 null -> deduplicatedSongs
             }
@@ -836,6 +860,35 @@ fun LibraryScreen(
                 displaySongs
             }
 
+            // High-Performance Lazy Chunk Loading / Paging (Tukdo me loading)
+            // Loads top 30 tracks initially; auto-appends 25 tracks on scrolling near end.
+            val totalTrackCount = effectiveDisplaySongs.size
+            var loadedChunkCount by remember(effectiveDisplaySongs) {
+                mutableIntStateOf(if (totalTrackCount <= 40) totalTrackCount else 30)
+            }
+
+            val pagedSongs = remember(effectiveDisplaySongs, loadedChunkCount) {
+                if (effectiveDisplaySongs.size <= loadedChunkCount) {
+                    effectiveDisplaySongs
+                } else {
+                    effectiveDisplaySongs.take(loadedChunkCount)
+                }
+            }
+
+            // Pre-fetch next chunk smoothly when user scrolls within 8 items of the current end
+            val shouldLoadMore by remember {
+                derivedStateOf {
+                    val lastVisible = songListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    lastVisible >= loadedChunkCount - 8 && loadedChunkCount < totalTrackCount
+                }
+            }
+
+            LaunchedEffect(shouldLoadMore) {
+                if (shouldLoadMore && loadedChunkCount < totalTrackCount) {
+                    loadedChunkCount = (loadedChunkCount + 25).coerceAtMost(totalTrackCount)
+                }
+            }
+
             if (effectiveDisplaySongs.isEmpty()) {
                 if (isScanning) {
                     Box(
@@ -966,7 +1019,7 @@ fun LibraryScreen(
                         }
 
                         items(
-                            items = effectiveDisplaySongs,
+                            items = pagedSongs,
                             key = { it.id },
                             contentType = { "song_row" }
                         ) { song ->
@@ -1339,15 +1392,19 @@ private fun SongItemRow(
                 val artUri = song.albumArtUri
                 if (artUri != null) {
                     val context = LocalContext.current
+                    val imageLoader = remember(context) { AppImageLoader.get(context) }
                     val imageRequest = remember(artUri) {
                         ImageRequest.Builder(context)
                             .data(artUri)
-                            .size(100, 100)
+                            .size(96, 96)
                             .crossfade(false)
+                            .memoryCacheKey("art_thumb_${song.id}_${artUri}")
+                            .diskCacheKey("art_disk_${song.id}_${artUri}")
                             .build()
                     }
                     AsyncImage(
                         model = imageRequest,
+                        imageLoader = imageLoader,
                         contentDescription = song.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

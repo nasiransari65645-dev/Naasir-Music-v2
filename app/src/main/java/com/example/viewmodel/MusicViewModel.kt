@@ -12,6 +12,7 @@ import com.example.model.AppNaturalTheme
 import com.example.model.AppThemePalette
 import com.example.model.AppThemePreset
 import com.example.model.AutoRotateDirection
+import com.example.model.CategoryIndex
 import com.example.model.CuratedThemePalettes
 import com.example.model.CustomThemeSettings
 import com.example.model.DEFAULT_PALETTE
@@ -69,6 +70,7 @@ data class MusicUiState(
     val songs: List<Song> = emptyList(),
     val simpleSongs: List<Song> = emptyList(),
     val filteredSongs: List<Song> = emptyList(),
+    val categoryIndex: CategoryIndex = CategoryIndex(),
     val searchQuery: String = "",
     val isScanning: Boolean = false,
     val selectedTab: AppTab = AppTab.ALL_SONGS,
@@ -342,6 +344,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         val songs: List<Song>,
         val simpleSongs: List<Song>,
         val filtered: List<Song>,
+        val categoryIndex: CategoryIndex,
         val query: String,
         val isScanning: Boolean,
         val hasPerm: Boolean,
@@ -360,7 +363,50 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 it.album.contains(query, ignoreCase = true)
             }
         }
-        Triple(sortedAll, simpleSongs, Pair(filtered, query))
+
+        // Fast Pre-indexing of Categories in background coroutine thread (0ms tab switch)
+        val artistsMap = sortedAll.groupBy { it.artist.ifBlank { "Unknown Artist" } }
+        val artistsList = artistsMap.map { (artist, list) -> artist to list }.sortedByDescending { it.second.size }
+
+        val albumsMap = sortedAll.groupBy { it.album.ifBlank { "Unknown Album" } }
+        val albumsList = albumsMap.map { (album, list) -> album to list }.sortedByDescending { it.second.size }
+
+        val foldersMap = AudioScanner.cachedFolders.ifEmpty {
+            sortedAll.groupBy { it.folder.ifBlank { "Music" } }
+        }
+        val foldersList = foldersMap.map { (folder, list) -> folder to list }.sortedBy { it.first.lowercase() }
+
+        val genresMap = sortedAll.groupBy { it.genre.ifBlank { "General" } }
+        val genresList = genresMap.map { (genre, list) -> genre to list }.sortedByDescending { it.second.size }
+
+        val albumArtistsList = sortedAll.groupBy { it.albumArtist.ifBlank { it.artist.ifBlank { "Unknown Artist" } } }
+            .map { (aa, list) -> aa to list }.sortedByDescending { it.second.size }
+
+        val composersList = sortedAll.groupBy { it.composer.ifBlank { "Unknown Composer" } }
+            .map { (comp, list) -> comp to list }.sortedByDescending { it.second.size }
+
+        val mostPlayedList = sortedAll.filter { it.playCount > 1 }
+            .sortedWith(
+                compareByDescending<Song> { it.playCount }
+                    .thenByDescending { it.dateAdded }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+            )
+
+        val catIndex = CategoryIndex(
+            artistsList = artistsList,
+            albumsList = albumsList,
+            foldersList = foldersList,
+            genresList = genresList,
+            albumArtistsList = albumArtistsList,
+            composersList = composersList,
+            mostPlayedList = mostPlayedList,
+            artistSongsMap = artistsMap,
+            albumSongsMap = albumsMap,
+            folderSongsMap = foldersMap,
+            genreSongsMap = genresMap
+        )
+
+        Pair(Triple(sortedAll, simpleSongs, filtered), Pair(catIndex, query))
     }
 
     private val libraryDataFlow = combine(
@@ -369,9 +415,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         _hasStoragePermission,
         _activeCategory,
         _categoryEventId
-    ) { (songs, simpleSongs, filteredAndQuery), isScanning, hasPerm, category, catEventId ->
-        val (filtered, query) = filteredAndQuery
-        LibraryData(songs, simpleSongs, filtered, query, isScanning, hasPerm, category, catEventId)
+    ) { (songsAndFiltered, catAndQuery), isScanning, hasPerm, category, catEventId ->
+        val (songs, simpleSongs, filtered) = songsAndFiltered
+        val (catIndex, query) = catAndQuery
+        LibraryData(songs, simpleSongs, filtered, catIndex, query, isScanning, hasPerm, category, catEventId)
     }
 
     private val extraSettingsFlow = combine(
@@ -439,6 +486,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             songs = lib.songs,
             simpleSongs = lib.simpleSongs,
             filteredSongs = lib.filtered,
+            categoryIndex = lib.categoryIndex,
             searchQuery = lib.query,
             isScanning = lib.isScanning,
             selectedTab = tab,

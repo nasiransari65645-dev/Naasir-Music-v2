@@ -655,6 +655,7 @@ fun MainScreen(
                                     filteredSongs = uiState.filteredSongs,
                                     sortedSongs = sortedSongs,
                                     simpleSongs = uiState.simpleSongs,
+                                    categoryIndex = uiState.categoryIndex,
                                     currentSong = uiState.playerState.currentSong,
                                     isPlaying = uiState.playerState.isPlaying,
                                     isScanning = uiState.isScanning,

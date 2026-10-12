@@ -2,7 +2,9 @@ package com.example.model
 
 import android.content.ContentUris
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 
+@Immutable
 data class Song(
     val id: Long,
     val title: String,
